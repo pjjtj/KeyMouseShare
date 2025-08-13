@@ -20,6 +20,9 @@ public class ScreenLayoutPanel extends JPanel {
     private static final Color SELECTED_SCREEN_COLOR = new Color(255, 165, 0, 200);
     private static final Color GRID_COLOR = new Color(200, 200, 200);
     
+    // 吸附距离阈值
+    private static final int SNAP_DISTANCE = 20;
+    
     private ScreenLayoutConfig layoutConfig;
     private DeviceScreen selectedScreen;
     private List<Rectangle> screenRectangles;
@@ -129,6 +132,9 @@ public class ScreenLayoutPanel extends JPanel {
      */
     private void handleMouseReleased(MouseEvent e) {
         if (draggedScreen != null) {
+            // 应用吸附效果
+            applySnapEffect(draggedScreen);
+            
             // 更新布局配置中的屏幕位置
             layoutConfig.updateScreen(draggedScreen);
             draggedScreen = null;
@@ -159,6 +165,73 @@ public class ScreenLayoutPanel extends JPanel {
             draggedScreen.setY(newY);
             
             repaint();
+        }
+    }
+    
+    /**
+     * 应用屏幕吸附效果
+     * @param draggedScreen 被拖拽的屏幕
+     */
+    private void applySnapEffect(DeviceScreen draggedScreen) {
+        // 确保屏幕有有效的尺寸
+        int draggedWidth = draggedScreen.getWidth() > 0 ? draggedScreen.getWidth() : 1920;
+        int draggedHeight = draggedScreen.getHeight() > 0 ? draggedScreen.getHeight() : 1080;
+        
+        // 获取所有其他屏幕
+        List<DeviceScreen> allScreens = layoutConfig.getAllScreens();
+        
+        // 遍历所有其他屏幕，寻找最近的边缘进行吸附
+        for (DeviceScreen otherScreen : allScreens) {
+            // 跳过自己
+            if (otherScreen == draggedScreen) {
+                continue;
+            }
+            
+            // 确保其他屏幕有有效的尺寸
+            int otherWidth = otherScreen.getWidth() > 0 ? otherScreen.getWidth() : 1920;
+            int otherHeight = otherScreen.getHeight() > 0 ? otherScreen.getHeight() : 1080;
+            
+            // 计算拖拽屏幕的边缘坐标
+            int draggedLeft = draggedScreen.getX();
+            int draggedRight = draggedScreen.getX() + draggedWidth;
+            int draggedTop = draggedScreen.getY();
+            int draggedBottom = draggedScreen.getY() + draggedHeight;
+            
+            // 计算其他屏幕的边缘坐标
+            int otherLeft = otherScreen.getX();
+            int otherRight = otherScreen.getX() + otherWidth;
+            int otherTop = otherScreen.getY();
+            int otherBottom = otherScreen.getY() + otherHeight;
+            
+            // 检查水平方向的吸附
+            if (Math.abs(draggedLeft - otherRight) < SNAP_DISTANCE) {
+                // 拖拽屏幕的左边缘吸附到其他屏幕的右边缘
+                draggedScreen.setX(otherRight);
+            } else if (Math.abs(draggedRight - otherLeft) < SNAP_DISTANCE) {
+                // 拖拽屏幕的右边缘吸附到其他屏幕的左边缘
+                draggedScreen.setX(otherLeft - draggedWidth);
+            } else if (Math.abs(draggedLeft - otherLeft) < SNAP_DISTANCE) {
+                // 拖拽屏幕的左边缘吸附到其他屏幕的左边缘
+                draggedScreen.setX(otherLeft);
+            } else if (Math.abs(draggedRight - otherRight) < SNAP_DISTANCE) {
+                // 拖拽屏幕的右边缘吸附到其他屏幕的右边缘
+                draggedScreen.setX(otherRight - draggedWidth);
+            }
+            
+            // 检查垂直方向的吸附
+            if (Math.abs(draggedTop - otherBottom) < SNAP_DISTANCE) {
+                // 拖拽屏幕的上边缘吸附到其他屏幕的下边缘
+                draggedScreen.setY(otherBottom);
+            } else if (Math.abs(draggedBottom - otherTop) < SNAP_DISTANCE) {
+                // 拖拽屏幕的下边缘吸附到其他屏幕的上边缘
+                draggedScreen.setY(otherTop - draggedHeight);
+            } else if (Math.abs(draggedTop - otherTop) < SNAP_DISTANCE) {
+                // 拖拽屏幕的上边缘吸附到其他屏幕的上边缘
+                draggedScreen.setY(otherTop);
+            } else if (Math.abs(draggedBottom - otherBottom) < SNAP_DISTANCE) {
+                // 拖拽屏幕的下边缘吸附到其他屏幕的下边缘
+                draggedScreen.setY(otherBottom - draggedHeight);
+            }
         }
     }
     
