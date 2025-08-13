@@ -1,6 +1,8 @@
 package com.keymouseshare;
 
 import com.keymouseshare.core.Controller;
+import com.keymouseshare.input.InputListenerManager;
+import com.keymouseshare.input.InputListenerManagerFactory;
 import com.keymouseshare.ui.MainWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,10 @@ public class Application {
         Controller controller = new Controller();
         controller.initialize();
         
+        // 创建输入监听管理器
+        InputListenerManager inputListenerManager = InputListenerManagerFactory.createInputListenerManager();
+        controller.setInputListenerManager(inputListenerManager);
+        
         // 根据参数决定启动模式
         if (args.length > 0 && "--server".equals(args[0])) {
             logger.info("Starting in server mode");
@@ -42,6 +48,11 @@ public class Application {
                 MainWindow mainWindow = new MainWindow(controller);
                 mainWindow.showWindow();
             });
+        }
+        
+        // 启动输入监听
+        if (inputListenerManager != null) {
+            inputListenerManager.startListening();
         }
         
         // 启动控制器

@@ -52,4 +52,10 @@ public interface InputListener {
      * @param event 文件拖拽事件
      */
     void onFileDragEnd(FileDragEvent event);
+    
+    /**
+     * 检查监听器是否正在监听
+     * @return true表示正在监听，false表示未监听
+     */
+    boolean isListening();
 }

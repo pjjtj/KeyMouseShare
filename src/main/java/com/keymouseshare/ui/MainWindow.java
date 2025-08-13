@@ -1,6 +1,7 @@
 package com.keymouseshare.ui;
 
 import com.keymouseshare.core.Controller;
+import com.keymouseshare.screen.ScreenLayoutConfig;
 import com.keymouseshare.util.OSUtil;
 
 import javax.swing.*;
@@ -17,6 +18,7 @@ public class MainWindow extends JFrame {
     private JTextField serverPortField;
     private JButton connectButton;
     private JButton startServerButton;
+    private JButton screenLayoutButton;
     private JTextArea logArea;
     
     public MainWindow(Controller controller) {
@@ -35,6 +37,7 @@ public class MainWindow extends JFrame {
         serverPortField = new JTextField("8888", 5);
         connectButton = new JButton("连接到服务器");
         startServerButton = new JButton("启动服务器");
+        screenLayoutButton = new JButton("配置屏幕布局");
         logArea = new JTextArea(10, 50);
         logArea.setEditable(false);
         logArea.setLineWrap(true);
@@ -54,6 +57,7 @@ public class MainWindow extends JFrame {
         topPanel.add(serverPortField);
         topPanel.add(connectButton);
         topPanel.add(startServerButton);
+        topPanel.add(screenLayoutButton);
         
         // 创建日志面板
         JPanel logPanel = new JPanel(new BorderLayout());
@@ -79,6 +83,13 @@ public class MainWindow extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 startServer();
+            }
+        });
+        
+        screenLayoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                configureScreenLayout();
             }
         });
     }
@@ -133,6 +144,14 @@ public class MainWindow extends JFrame {
                 showError("服务器启动失败: " + e.getMessage());
             }
         }).start();
+    }
+    
+    private void configureScreenLayout() {
+        ScreenLayoutConfig layoutConfig = controller.getScreenLayoutManager().getLayoutConfig();
+        ScreenLayoutDialog dialog = new ScreenLayoutDialog(this, layoutConfig);
+        dialog.setVisible(true);
+        
+        appendLog("屏幕布局配置完成");
     }
     
     private void showError(String message) {

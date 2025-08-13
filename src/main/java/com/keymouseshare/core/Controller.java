@@ -20,6 +20,7 @@ public class Controller implements InputListener {
     private NetworkManager networkManager;
     private ScreenLayoutManager screenLayoutManager;
     private FileTransferManager fileTransferManager;
+    private InputListenerManager inputListenerManager;
     
     public Controller() {
         this.configManager = new ConfigManager();
@@ -57,6 +58,9 @@ public class Controller implements InputListener {
         }
         if (fileTransferManager != null) {
             fileTransferManager.shutdown();
+        }
+        if (inputListenerManager != null) {
+            inputListenerManager.stopListening();
         }
         // 保存配置
         if (configManager != null) {
@@ -123,6 +127,11 @@ public class Controller implements InputListener {
         }
     }
     
+    @Override
+    public boolean isListening() {
+        return inputListenerManager != null && inputListenerManager.isListening();
+    }
+    
     // Getters and setters
     public DeviceConfig getDeviceConfig() {
         return deviceConfig;
@@ -138,5 +147,16 @@ public class Controller implements InputListener {
     
     public FileTransferManager getFileTransferManager() {
         return fileTransferManager;
+    }
+    
+    public InputListenerManager getInputListenerManager() {
+        return inputListenerManager;
+    }
+    
+    public void setInputListenerManager(InputListenerManager inputListenerManager) {
+        this.inputListenerManager = inputListenerManager;
+        if (this.inputListenerManager != null) {
+            this.inputListenerManager.setEventListener(this);
+        }
     }
 }
