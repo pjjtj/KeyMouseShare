@@ -125,6 +125,15 @@ public class ScreenLayoutPanel extends JPanel {
         screenRectangles.clear();
         
         if (screens.isEmpty()) {
+            // 如果没有屏幕，显示提示信息
+            g2d.setColor(Color.GRAY);
+            Font font = new Font("Arial", Font.PLAIN, 16);
+            g2d.setFont(font);
+            FontMetrics fm = g2d.getFontMetrics();
+            String message = "暂无设备屏幕信息";
+            int textWidth = fm.stringWidth(message);
+            int textHeight = fm.getHeight();
+            g2d.drawString(message, (getWidth() - textWidth) / 2, (getHeight() - textHeight) / 2 + fm.getAscent());
             return;
         }
         
@@ -156,10 +165,14 @@ public class ScreenLayoutPanel extends JPanel {
         
         // 计算所有屏幕的边界
         for (DeviceScreen screen : screens) {
+            // 确保屏幕有有效的尺寸
+            int width = screen.getWidth() > 0 ? screen.getWidth() : 1920;
+            int height = screen.getHeight() > 0 ? screen.getHeight() : 1080;
+            
             minX = Math.min(minX, screen.getX());
             minY = Math.min(minY, screen.getY());
-            maxX = Math.max(maxX, screen.getX() + screen.getWidth());
-            maxY = Math.max(maxY, screen.getY() + screen.getHeight());
+            maxX = Math.max(maxX, screen.getX() + width);
+            maxY = Math.max(maxY, screen.getY() + height);
         }
         
         // 计算偏移量以居中显示
@@ -185,13 +198,17 @@ public class ScreenLayoutPanel extends JPanel {
      * @param screen 屏幕信息
      */
     private void drawScreen(Graphics2D g2d, DeviceScreen screen) {
+        // 确保屏幕有有效的尺寸
+        int width = screen.getWidth() > 0 ? screen.getWidth() : 1920;
+        int height = screen.getHeight() > 0 ? screen.getHeight() : 1080;
+        
         int x = (int) (screen.getX() * scale) + offsetX;
         int y = (int) (screen.getY() * scale) + offsetY;
-        int width = (int) (screen.getWidth() * scale);
-        int height = (int) (screen.getHeight() * scale);
+        int scaledWidth = (int) (width * scale);
+        int scaledHeight = (int) (height * scale);
         
         // 创建屏幕矩形
-        Rectangle rect = new Rectangle(x, y, width, height);
+        Rectangle rect = new Rectangle(x, y, scaledWidth, scaledHeight);
         screenRectangles.add(rect);
         
         // 选择颜色
@@ -206,11 +223,11 @@ public class ScreenLayoutPanel extends JPanel {
         
         // 绘制屏幕背景
         g2d.setColor(screenColor);
-        g2d.fillRect(x, y, width, height);
+        g2d.fillRect(x, y, scaledWidth, scaledHeight);
         
         // 绘制屏幕边框
         g2d.setColor(Color.BLACK);
-        g2d.drawRect(x, y, width, height);
+        g2d.drawRect(x, y, scaledWidth, scaledHeight);
         
         // 绘制屏幕名称
         g2d.setColor(Color.WHITE);
@@ -219,12 +236,15 @@ public class ScreenLayoutPanel extends JPanel {
         
         FontMetrics fm = g2d.getFontMetrics();
         String name = screen.getDeviceName();
+        if (name == null || name.isEmpty()) {
+            name = "Unknown Device";
+        }
         int textWidth = fm.stringWidth(name);
         int textHeight = fm.getHeight();
         
         // 确保文本在屏幕矩形内
-        int textX = x + Math.max(5, (width - textWidth) / 2);
-        int textY = y + Math.max(textHeight, (height + fm.getAscent()) / 2);
+        int textX = x + Math.max(5, (scaledWidth - textWidth) / 2);
+        int textY = y + Math.max(textHeight, (scaledHeight + fm.getAscent()) / 2);
         
         g2d.drawString(name, textX, textY);
     }
@@ -267,19 +287,25 @@ public class ScreenLayoutPanel extends JPanel {
      * @return true表示相邻，false表示不相邻
      */
     private boolean areScreensAdjacent(DeviceScreen screen1, DeviceScreen screen2) {
+        // 确保屏幕有有效的尺寸
+        int width1 = screen1.getWidth() > 0 ? screen1.getWidth() : 1920;
+        int height1 = screen1.getHeight() > 0 ? screen1.getHeight() : 1080;
+        int width2 = screen2.getWidth() > 0 ? screen2.getWidth() : 1920;
+        int height2 = screen2.getHeight() > 0 ? screen2.getHeight() : 1080;
+        
         // 检查水平相邻
         boolean horizontalAdjacent = 
-            (screen1.getX() + screen1.getWidth() == screen2.getX() || 
-             screen2.getX() + screen2.getWidth() == screen1.getX()) &&
+            (screen1.getX() + width1 == screen2.getX() || 
+             screen2.getX() + width2 == screen1.getX()) &&
             (Math.max(screen1.getY(), screen2.getY()) < 
-             Math.min(screen1.getY() + screen1.getHeight(), screen2.getY() + screen2.getHeight()));
+             Math.min(screen1.getY() + height1, screen2.getY() + height2));
         
         // 检查垂直相邻
         boolean verticalAdjacent = 
-            (screen1.getY() + screen1.getHeight() == screen2.getY() || 
-             screen2.getY() + screen2.getHeight() == screen1.getY()) &&
+            (screen1.getY() + height1 == screen2.getY() || 
+             screen2.getY() + height2 == screen1.getY()) &&
             (Math.max(screen1.getX(), screen2.getX()) < 
-             Math.min(screen1.getX() + screen1.getWidth(), screen2.getX() + screen2.getWidth()));
+             Math.min(screen1.getX() + width1, screen2.getX() + width2));
         
         return horizontalAdjacent || verticalAdjacent;
     }
@@ -296,19 +322,22 @@ public class ScreenLayoutPanel extends JPanel {
         int y = rect.y + rect.height / 2;
         
         // 根据相邻屏幕的位置调整连接点
-        if (adjacentScreen.getX() + adjacentScreen.getWidth() == screen.getX()) {
+        int width = screen.getWidth() > 0 ? screen.getWidth() : 1920;
+        int height = screen.getHeight() > 0 ? screen.getHeight() : 1080;
+        
+        if (adjacentScreen.getX() + (adjacentScreen.getWidth() > 0 ? adjacentScreen.getWidth() : 1920) == screen.getX()) {
             // 相邻屏幕在左侧
             x = rect.x;
             y = rect.y + rect.height / 2;
-        } else if (adjacentScreen.getX() == screen.getX() + screen.getWidth()) {
+        } else if (adjacentScreen.getX() == screen.getX() + width) {
             // 相邻屏幕在右侧
             x = rect.x + rect.width;
             y = rect.y + rect.height / 2;
-        } else if (adjacentScreen.getY() + adjacentScreen.getHeight() == screen.getY()) {
+        } else if (adjacentScreen.getY() + (adjacentScreen.getHeight() > 0 ? adjacentScreen.getHeight() : 1080) == screen.getY()) {
             // 相邻屏幕在上方
             x = rect.x + rect.width / 2;
             y = rect.y;
-        } else if (adjacentScreen.getY() == screen.getY() + screen.getHeight()) {
+        } else if (adjacentScreen.getY() == screen.getY() + height) {
             // 相邻屏幕在下方
             x = rect.x + rect.width / 2;
             y = rect.y + rect.height;
@@ -332,5 +361,12 @@ public class ScreenLayoutPanel extends JPanel {
      */
     public DeviceScreen getSelectedScreen() {
         return selectedScreen;
+    }
+    
+    /**
+     * 强制重新绘制面板
+     */
+    public void refresh() {
+        repaint();
     }
 }

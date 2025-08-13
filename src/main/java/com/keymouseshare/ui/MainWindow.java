@@ -8,6 +8,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -129,7 +133,12 @@ public class MainWindow extends JFrame {
         appendLog("正在连接到服务器 " + host + ":" + port);
         new Thread(() -> {
             try {
-                controller.getNetworkManager().startClient(host, port);
+                if (controller.getNetworkManager() != null) {
+                    controller.getNetworkManager().startClient(host, port);
+                } else {
+                    appendLog("网络管理器未初始化");
+                    showError("网络管理器未初始化");
+                }
                 appendLog("连接成功");
                 
                 // 连接成功后刷新屏幕布局
@@ -157,7 +166,12 @@ public class MainWindow extends JFrame {
         appendLog("正在启动服务器，端口:" + port);
         new Thread(() -> {
             try {
-                controller.getNetworkManager().startServer(port);
+                if (controller.getNetworkManager() != null) {
+                    controller.getNetworkManager().startServer(port);
+                } else {
+                    appendLog("网络管理器未初始化");
+                    showError("网络管理器未初始化");
+                }
                 appendLog("服务器启动成功");
                 
                 // 启动成功后刷新屏幕布局

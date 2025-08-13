@@ -146,6 +146,12 @@ public class NetworkManager {
             serverDevice.setDeviceId(deviceId != null ? deviceId : UUID.randomUUID().toString());
             serverDevice.setDeviceName("Server (" + host + ":" + port + ")");
             serverDevice.setIpAddress(host);
+            // 设置默认屏幕尺寸
+            serverDevice.setScreenWidth(1920);
+            serverDevice.setScreenHeight(1080);
+            // 设置默认网络位置
+            serverDevice.setNetworkX(0);
+            serverDevice.setNetworkY(0);
             controller.onClientConnected(serverDevice);
             
             // 启动设备发现

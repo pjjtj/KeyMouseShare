@@ -39,6 +39,9 @@ public class ScreenLayoutDialog extends JDialog {
             updateScreenDetails();
         });
         
+        // 初始化时刷新显示
+        refreshDisplay();
+        
         pack();
         setResizable(true);
         setLocationRelativeTo(parent);
@@ -172,7 +175,7 @@ public class ScreenLayoutDialog extends JDialog {
             
             DeviceScreen screen = new DeviceScreen(deviceId, deviceName, width, height, x, y);
             layoutConfig.addScreen(screen);
-            screenLayoutPanel.repaint();
+            refreshDisplay();
             
             clearScreenDetails();
             
@@ -212,7 +215,7 @@ public class ScreenLayoutDialog extends JDialog {
             selectedScreen.setY(y);
             
             layoutConfig.updateScreen(selectedScreen);
-            screenLayoutPanel.repaint();
+            refreshDisplay();
             
             JOptionPane.showMessageDialog(this, "屏幕更新成功", "信息", JOptionPane.INFORMATION_MESSAGE);
         } catch (NumberFormatException e) {
@@ -232,7 +235,7 @@ public class ScreenLayoutDialog extends JDialog {
         
         if (result == JOptionPane.YES_OPTION) {
             layoutConfig.removeScreen(selectedScreen.getDeviceId());
-            screenLayoutPanel.repaint();
+            refreshDisplay();
             clearScreenDetails();
             selectedScreen = null;
             updateButton.setEnabled(false);
@@ -265,6 +268,13 @@ public class ScreenLayoutDialog extends JDialog {
         screenHeightField.setText("");
         positionXField.setText("");
         positionYField.setText("");
+    }
+    
+    /**
+     * 刷新显示
+     */
+    private void refreshDisplay() {
+        screenLayoutPanel.refresh();
     }
     
     public ScreenLayoutConfig getLayoutConfig() {

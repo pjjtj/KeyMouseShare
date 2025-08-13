@@ -43,6 +43,12 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
         device.setDeviceId(deviceId);
         device.setDeviceName("Client (" + ctx.channel().remoteAddress().toString() + ")");
         device.setIpAddress(ctx.channel().remoteAddress().toString());
+        // 设置默认屏幕尺寸
+        device.setScreenWidth(1920);
+        device.setScreenHeight(1080);
+        // 设置默认网络位置
+        device.setNetworkX(0);
+        device.setNetworkY(0);
         controller.onClientConnected(device);
     }
     
