@@ -29,12 +29,16 @@ public class Controller implements InputListener {
     private boolean isServer = false;
     private boolean isClient = false;
     
+    // 当前活动的设备ID（鼠标所在的设备）
+    private String activeDeviceId;
+    
     public Controller() {
         this.configManager = new ConfigManager();
         this.deviceConfig = configManager.getConfig();
         this.networkManager = new NetworkManager(this);
         this.screenLayoutManager = new ScreenLayoutManager();
         this.fileTransferManager = new FileTransferManager();
+        this.activeDeviceId = deviceConfig.getDeviceId(); // 初始化为当前设备
         
         // 初始化设备配置
         initializeDeviceConfig();
@@ -173,6 +177,12 @@ public class Controller implements InputListener {
         
         // 从屏幕布局中移除设备
         screenLayoutManager.removeDevice(deviceId);
+        
+        // 如果断开连接的是当前活动设备，则切换回本机
+        if (deviceId.equals(activeDeviceId)) {
+            activeDeviceId = deviceConfig.getDeviceId();
+            logger.info("Active device switched back to local device");
+        }
     }
     
     @Override
@@ -180,41 +190,115 @@ public class Controller implements InputListener {
         logger.debug("Mouse moved to: ({}, {})", event.getX(), event.getY());
         
         // 检查是否需要切换到其他设备
-        // DeviceConfig.Device targetDevice = screenLayoutManager.calculateTargetDevice(deviceConfig, event.getX(), event.getY());
-        // if (targetDevice != null) {
-        //     // 切换到目标设备
-        //     networkManager.sendData(event);
-        // }
+        DeviceScreen targetScreen = screenLayoutManager.calculateTargetDevice(deviceConfig, event.getX(), event.getY());
+        if (targetScreen != null) {
+            // 切换到目标设备
+            switchToDevice(targetScreen, event);
+        } else if (activeDeviceId.equals(deviceConfig.getDeviceId())) {
+            // 当前在本地设备上，直接处理鼠标移动事件
+            if (networkManager != null) {
+                networkManager.sendData(event);
+            }
+        } else {
+            // 当前在远程设备上，转发鼠标移动事件
+            if (networkManager != null) {
+                networkManager.sendData(event);
+            }
+        }
+    }
+    
+    /**
+     * 切换到指定设备
+     * @param targetScreen 目标设备屏幕
+     * @param event 鼠标事件
+     */
+    private void switchToDevice(DeviceScreen targetScreen, MouseEvent event) {
+        String targetDeviceId = targetScreen.getDeviceId();
+        
+        // 如果目标设备就是当前活动设备，则直接转发事件
+        if (targetDeviceId.equals(activeDeviceId)) {
+            if (networkManager != null) {
+                networkManager.sendData(event);
+            }
+            return;
+        }
+        
+        logger.info("Switching control from {} to {}", activeDeviceId, targetDeviceId);
+        
+        // 更新活动设备
+        String previousDeviceId = activeDeviceId;
+        activeDeviceId = targetDeviceId;
+        
+        // 如果之前在本地设备上，需要停止本地输入监听
+        if (previousDeviceId.equals(deviceConfig.getDeviceId())) {
+            if (inputListenerManager != null) {
+                inputListenerManager.stopListening();
+                logger.info("Stopped local input listening");
+            }
+        }
+        
+        // 如果切换到本地设备，需要启动本地输入监听
+        if (targetDeviceId.equals(deviceConfig.getDeviceId())) {
+            if (inputListenerManager != null) {
+                inputListenerManager.startListening();
+                logger.info("Started local input listening");
+            }
+        }
+        
+        // 转发事件到目标设备
+        if (networkManager != null) {
+            networkManager.sendData(event);
+        }
     }
     
     @Override
     public void onMousePress(MouseEvent event) {
         logger.debug("Mouse pressed: {}", event.getButton());
-        // networkManager.sendData(event);
+        
+        // 转发鼠标按下事件
+        if (networkManager != null) {
+            networkManager.sendData(event);
+        }
     }
     
     @Override
     public void onMouseRelease(MouseEvent event) {
         logger.debug("Mouse released: {}", event.getButton());
-        // networkManager.sendData(event);
+        
+        // 转发鼠标释放事件
+        if (networkManager != null) {
+            networkManager.sendData(event);
+        }
     }
     
     @Override
     public void onMouseWheel(MouseEvent event) {
         logger.debug("Mouse wheel: {}", event.getWheelAmount());
-        // networkManager.sendData(event);
+        
+        // 转发鼠标滚轮事件
+        if (networkManager != null) {
+            networkManager.sendData(event);
+        }
     }
     
     @Override
     public void onKeyPress(KeyEvent event) {
         logger.debug("Key pressed: {}", event.getKeyCode());
-        // networkManager.sendData(event);
+        
+        // 转发键盘按下事件
+        if (networkManager != null) {
+            networkManager.sendData(event);
+        }
     }
     
     @Override
     public void onKeyRelease(KeyEvent event) {
         logger.debug("Key released: {}", event.getKeyCode());
-        // networkManager.sendData(event);
+        
+        // 转发键盘释放事件
+        if (networkManager != null) {
+            networkManager.sendData(event);
+        }
     }
     
     @Override
@@ -281,5 +365,21 @@ public class Controller implements InputListener {
      */
     public boolean isClient() {
         return isClient;
+    }
+    
+    /**
+     * 获取当前活动的设备ID
+     * @return 当前活动的设备ID
+     */
+    public String getActiveDeviceId() {
+        return activeDeviceId;
+    }
+    
+    /**
+     * 设置当前活动的设备ID
+     * @param activeDeviceId 当前活动的设备ID
+     */
+    public void setActiveDeviceId(String activeDeviceId) {
+        this.activeDeviceId = activeDeviceId;
     }
 }

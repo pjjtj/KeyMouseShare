@@ -20,10 +20,13 @@ public class ScreenLayoutDialog extends JDialog {
     private JTextField screenHeightField;
     private JTextField positionXField;
     private JTextField positionYField;
+    private JTextField baseWidthField;
+    private JTextField baseHeightField;
     private JButton addButton;
     private JButton updateButton;
     private JButton removeButton;
     private JButton closeButton;
+    private JButton applyBaseSizeButton;
     private DeviceScreen selectedScreen;
     private PropertyChangeListener screenLayoutListener;
     private PropertyChangeListener selectedScreenListener;
@@ -65,6 +68,12 @@ public class ScreenLayoutDialog extends JDialog {
         screenHeightField = new JTextField(10);
         positionXField = new JTextField(10);
         positionYField = new JTextField(10);
+        baseWidthField = new JTextField(10);
+        baseHeightField = new JTextField(10);
+        
+        // 设置默认基准屏幕大小
+        baseWidthField.setText("1920");
+        baseHeightField.setText("1080");
         
         addButton = new JButton("添加屏幕");
         updateButton = new JButton("更新屏幕");
@@ -72,6 +81,7 @@ public class ScreenLayoutDialog extends JDialog {
         removeButton = new JButton("移除屏幕");
         removeButton.setEnabled(false);
         closeButton = new JButton("关闭");
+        applyBaseSizeButton = new JButton("应用基准尺寸");
     }
     
     private void setupLayout() {
@@ -82,6 +92,9 @@ public class ScreenLayoutDialog extends JDialog {
         layoutPanel.setBorder(BorderFactory.createTitledBorder("屏幕布局"));
         layoutPanel.add(new JScrollPane(screenLayoutPanel), BorderLayout.CENTER);
         add(layoutPanel, BorderLayout.CENTER);
+        
+        // 右侧面板包含屏幕详细信息和基准尺寸设置
+        JPanel rightPanel = new JPanel(new BorderLayout());
         
         // 屏幕详细信息面板
         JPanel detailsPanel = new JPanel(new GridBagLayout());
@@ -125,13 +138,45 @@ public class ScreenLayoutDialog extends JDialog {
         buttonPanel.add(addButton);
         buttonPanel.add(updateButton);
         buttonPanel.add(removeButton);
-        buttonPanel.add(closeButton);
         
         gbc.gridx = 0; gbc.gridy = 5;
         gbc.gridwidth = 2;
         detailsPanel.add(buttonPanel, gbc);
         
-        add(detailsPanel, BorderLayout.EAST);
+        // 基准尺寸设置面板
+        JPanel baseSizePanel = new JPanel(new GridBagLayout());
+        baseSizePanel.setBorder(BorderFactory.createTitledBorder("基准屏幕尺寸"));
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.insets = new Insets(5, 5, 5, 5);
+        gbc2.anchor = GridBagConstraints.WEST;
+        
+        // 基准宽度
+        gbc2.gridx = 0; gbc2.gridy = 0;
+        baseSizePanel.add(new JLabel("基准宽度:"), gbc2);
+        gbc2.gridx = 1;
+        baseSizePanel.add(baseWidthField, gbc2);
+        
+        // 基准高度
+        gbc2.gridx = 0; gbc2.gridy = 1;
+        baseSizePanel.add(new JLabel("基准高度:"), gbc2);
+        gbc2.gridx = 1;
+        baseSizePanel.add(baseHeightField, gbc2);
+        
+        // 应用按钮
+        gbc2.gridx = 0; gbc2.gridy = 2;
+        gbc2.gridwidth = 2;
+        baseSizePanel.add(applyBaseSizeButton, gbc2);
+        
+        // 关闭按钮
+        JPanel closePanel = new JPanel(new FlowLayout());
+        closePanel.add(closeButton);
+        
+        // 组装右侧面板
+        rightPanel.add(detailsPanel, BorderLayout.NORTH);
+        rightPanel.add(baseSizePanel, BorderLayout.CENTER);
+        rightPanel.add(closePanel, BorderLayout.SOUTH);
+        
+        add(rightPanel, BorderLayout.EAST);
     }
     
     private void setupEventHandlers() {
@@ -160,6 +205,13 @@ public class ScreenLayoutDialog extends JDialog {
             @Override
             public void actionPerformed(ActionEvent e) {
                 dispose();
+            }
+        });
+        
+        applyBaseSizeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                applyBaseScreenSize();
             }
         });
     }
@@ -272,6 +324,25 @@ public class ScreenLayoutDialog extends JDialog {
         }
     }
     
+    private void applyBaseScreenSize() {
+        try {
+            int baseWidth = Integer.parseInt(baseWidthField.getText().trim());
+            int baseHeight = Integer.parseInt(baseHeightField.getText().trim());
+            
+            if (baseWidth <= 0 || baseHeight <= 0) {
+                JOptionPane.showMessageDialog(this, "基准宽度和高度必须大于0", "错误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            screenLayoutPanel.setBaseScreenSize(baseWidth, baseHeight);
+            refreshDisplay();
+            
+            JOptionPane.showMessageDialog(this, "基准屏幕尺寸已应用", "信息", JOptionPane.INFORMATION_MESSAGE);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "请输入有效的数字", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void clearScreenDetails() {
         deviceNameField.setText("");
         screenWidthField.setText("");

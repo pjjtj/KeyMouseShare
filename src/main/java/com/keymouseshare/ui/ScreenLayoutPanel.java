@@ -30,6 +30,10 @@ public class ScreenLayoutPanel extends JPanel {
     private int offsetY = 50;
     private double scale = 0.5; // 缩放比例
     
+    // 用于保持屏幕相对尺寸的基准屏幕大小
+    private int baseScreenWidth = 1920;
+    private int baseScreenHeight = 1080;
+    
     // 拖拽相关变量
     private DeviceScreen draggedScreen = null;
     private Point dragStartPoint = null;
@@ -174,8 +178,8 @@ public class ScreenLayoutPanel extends JPanel {
      */
     private void applySnapEffect(DeviceScreen draggedScreen) {
         // 确保屏幕有有效的尺寸
-        int draggedWidth = draggedScreen.getWidth() > 0 ? draggedScreen.getWidth() : 1920;
-        int draggedHeight = draggedScreen.getHeight() > 0 ? draggedScreen.getHeight() : 1080;
+        int draggedWidth = draggedScreen.getWidth() > 0 ? draggedScreen.getWidth() : baseScreenWidth;
+        int draggedHeight = draggedScreen.getHeight() > 0 ? draggedScreen.getHeight() : baseScreenHeight;
         
         // 获取所有其他屏幕
         List<DeviceScreen> allScreens = layoutConfig.getAllScreens();
@@ -188,8 +192,8 @@ public class ScreenLayoutPanel extends JPanel {
             }
             
             // 确保其他屏幕有有效的尺寸
-            int otherWidth = otherScreen.getWidth() > 0 ? otherScreen.getWidth() : 1920;
-            int otherHeight = otherScreen.getHeight() > 0 ? otherScreen.getHeight() : 1080;
+            int otherWidth = otherScreen.getWidth() > 0 ? otherScreen.getWidth() : baseScreenWidth;
+            int otherHeight = otherScreen.getHeight() > 0 ? otherScreen.getHeight() : baseScreenHeight;
             
             // 计算拖拽屏幕的边缘坐标
             int draggedLeft = draggedScreen.getX();
@@ -326,8 +330,8 @@ public class ScreenLayoutPanel extends JPanel {
         // 计算所有屏幕的边界
         for (DeviceScreen screen : screens) {
             // 确保屏幕有有效的尺寸
-            int width = screen.getWidth() > 0 ? screen.getWidth() : 1920;
-            int height = screen.getHeight() > 0 ? screen.getHeight() : 1080;
+            int width = screen.getWidth() > 0 ? screen.getWidth() : baseScreenWidth;
+            int height = screen.getHeight() > 0 ? screen.getHeight() : baseScreenHeight;
             
             minX = Math.min(minX, screen.getX());
             minY = Math.min(minY, screen.getY());
@@ -361,8 +365,8 @@ public class ScreenLayoutPanel extends JPanel {
      */
     private void drawScreen(Graphics2D g2d, DeviceScreen screen) {
         // 确保屏幕有有效的尺寸
-        int width = screen.getWidth() > 0 ? screen.getWidth() : 1920;
-        int height = screen.getHeight() > 0 ? screen.getHeight() : 1080;
+        int width = screen.getWidth() > 0 ? screen.getWidth() : baseScreenWidth;
+        int height = screen.getHeight() > 0 ? screen.getHeight() : baseScreenHeight;
         
         int x = (int) (screen.getX() * scale) + offsetX;
         int y = (int) (screen.getY() * scale) + offsetY;
@@ -398,7 +402,7 @@ public class ScreenLayoutPanel extends JPanel {
         g2d.setColor(Color.BLACK);
         g2d.drawRect(x, y, scaledWidth, scaledHeight);
         
-        // 绘制屏幕名称
+        // 绘制屏幕名称和尺寸信息
         g2d.setColor(Color.WHITE);
         Font font = new Font("Arial", Font.BOLD, Math.max(10, (int) (12 * scale)));
         g2d.setFont(font);
@@ -408,14 +412,17 @@ public class ScreenLayoutPanel extends JPanel {
         if (name == null || name.isEmpty()) {
             name = "Unknown Device";
         }
-        int textWidth = fm.stringWidth(name);
+        
+        // 添加屏幕尺寸信息
+        String sizeInfo = String.format("%s (%dx%d)", name, width, height);
+        int textWidth = fm.stringWidth(sizeInfo);
         int textHeight = fm.getHeight();
         
         // 确保文本在屏幕矩形内
         int textX = x + Math.max(5, (scaledWidth - textWidth) / 2);
         int textY = y + Math.max(textHeight, (scaledHeight + fm.getAscent()) / 2);
         
-        g2d.drawString(name, textX, textY);
+        g2d.drawString(sizeInfo, textX, textY);
     }
     
     /**
@@ -457,10 +464,10 @@ public class ScreenLayoutPanel extends JPanel {
      */
     private boolean areScreensAdjacent(DeviceScreen screen1, DeviceScreen screen2) {
         // 确保屏幕有有效的尺寸
-        int width1 = screen1.getWidth() > 0 ? screen1.getWidth() : 1920;
-        int height1 = screen1.getHeight() > 0 ? screen1.getHeight() : 1080;
-        int width2 = screen2.getWidth() > 0 ? screen2.getWidth() : 1920;
-        int height2 = screen2.getHeight() > 0 ? screen2.getHeight() : 1080;
+        int width1 = screen1.getWidth() > 0 ? screen1.getWidth() : baseScreenWidth;
+        int height1 = screen1.getHeight() > 0 ? screen1.getHeight() : baseScreenHeight;
+        int width2 = screen2.getWidth() > 0 ? screen2.getWidth() : baseScreenWidth;
+        int height2 = screen2.getHeight() > 0 ? screen2.getHeight() : baseScreenHeight;
         
         // 检查水平相邻
         boolean horizontalAdjacent = 
@@ -491,10 +498,10 @@ public class ScreenLayoutPanel extends JPanel {
         int y = rect.y + rect.height / 2;
         
         // 根据相邻屏幕的位置调整连接点
-        int width = screen.getWidth() > 0 ? screen.getWidth() : 1920;
-        int height = screen.getHeight() > 0 ? screen.getHeight() : 1080;
+        int width = screen.getWidth() > 0 ? screen.getWidth() : baseScreenWidth;
+        int height = screen.getHeight() > 0 ? screen.getHeight() : baseScreenHeight;
         
-        if (adjacentScreen.getX() + (adjacentScreen.getWidth() > 0 ? adjacentScreen.getWidth() : 1920) == screen.getX()) {
+        if (adjacentScreen.getX() + (adjacentScreen.getWidth() > 0 ? adjacentScreen.getWidth() : baseScreenWidth) == screen.getX()) {
             // 相邻屏幕在左侧
             x = rect.x;
             y = rect.y + rect.height / 2;
@@ -502,7 +509,7 @@ public class ScreenLayoutPanel extends JPanel {
             // 相邻屏幕在右侧
             x = rect.x + rect.width;
             y = rect.y + rect.height / 2;
-        } else if (adjacentScreen.getY() + (adjacentScreen.getHeight() > 0 ? adjacentScreen.getHeight() : 1080) == screen.getY()) {
+        } else if (adjacentScreen.getY() + (adjacentScreen.getHeight() > 0 ? adjacentScreen.getHeight() : baseScreenHeight) == screen.getY()) {
             // 相邻屏幕在上方
             x = rect.x + rect.width / 2;
             y = rect.y;
@@ -536,6 +543,17 @@ public class ScreenLayoutPanel extends JPanel {
      * 强制重新绘制面板
      */
     public void refresh() {
+        repaint();
+    }
+    
+    /**
+     * 设置基准屏幕大小
+     * @param width 基准宽度
+     * @param height 基准高度
+     */
+    public void setBaseScreenSize(int width, int height) {
+        this.baseScreenWidth = width;
+        this.baseScreenHeight = height;
         repaint();
     }
 }

@@ -36,6 +36,7 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
         // 添加客户端通道到管理器
         if (controller.getNetworkManager() != null) {
             controller.getNetworkManager().addClientChannel(deviceId, ctx.channel());
+            logger.debug("Client channel added to NetworkManager: {}", deviceId);
         }
         
         // 通知控制器有客户端连接
@@ -56,15 +57,13 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
-        String id = deviceId;
-        if (id == null) {
-            id = "unknown-" + ctx.channel().id().asShortText();
-        }
+        String id = deviceId != null ? deviceId : "unknown-" + ctx.channel().id().asShortText();
         logger.info("Client disconnected: {}", id);
         
         // 从管理器中移除客户端通道
         if (controller.getNetworkManager() != null) {
             controller.getNetworkManager().removeClientChannel(id);
+            logger.debug("Client channel removed from NetworkManager: {}", id);
         }
     }
     

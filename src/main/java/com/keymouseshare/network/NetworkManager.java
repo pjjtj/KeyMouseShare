@@ -213,9 +213,32 @@ public class NetworkManager {
      * @param data 要发送的数据
      */
     public void sendData(Object data) {
-        if (clientChannel != null && clientChannel.isActive()) {
+        // 检查当前活动设备
+        String activeDeviceId = controller.getActiveDeviceId();
+        String localDeviceId = controller.getDeviceConfig().getDeviceId();
+        
+        // 如果当前活动设备是本地设备，则在本地处理
+        if (activeDeviceId.equals(localDeviceId)) {
+            logger.debug("Processing event locally");
+            return;
+        }
+        
+        // 如果当前活动设备是服务器（作为客户端模式）
+        if (clientChannel != null && clientChannel.isActive() && 
+            activeDeviceId.startsWith("server-")) {
             clientChannel.writeAndFlush(data);
-        } else if (serverChannel != null && serverChannel.isActive()) {
+            return;
+        }
+        
+        // 如果当前活动设备是某个客户端（作为服务器模式）
+        Channel targetChannel = clientChannels.get(activeDeviceId);
+        if (targetChannel != null && targetChannel.isActive()) {
+            targetChannel.writeAndFlush(data);
+            return;
+        }
+        
+        // 如果没有找到特定的目标设备，则广播到所有客户端（作为服务器模式）
+        if (serverChannel != null && serverChannel.isActive()) {
             // 在服务器模式下，广播到所有客户端
             for (Channel channel : clientChannels.values()) {
                 if (channel.isActive()) {
@@ -223,6 +246,38 @@ public class NetworkManager {
                 }
             }
         }
+        
+        logger.warn("No active connection found for device: {}", activeDeviceId);
+    }
+    
+    /**
+     * 发送数据到特定设备
+     * @param data 要发送的数据
+     * @param targetDeviceId 目标设备ID
+     */
+    public void sendDataTo(Object data, String targetDeviceId) {
+        // 如果目标设备是本地设备，则在本地处理
+        String localDeviceId = controller.getDeviceConfig().getDeviceId();
+        if (targetDeviceId.equals(localDeviceId)) {
+            logger.debug("Processing event locally for target device");
+            return;
+        }
+        
+        // 如果目标设备是服务器（作为客户端模式）
+        if (clientChannel != null && clientChannel.isActive() && 
+            targetDeviceId.startsWith("server-")) {
+            clientChannel.writeAndFlush(data);
+            return;
+        }
+        
+        // 如果目标设备是某个客户端（作为服务器模式）
+        Channel targetChannel = clientChannels.get(targetDeviceId);
+        if (targetChannel != null && targetChannel.isActive()) {
+            targetChannel.writeAndFlush(data);
+            return;
+        }
+        
+        logger.warn("No active connection found for target device: {}", targetDeviceId);
     }
     
     /**
