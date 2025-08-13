@@ -27,7 +27,7 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
         // 生成设备ID
-        deviceId = "client-" + ctx.channel().remoteAddress().toString();
+        deviceId = "client-" + ctx.channel().remoteAddress().toString().replaceAll("[^a-zA-Z0-9\\-\\.]", "_");
         if (deviceId == null) {
             deviceId = UUID.randomUUID().toString();
         }
@@ -46,9 +46,10 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
         // 设置默认屏幕尺寸
         device.setScreenWidth(1920);
         device.setScreenHeight(1080);
-        // 设置默认网络位置
-        device.setNetworkX(0);
-        device.setNetworkY(0);
+        // 设置默认网络位置，根据设备ID设置不同的位置以避免重叠
+        int positionOffset = deviceId.hashCode() % 1000;
+        device.setNetworkX(positionOffset * 50);
+        device.setNetworkY(positionOffset * 30);
         controller.onClientConnected(device);
     }
     

@@ -27,6 +27,11 @@ public class ScreenLayoutPanel extends JPanel {
     private int offsetY = 50;
     private double scale = 0.5; // 缩放比例
     
+    // 拖拽相关变量
+    private DeviceScreen draggedScreen = null;
+    private Point dragStartPoint = null;
+    private Point screenStartPoint = null;
+    
     public ScreenLayoutPanel(ScreenLayoutConfig layoutConfig) {
         this.layoutConfig = layoutConfig;
         this.screenRectangles = new ArrayList<>();
@@ -36,12 +41,30 @@ public class ScreenLayoutPanel extends JPanel {
         setPreferredSize(new Dimension(600, 400));
         
         // 添加鼠标监听器
-        addMouseListener(new MouseAdapter() {
+        MouseAdapter mouseHandler = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 handleMouseClick(e);
             }
-        });
+            
+            @Override
+            public void mousePressed(MouseEvent e) {
+                handleMousePressed(e);
+            }
+            
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                handleMouseReleased(e);
+            }
+            
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                handleMouseDragged(e);
+            }
+        };
+        
+        addMouseListener(mouseHandler);
+        addMouseMotionListener(mouseHandler);
     }
     
     /**
@@ -72,6 +95,70 @@ public class ScreenLayoutPanel extends JPanel {
             
             // 通知监听器屏幕被选中
             firePropertyChange("selectedScreen", null, selectedScreen);
+        }
+    }
+    
+    /**
+     * 处理鼠标按下事件
+     * @param e 鼠标事件
+     */
+    private void handleMousePressed(MouseEvent e) {
+        int x = e.getX();
+        int y = e.getY();
+        
+        // 检查是否点击了某个屏幕以开始拖拽
+        for (int i = 0; i < screenRectangles.size(); i++) {
+            Rectangle rect = screenRectangles.get(i);
+            if (rect.contains(x, y)) {
+                List<DeviceScreen> screens = layoutConfig.getAllScreens();
+                if (i < screens.size()) {
+                    draggedScreen = screens.get(i);
+                    dragStartPoint = new Point(x, y);
+                    screenStartPoint = new Point(draggedScreen.getX(), draggedScreen.getY());
+                    selectedScreen = draggedScreen;
+                    repaint();
+                    break;
+                }
+            }
+        }
+    }
+    
+    /**
+     * 处理鼠标释放事件
+     * @param e 鼠标事件
+     */
+    private void handleMouseReleased(MouseEvent e) {
+        if (draggedScreen != null) {
+            // 更新布局配置中的屏幕位置
+            layoutConfig.updateScreen(draggedScreen);
+            draggedScreen = null;
+            dragStartPoint = null;
+            screenStartPoint = null;
+            repaint();
+            
+            // 通知监听器屏幕位置已更新
+            firePropertyChange("screenLayoutChanged", null, layoutConfig);
+        }
+    }
+    
+    /**
+     * 处理鼠标拖拽事件
+     * @param e 鼠标事件
+     */
+    private void handleMouseDragged(MouseEvent e) {
+        if (draggedScreen != null && dragStartPoint != null && screenStartPoint != null) {
+            int deltaX = e.getX() - dragStartPoint.x;
+            int deltaY = e.getY() - dragStartPoint.y;
+            
+            // 计算新的屏幕位置（考虑缩放）
+            int newX = screenStartPoint.x + (int) (deltaX / scale);
+            int newY = screenStartPoint.y + (int) (deltaY / scale);
+            
+            // 更新屏幕位置
+            draggedScreen.setX(newX);
+            draggedScreen.setY(newY);
+            
+            repaint();
         }
     }
     
@@ -183,9 +270,11 @@ public class ScreenLayoutPanel extends JPanel {
         int panelHeight = getHeight() - 100;
         
         // 计算缩放比例
-        scale = Math.min((double) panelWidth / layoutWidth, (double) panelHeight / layoutHeight);
-        scale = Math.min(scale, 0.5); // 最大缩放比例为0.5
-        scale = Math.max(scale, 0.1); // 最小缩放比例为0.1
+        if (layoutWidth > 0 && layoutHeight > 0) {
+            scale = Math.min((double) panelWidth / layoutWidth, (double) panelHeight / layoutHeight);
+            scale = Math.min(scale, 0.5); // 最大缩放比例为0.5
+            scale = Math.max(scale, 0.1); // 最小缩放比例为0.1
+        }
         
         // 计算偏移量
         offsetX = (getWidth() - (int) (layoutWidth * scale)) / 2 - (int) (minX * scale);
@@ -219,6 +308,13 @@ public class ScreenLayoutPanel extends JPanel {
             screenColor = CURRENT_SCREEN_COLOR;
         } else {
             screenColor = SCREEN_COLOR;
+        }
+        
+        // 如果是正在拖拽的屏幕，添加视觉反馈
+        if (screen == draggedScreen) {
+            // 绘制拖拽时的阴影效果
+            g2d.setColor(new Color(0, 0, 0, 100));
+            g2d.fillRect(x + 5, y + 5, scaledWidth, scaledHeight);
         }
         
         // 绘制屏幕背景

@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeListener;
 
 /**
  * 屏幕布局配置对话框
@@ -24,6 +25,8 @@ public class ScreenLayoutDialog extends JDialog {
     private JButton removeButton;
     private JButton closeButton;
     private DeviceScreen selectedScreen;
+    private PropertyChangeListener screenLayoutListener;
+    private PropertyChangeListener selectedScreenListener;
     
     public ScreenLayoutDialog(Frame parent, ScreenLayoutConfig layoutConfig) {
         super(parent, "屏幕布局配置", true);
@@ -34,10 +37,17 @@ public class ScreenLayoutDialog extends JDialog {
         setupEventHandlers();
         
         // 设置选中屏幕变化监听器
-        screenLayoutPanel.addPropertyChangeListener("selectedScreen", evt -> {
+        selectedScreenListener = evt -> {
             selectedScreen = (DeviceScreen) evt.getNewValue();
             updateScreenDetails();
-        });
+        };
+        screenLayoutPanel.addPropertyChangeListener("selectedScreen", selectedScreenListener);
+        
+        // 设置屏幕布局变化监听器
+        screenLayoutListener = evt -> {
+            refreshDisplay();
+        };
+        screenLayoutPanel.addPropertyChangeListener("screenLayoutChanged", screenLayoutListener);
         
         // 初始化时刷新显示
         refreshDisplay();
@@ -279,5 +289,13 @@ public class ScreenLayoutDialog extends JDialog {
     
     public ScreenLayoutConfig getLayoutConfig() {
         return layoutConfig;
+    }
+    
+    @Override
+    public void dispose() {
+        // 移除属性监听器
+        screenLayoutPanel.removePropertyChangeListener("selectedScreen", selectedScreenListener);
+        screenLayoutPanel.removePropertyChangeListener("screenLayoutChanged", screenLayoutListener);
+        super.dispose();
     }
 }
