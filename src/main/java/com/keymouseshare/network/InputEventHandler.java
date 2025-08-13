@@ -4,6 +4,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import com.keymouseshare.input.*;
 import com.keymouseshare.core.Controller;
+import com.keymouseshare.config.DeviceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,9 +15,41 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
     private static final Logger logger = LoggerFactory.getLogger(InputEventHandler.class);
     
     private Controller controller;
+    private String deviceId;
     
     public InputEventHandler(Controller controller) {
         this.controller = controller;
+    }
+    
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+        // 生成设备ID
+        deviceId = "client-" + ctx.channel().remoteAddress().toString();
+        logger.info("Client connected: {}", deviceId);
+        
+        // 添加客户端通道到管理器
+        if (controller.getNetworkManager() != null) {
+            controller.getNetworkManager().addClientChannel(deviceId, ctx.channel());
+        }
+        
+        // 通知控制器有客户端连接
+        DeviceConfig.Device device = new DeviceConfig.Device();
+        device.setDeviceId(deviceId);
+        device.setDeviceName("Client (" + ctx.channel().remoteAddress().toString() + ")");
+        device.setIpAddress(ctx.channel().remoteAddress().toString());
+        controller.onClientConnected(device);
+    }
+    
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+        logger.info("Client disconnected: {}", deviceId);
+        
+        // 从管理器中移除客户端通道
+        if (controller.getNetworkManager() != null && deviceId != null) {
+            controller.getNetworkManager().removeClientChannel(deviceId);
+        }
     }
     
     @Override

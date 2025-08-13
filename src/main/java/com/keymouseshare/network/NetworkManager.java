@@ -98,6 +98,13 @@ public class NetworkManager {
             clientChannel = f.channel();
             logger.info("Connected to server {}:{}", host, port);
             
+            // 通知控制器客户端已连接
+            DeviceConfig.Device serverDevice = new DeviceConfig.Device();
+            serverDevice.setDeviceId("server-" + host + ":" + port);
+            serverDevice.setDeviceName("Server (" + host + ":" + port + ")");
+            serverDevice.setIpAddress(host);
+            controller.onClientConnected(serverDevice);
+            
             // 启动设备发现
             startDeviceDiscovery();
         } catch (InterruptedException e) {
@@ -114,6 +121,7 @@ public class NetworkManager {
             public void onDeviceDiscovered(DeviceConfig.Device device) {
                 logger.info("New device discovered: {}", device.getIpAddress());
                 // 可以在这里自动连接到新发现的设备
+                controller.onClientConnected(device);
             }
         });
         deviceDiscovery.startDiscovery();
@@ -145,6 +153,13 @@ public class NetworkManager {
         }
         if (clientChannel != null) {
             clientChannel.close();
+            
+            // 通知控制器客户端已断开连接
+            if (clientChannel.remoteAddress() instanceof InetSocketAddress) {
+                InetSocketAddress address = (InetSocketAddress) clientChannel.remoteAddress();
+                String deviceId = "server-" + address.getHostString() + ":" + address.getPort();
+                controller.onClientDisconnected(deviceId);
+            }
         }
         if (bossGroup != null) {
             bossGroup.shutdownGracefully(0, 5, TimeUnit.SECONDS);
@@ -171,5 +186,27 @@ public class NetworkManager {
      */
     public boolean isServerActive() {
         return serverChannel != null && serverChannel.isActive();
+    }
+    
+    /**
+     * 添加客户端通道
+     * @param deviceId 设备ID
+     * @param channel 客户端通道
+     */
+    public void addClientChannel(String deviceId, Channel channel) {
+        clientChannels.put(deviceId, channel);
+        logger.info("Client channel added: {}", deviceId);
+    }
+    
+    /**
+     * 移除客户端通道
+     * @param deviceId 设备ID
+     */
+    public void removeClientChannel(String deviceId) {
+        clientChannels.remove(deviceId);
+        logger.info("Client channel removed: {}", deviceId);
+        
+        // 通知控制器客户端已断开连接
+        controller.onClientDisconnected(deviceId);
     }
 }

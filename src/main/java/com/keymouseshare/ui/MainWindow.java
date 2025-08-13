@@ -116,6 +116,11 @@ public class MainWindow extends JFrame {
             try {
                 controller.getNetworkManager().startClient(host, port);
                 appendLog("连接成功");
+                
+                // 连接成功后刷新屏幕布局
+                SwingUtilities.invokeLater(() -> {
+                    appendLog("屏幕布局已更新");
+                });
             } catch (Exception e) {
                 appendLog("连接失败: " + e.getMessage());
                 showError("连接失败: " + e.getMessage());
@@ -139,6 +144,11 @@ public class MainWindow extends JFrame {
             try {
                 controller.getNetworkManager().startServer(port);
                 appendLog("服务器启动成功");
+                
+                // 启动成功后刷新屏幕布局
+                SwingUtilities.invokeLater(() -> {
+                    appendLog("屏幕布局已更新");
+                });
             } catch (Exception e) {
                 appendLog("服务器启动失败: " + e.getMessage());
                 showError("服务器启动失败: " + e.getMessage());

@@ -5,7 +5,9 @@ import com.keymouseshare.config.DeviceConfig;
 import com.keymouseshare.filetransfer.FileTransferManager;
 import com.keymouseshare.input.*;
 import com.keymouseshare.network.NetworkManager;
+import com.keymouseshare.screen.DeviceScreen;
 import com.keymouseshare.screen.ScreenLayoutManager;
+import com.keymouseshare.screen.ScreenLayoutConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +39,23 @@ public class Controller implements InputListener {
         logger.info("Initializing controller...");
         logger.info("Device ID: {}", deviceConfig.getDeviceId());
         logger.info("Device Name: {}", deviceConfig.getDeviceName());
-        // TODO: 实现初始化逻辑
+        
+        // 初始化屏幕布局
+        initializeScreenLayout();
+    }
+    
+    /**
+     * 初始化屏幕布局
+     */
+    private void initializeScreenLayout() {
+        // 设置当前设备屏幕
+        DeviceScreen currentScreen = ScreenLayoutConfig.createFromDeviceConfig(deviceConfig);
+        screenLayoutManager.getLayoutConfig().setCurrentScreen(currentScreen);
+        
+        // 添加当前设备到布局中
+        screenLayoutManager.getLayoutConfig().addScreen(currentScreen);
+        
+        logger.info("Screen layout initialized with current device: {}", deviceConfig.getDeviceName());
     }
     
     /**
@@ -66,6 +84,28 @@ public class Controller implements InputListener {
         if (configManager != null) {
             configManager.updateConfig(deviceConfig);
         }
+    }
+    
+    /**
+     * 当客户端连接时调用
+     * @param device 连接的设备
+     */
+    public void onClientConnected(DeviceConfig.Device device) {
+        logger.info("Client connected: {}", device.getDeviceName());
+        
+        // 添加设备到屏幕布局
+        screenLayoutManager.addDevice(device);
+    }
+    
+    /**
+     * 当客户端断开连接时调用
+     * @param deviceId 断开连接的设备ID
+     */
+    public void onClientDisconnected(String deviceId) {
+        logger.info("Client disconnected: {}", deviceId);
+        
+        // 从屏幕布局中移除设备
+        screenLayoutManager.removeDevice(deviceId);
     }
     
     @Override

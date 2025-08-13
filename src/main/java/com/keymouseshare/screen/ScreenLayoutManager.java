@@ -133,4 +133,26 @@ public class ScreenLayoutManager {
     public ScreenLayoutConfig getLayoutConfig() {
         return layoutConfig;
     }
+    
+    /**
+     * 同步设备配置到屏幕布局
+     * @param deviceConfig 设备配置
+     */
+    public void syncWithDeviceConfig(DeviceConfig deviceConfig) {
+        // 更新当前设备屏幕
+        DeviceScreen currentScreen = ScreenLayoutConfig.createFromDeviceConfig(deviceConfig);
+        layoutConfig.setCurrentScreen(currentScreen);
+        
+        // 确保当前设备在布局中
+        if (!layoutConfig.getAllScreens().contains(currentScreen)) {
+            layoutConfig.addScreen(currentScreen);
+        }
+        
+        // 同步连接的设备
+        for (DeviceConfig.Device device : deviceConfig.getConnectedDevices()) {
+            updateDevice(device);
+        }
+        
+        logger.info("Screen layout synchronized with device config");
+    }
 }
