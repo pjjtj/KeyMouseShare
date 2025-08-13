@@ -11,6 +11,9 @@ import com.keymouseshare.screen.ScreenLayoutConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 /**
  * 主控制器，协调各个模块的工作
  */
@@ -23,6 +26,8 @@ public class Controller implements InputListener {
     private ScreenLayoutManager screenLayoutManager;
     private FileTransferManager fileTransferManager;
     private InputListenerManager inputListenerManager;
+    private boolean isServer = false;
+    private boolean isClient = false;
     
     public Controller() {
         this.configManager = new ConfigManager();
@@ -30,6 +35,52 @@ public class Controller implements InputListener {
         this.networkManager = new NetworkManager(this);
         this.screenLayoutManager = new ScreenLayoutManager();
         this.fileTransferManager = new FileTransferManager();
+        
+        // 初始化设备配置
+        initializeDeviceConfig();
+    }
+    
+    /**
+     * 初始化设备配置
+     */
+    private void initializeDeviceConfig() {
+        if (deviceConfig.getDeviceId() == null || deviceConfig.getDeviceId().isEmpty()) {
+            deviceConfig.setDeviceId(generateDeviceId());
+        }
+        
+        if (deviceConfig.getDeviceName() == null || deviceConfig.getDeviceName().isEmpty()) {
+            deviceConfig.setDeviceName(getHostName());
+        }
+        
+        // 设置默认屏幕尺寸
+        if (deviceConfig.getScreenWidth() <= 0) {
+            deviceConfig.setScreenWidth(1920);
+        }
+        
+        if (deviceConfig.getScreenHeight() <= 0) {
+            deviceConfig.setScreenHeight(1080);
+        }
+    }
+    
+    /**
+     * 生成设备ID
+     * @return 设备ID
+     */
+    private String generateDeviceId() {
+        return "device-" + System.currentTimeMillis();
+    }
+    
+    /**
+     * 获取主机名
+     * @return 主机名
+     */
+    private String getHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            logger.warn("Failed to get host name, using default", e);
+            return "UnknownDevice";
+        }
     }
     
     /**
@@ -84,6 +135,22 @@ public class Controller implements InputListener {
         if (configManager != null) {
             configManager.updateConfig(deviceConfig);
         }
+    }
+    
+    /**
+     * 当设备作为服务器启动时调用
+     */
+    public void onServerStarted() {
+        isServer = true;
+        logger.info("Device is now acting as server");
+    }
+    
+    /**
+     * 当设备作为客户端连接时调用
+     */
+    public void onClientConnected() {
+        isClient = true;
+        logger.info("Device is now acting as client");
     }
     
     /**
@@ -198,5 +265,21 @@ public class Controller implements InputListener {
         if (this.inputListenerManager != null) {
             this.inputListenerManager.setEventListener(this);
         }
+    }
+    
+    /**
+     * 检查设备是否作为服务器运行
+     * @return true表示作为服务器运行，false表示不是
+     */
+    public boolean isServer() {
+        return isServer;
+    }
+    
+    /**
+     * 检查设备是否作为客户端运行
+     * @return true表示作为客户端运行，false表示不是
+     */
+    public boolean isClient() {
+        return isClient;
     }
 }

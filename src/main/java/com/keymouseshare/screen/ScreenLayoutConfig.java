@@ -41,7 +41,12 @@ public class ScreenLayoutConfig {
      * @param deviceId 设备ID
      */
     public void removeScreen(String deviceId) {
-        screenLayout.removeIf(screen -> screen.getDeviceId().equals(deviceId));
+        if (deviceId == null) {
+            logger.warn("Cannot remove screen with null device ID");
+            return;
+        }
+        
+        screenLayout.removeIf(screen -> deviceId.equals(screen.getDeviceId()));
         logger.info("Removed screen from layout: {}", deviceId);
     }
     
@@ -63,8 +68,12 @@ public class ScreenLayoutConfig {
      * @return 设备屏幕信息，未找到返回null
      */
     public DeviceScreen getScreen(String deviceId) {
+        if (deviceId == null) {
+            return null;
+        }
+        
         for (DeviceScreen screen : screenLayout) {
-            if (screen.getDeviceId().equals(deviceId)) {
+            if (deviceId.equals(screen.getDeviceId())) {
                 return screen;
             }
         }

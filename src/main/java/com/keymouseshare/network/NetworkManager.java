@@ -13,7 +13,12 @@ import com.keymouseshare.config.DeviceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -30,11 +35,12 @@ public class NetworkManager {
     private Controller controller;
     private DeviceDiscovery deviceDiscovery;
     private ConcurrentHashMap<String, Channel> clientChannels;
+    private boolean deviceDiscoveryStarted = false;
     
     public NetworkManager(Controller controller) {
         this.controller = controller;
         this.clientChannels = new ConcurrentHashMap<>();
-        this.deviceDiscovery = new DeviceDiscovery();
+        this.deviceDiscovery = new DeviceDiscovery(); // 使用默认端口
     }
     
     /**
@@ -65,10 +71,39 @@ public class NetworkManager {
             serverChannel = f.channel();
             logger.info("Server started on port {}", port);
             
+            // 通知控制器服务器已启动
+            controller.onServerStarted();
+            
+            // 记录服务器IP地址信息
+            logServerAddresses(port);
+            
             // 启动设备发现
             startDeviceDiscovery();
         } catch (InterruptedException e) {
             logger.error("Failed to start server", e);
+        }
+    }
+    
+    /**
+     * 记录服务器地址信息
+     * @param port 服务器端口
+     */
+    private void logServerAddresses(int port) {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            logger.info("Server is listening on port {}. Available server addresses:", port);
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                if (networkInterface.isUp() && !networkInterface.isLoopback()) {
+                    networkInterface.getInterfaceAddresses().stream()
+                        .filter(addr -> addr.getAddress() instanceof java.net.Inet4Address)
+                        .forEach(addr -> {
+                            logger.info("  {}:{}", addr.getAddress().getHostAddress(), port);
+                        });
+                }
+            }
+        } catch (SocketException e) {
+            logger.warn("Failed to get server addresses", e);
         }
     }
     
@@ -81,6 +116,11 @@ public class NetworkManager {
         workerGroup = new NioEventLoopGroup();
         
         try {
+            logger.info("Attempting to connect to server {}:{}", host, port);
+            
+            // 检查网络连接性
+            checkNetworkConnectivity(host, port);
+            
             Bootstrap b = new Bootstrap();
             b.group(workerGroup)
              .channel(NioSocketChannel.class)
@@ -99,8 +139,11 @@ public class NetworkManager {
             logger.info("Connected to server {}:{}", host, port);
             
             // 通知控制器客户端已连接
+            controller.onClientConnected();
+            
             DeviceConfig.Device serverDevice = new DeviceConfig.Device();
-            serverDevice.setDeviceId("server-" + host + ":" + port);
+            String deviceId = "server-" + host + ":" + port;
+            serverDevice.setDeviceId(deviceId != null ? deviceId : UUID.randomUUID().toString());
             serverDevice.setDeviceName("Server (" + host + ":" + port + ")");
             serverDevice.setIpAddress(host);
             controller.onClientConnected(serverDevice);
@@ -109,6 +152,31 @@ public class NetworkManager {
             startDeviceDiscovery();
         } catch (InterruptedException e) {
             logger.error("Failed to connect to server {}:{}", host, port, e);
+        } catch (Exception e) {
+            logger.error("Failed to connect to server {}:{} - {}", host, port, e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 检查网络连接性
+     * @param host 服务器地址
+     * @param port 服务器端口
+     */
+    private void checkNetworkConnectivity(String host, int port) {
+        try {
+            // 尝试解析主机名
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            logger.info("Resolved host {} to addresses: {}", host, (Object[]) addresses);
+            
+            // 检查是否能连接到端口
+            try (java.net.Socket socket = new java.net.Socket()) {
+                socket.connect(new InetSocketAddress(host, port), 5000); // 5秒超时
+                logger.info("Successfully connected to {}:{}", host, port);
+            } catch (Exception e) {
+                logger.warn("Failed to connect to {}:{} - {}", host, port, e.getMessage());
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to resolve host {} - {}", host, e.getMessage());
         }
     }
     
@@ -116,6 +184,12 @@ public class NetworkManager {
      * 启动设备发现功能
      */
     private void startDeviceDiscovery() {
+        // 避免重复启动设备发现
+        if (deviceDiscoveryStarted) {
+            logger.debug("Device discovery already started, skipping");
+            return;
+        }
+        
         deviceDiscovery.setListener(new DeviceDiscovery.DeviceDiscoveryListener() {
             @Override
             public void onDeviceDiscovered(DeviceConfig.Device device) {
@@ -125,6 +199,7 @@ public class NetworkManager {
             }
         });
         deviceDiscovery.startDiscovery();
+        deviceDiscoveryStarted = true;
     }
     
     /**
@@ -158,7 +233,7 @@ public class NetworkManager {
             if (clientChannel.remoteAddress() instanceof InetSocketAddress) {
                 InetSocketAddress address = (InetSocketAddress) clientChannel.remoteAddress();
                 String deviceId = "server-" + address.getHostString() + ":" + address.getPort();
-                controller.onClientDisconnected(deviceId);
+                controller.onClientDisconnected(deviceId != null ? deviceId : "");
             }
         }
         if (bossGroup != null) {
@@ -194,6 +269,10 @@ public class NetworkManager {
      * @param channel 客户端通道
      */
     public void addClientChannel(String deviceId, Channel channel) {
+        if (deviceId == null) {
+            deviceId = UUID.randomUUID().toString();
+            logger.warn("Null deviceId provided, generated new ID: {}", deviceId);
+        }
         clientChannels.put(deviceId, channel);
         logger.info("Client channel added: {}", deviceId);
     }
@@ -203,10 +282,22 @@ public class NetworkManager {
      * @param deviceId 设备ID
      */
     public void removeClientChannel(String deviceId) {
+        if (deviceId == null) {
+            deviceId = "";
+            logger.warn("Null deviceId provided for removal");
+        }
         clientChannels.remove(deviceId);
         logger.info("Client channel removed: {}", deviceId);
         
         // 通知控制器客户端已断开连接
         controller.onClientDisconnected(deviceId);
+    }
+    
+    /**
+     * 检查设备发现是否已启动
+     * @return true表示已启动，false表示未启动
+     */
+    public boolean isDeviceDiscoveryStarted() {
+        return deviceDiscoveryStarted;
     }
 }

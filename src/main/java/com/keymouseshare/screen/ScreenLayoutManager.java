@@ -122,6 +122,11 @@ public class ScreenLayoutManager {
      * @param deviceId 设备ID
      */
     public void removeDevice(String deviceId) {
+        if (deviceId == null) {
+            logger.warn("Cannot remove device with null device ID");
+            return;
+        }
+        
         layoutConfig.removeScreen(deviceId);
         logger.info("Device removed from layout: {}", deviceId);
     }

@@ -1,5 +1,7 @@
 package com.keymouseshare.screen;
 
+import java.util.Objects;
+
 /**
  * 设备屏幕信息类，表示一个设备屏幕的位置和尺寸信息
  */
@@ -26,8 +28,8 @@ public class DeviceScreen {
     }
     
     public DeviceScreen(String deviceId, String deviceName, int width, int height, int x, int y) {
-        this.deviceId = deviceId;
-        this.deviceName = deviceName;
+        this.deviceId = deviceId != null ? deviceId : "";
+        this.deviceName = deviceName != null ? deviceName : "";
         this.width = width;
         this.height = height;
         this.x = x;
@@ -39,7 +41,7 @@ public class DeviceScreen {
     }
     
     public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
+        this.deviceId = deviceId != null ? deviceId : "";
     }
     
     public String getDeviceName() {
@@ -47,7 +49,7 @@ public class DeviceScreen {
     }
     
     public void setDeviceName(String deviceName) {
-        this.deviceName = deviceName;
+        this.deviceName = deviceName != null ? deviceName : "";
     }
     
     public int getWidth() {
@@ -89,7 +91,7 @@ public class DeviceScreen {
         
         DeviceScreen that = (DeviceScreen) o;
         
-        return deviceId != null ? deviceId.equals(that.deviceId) : that.deviceId == null;
+        return Objects.equals(deviceId, that.deviceId);
     }
     
     @Override

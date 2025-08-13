@@ -8,6 +8,8 @@ import com.keymouseshare.config.DeviceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
 /**
  * 输入事件处理器，处理从网络接收到的输入事件
  */
@@ -26,6 +28,9 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
         super.channelActive(ctx);
         // 生成设备ID
         deviceId = "client-" + ctx.channel().remoteAddress().toString();
+        if (deviceId == null) {
+            deviceId = UUID.randomUUID().toString();
+        }
         logger.info("Client connected: {}", deviceId);
         
         // 添加客户端通道到管理器
@@ -44,11 +49,15 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
-        logger.info("Client disconnected: {}", deviceId);
+        String id = deviceId;
+        if (id == null) {
+            id = "";
+        }
+        logger.info("Client disconnected: {}", id);
         
         // 从管理器中移除客户端通道
-        if (controller.getNetworkManager() != null && deviceId != null) {
-            controller.getNetworkManager().removeClientChannel(deviceId);
+        if (controller.getNetworkManager() != null) {
+            controller.getNetworkManager().removeClientChannel(id);
         }
     }
     
