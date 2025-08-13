@@ -26,12 +26,12 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
-        // 生成设备ID
-        deviceId = "client-" + ctx.channel().remoteAddress().toString().replaceAll("[^a-zA-Z0-9\\-\\.]", "_");
-        if (deviceId == null) {
-            deviceId = UUID.randomUUID().toString();
-        }
-        logger.info("Client connected: {}", deviceId);
+        // 生成设备ID，基于远程地址和通道ID确保唯一性
+        String remoteAddress = ctx.channel().remoteAddress().toString();
+        String channelId = ctx.channel().id().asShortText();
+        deviceId = "client-" + remoteAddress.replaceAll("[^a-zA-Z0-9\\-\\.]", "_") + "-" + channelId;
+        
+        logger.info("Client connected: {} (remote: {})", deviceId, remoteAddress);
         
         // 添加客户端通道到管理器
         if (controller.getNetworkManager() != null) {
@@ -41,15 +41,15 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
         // 通知控制器有客户端连接
         DeviceConfig.Device device = new DeviceConfig.Device();
         device.setDeviceId(deviceId);
-        device.setDeviceName("Client (" + ctx.channel().remoteAddress().toString() + ")");
-        device.setIpAddress(ctx.channel().remoteAddress().toString());
+        device.setDeviceName("Client (" + remoteAddress + ")");
+        device.setIpAddress(remoteAddress);
         // 设置默认屏幕尺寸
         device.setScreenWidth(1920);
         device.setScreenHeight(1080);
         // 设置默认网络位置，根据设备ID设置不同的位置以避免重叠
-        int positionOffset = deviceId.hashCode() % 1000;
-        device.setNetworkX(positionOffset * 50);
-        device.setNetworkY(positionOffset * 30);
+        int positionOffset = Math.abs(deviceId.hashCode()) % 100;
+        device.setNetworkX(positionOffset * 200);  // 水平错开
+        device.setNetworkY(positionOffset * 100);  // 垂直错开
         controller.onClientConnected(device);
     }
     
@@ -58,7 +58,7 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
         super.channelInactive(ctx);
         String id = deviceId;
         if (id == null) {
-            id = "";
+            id = "unknown-" + ctx.channel().id().asShortText();
         }
         logger.info("Client disconnected: {}", id);
         

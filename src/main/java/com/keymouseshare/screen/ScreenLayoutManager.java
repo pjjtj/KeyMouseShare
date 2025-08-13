@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 屏幕布局管理器，负责管理多个设备屏幕的相对位置关系
@@ -13,6 +14,7 @@ public class ScreenLayoutManager {
     private static final Logger logger = LoggerFactory.getLogger(ScreenLayoutManager.class);
     
     private ScreenLayoutConfig layoutConfig;
+    private AtomicInteger deviceCounter = new AtomicInteger(0);
     
     public ScreenLayoutManager() {
         this.layoutConfig = new ScreenLayoutConfig();
@@ -83,15 +85,31 @@ public class ScreenLayoutManager {
             return;
         }
         
+        // 检查设备是否已存在
+        DeviceScreen existingScreen = layoutConfig.getScreen(device.getDeviceId());
+        if (existingScreen != null) {
+            logger.debug("Device {} already exists in layout, updating", device.getDeviceName());
+            updateDevice(device);
+            return;
+        }
+        
         DeviceScreen screen = new DeviceScreen();
         screen.setDeviceId(device.getDeviceId());
         screen.setDeviceName(device.getDeviceName());
         screen.setWidth(device.getScreenWidth());
         screen.setHeight(device.getScreenHeight());
-        screen.setX(device.getNetworkX());
-        screen.setY(device.getNetworkY());
-        layoutConfig.addScreen(screen);
         
+        // 如果设备没有设置位置，则为其分配一个默认位置
+        if (device.getNetworkX() == 0 && device.getNetworkY() == 0) {
+            int positionIndex = deviceCounter.getAndIncrement();
+            screen.setX(positionIndex * 200);  // 水平排列
+            screen.setY(positionIndex * 100);   // 垂直偏移
+        } else {
+            screen.setX(device.getNetworkX());
+            screen.setY(device.getNetworkY());
+        }
+        
+        layoutConfig.addScreen(screen);
         logger.info("Device added to layout: {}", device.getDeviceName());
     }
     
@@ -127,8 +145,13 @@ public class ScreenLayoutManager {
             return;
         }
         
-        layoutConfig.removeScreen(deviceId);
-        logger.info("Device removed from layout: {}", deviceId);
+        DeviceScreen screen = layoutConfig.getScreen(deviceId);
+        if (screen != null) {
+            layoutConfig.removeScreen(deviceId);
+            logger.info("Device removed from layout: {}", screen.getDeviceName());
+        } else {
+            logger.debug("Device with ID {} not found in layout", deviceId);
+        }
     }
     
     /**
@@ -149,7 +172,7 @@ public class ScreenLayoutManager {
         layoutConfig.setCurrentScreen(currentScreen);
         
         // 确保当前设备在布局中
-        if (!layoutConfig.getAllScreens().contains(currentScreen)) {
+        if (layoutConfig.getScreen(currentScreen.getDeviceId()) == null) {
             layoutConfig.addScreen(currentScreen);
         }
         

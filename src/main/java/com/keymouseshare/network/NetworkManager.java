@@ -142,7 +142,7 @@ public class NetworkManager {
             controller.onClientConnected();
             
             DeviceConfig.Device serverDevice = new DeviceConfig.Device();
-            String deviceId = "server-" + host + ":" + port;
+            String deviceId = "server-" + host.replaceAll("[^a-zA-Z0-9\\-\\.]", "_") + ":" + port;
             serverDevice.setDeviceId(deviceId != null ? deviceId : UUID.randomUUID().toString());
             serverDevice.setDeviceName("Server (" + host + ":" + port + ")");
             serverDevice.setIpAddress(host);
@@ -238,7 +238,7 @@ public class NetworkManager {
             // 通知控制器客户端已断开连接
             if (clientChannel.remoteAddress() instanceof InetSocketAddress) {
                 InetSocketAddress address = (InetSocketAddress) clientChannel.remoteAddress();
-                String deviceId = "server-" + address.getHostString() + ":" + address.getPort();
+                String deviceId = "server-" + address.getHostString().replaceAll("[^a-zA-Z0-9\\-\\.]", "_") + ":" + address.getPort();
                 controller.onClientDisconnected(deviceId != null ? deviceId : "");
             }
         }
@@ -276,9 +276,15 @@ public class NetworkManager {
      */
     public void addClientChannel(String deviceId, Channel channel) {
         if (deviceId == null) {
-            deviceId = UUID.randomUUID().toString();
+            deviceId = "client-" + channel.id().asShortText();
             logger.warn("Null deviceId provided, generated new ID: {}", deviceId);
         }
+        
+        // 检查是否已存在相同的通道
+        if (clientChannels.containsKey(deviceId)) {
+            logger.debug("Channel for device {} already exists, replacing", deviceId);
+        }
+        
         clientChannels.put(deviceId, channel);
         logger.info("Client channel added: {}", deviceId);
     }
@@ -292,8 +298,13 @@ public class NetworkManager {
             deviceId = "";
             logger.warn("Null deviceId provided for removal");
         }
-        clientChannels.remove(deviceId);
-        logger.info("Client channel removed: {}", deviceId);
+        
+        Channel removedChannel = clientChannels.remove(deviceId);
+        if (removedChannel != null) {
+            logger.info("Client channel removed: {}", deviceId);
+        } else {
+            logger.debug("No client channel found for removal: {}", deviceId);
+        }
         
         // 通知控制器客户端已断开连接
         controller.onClientDisconnected(deviceId);

@@ -31,8 +31,30 @@ public class ScreenLayoutConfig {
      */
     public void addScreen(DeviceScreen deviceScreen) {
         if (deviceScreen != null) {
-            screenLayout.add(deviceScreen);
-            logger.info("Added screen to layout: {}", deviceScreen);
+            // 检查是否已存在相同ID的设备
+            DeviceScreen existingScreen = getScreen(deviceScreen.getDeviceId());
+            if (existingScreen != null) {
+                logger.debug("Screen with ID {} already exists, updating instead", deviceScreen.getDeviceId());
+                updateScreen(deviceScreen);
+                return;
+            }
+            
+            // 检查是否已存在相同IP地址的设备
+            boolean duplicateFound = false;
+            for (DeviceScreen screen : screenLayout) {
+                if (screen.getDeviceId() != null && deviceScreen.getDeviceId() != null &&
+                    screen.getDeviceId().equals(deviceScreen.getDeviceId())) {
+                    duplicateFound = true;
+                    break;
+                }
+            }
+            
+            if (!duplicateFound) {
+                screenLayout.add(deviceScreen);
+                logger.info("Added screen to layout: {}", deviceScreen);
+            } else {
+                logger.debug("Duplicate screen not added: {}", deviceScreen);
+            }
         }
     }
     
@@ -131,7 +153,7 @@ public class ScreenLayoutConfig {
     public void setCurrentScreen(DeviceScreen currentScreen) {
         this.currentScreen = currentScreen;
         // 确保当前屏幕在布局中
-        if (currentScreen != null && !screenLayout.contains(currentScreen)) {
+        if (currentScreen != null && getScreen(currentScreen.getDeviceId()) == null) {
             screenLayout.add(currentScreen);
         }
     }
