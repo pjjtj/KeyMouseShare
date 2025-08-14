@@ -1,26 +1,32 @@
 package com.keymouseshare.network;
 
-import io.netty.bootstrap.ServerBootstrap;
+import com.google.gson.Gson;
+import com.keymouseshare.config.DeviceConfig;
+import com.keymouseshare.core.Controller;
+import com.keymouseshare.input.InputEvent;
+import com.keymouseshare.screen.DeviceScreen;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import com.keymouseshare.core.Controller;
-import com.keymouseshare.input.InputEvent;
-import com.keymouseshare.config.DeviceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 网络管理器，负责处理设备间的通信
@@ -138,12 +144,19 @@ public class NetworkManager {
             clientChannel = f.channel();
             logger.info("Connected to server {}:{}", host, port);
             
+            // 发送连接消息，包含设备ID、设备名称和屏幕分辨率信息
+            int[] screenSize = getScreenSize();
+            String screenData = screenSize[0] + "x" + screenSize[1];
+            DataPacket connectPacket = new DataPacket("CONNECT", controller.getDeviceConfig().getDeviceId(), 
+                controller.getDeviceConfig().getDeviceName(), screenData);
+            clientChannel.writeAndFlush(connectPacket);
+            
             // 通知控制器客户端已连接
             controller.onClientConnected();
             
             DeviceConfig.Device serverDevice = new DeviceConfig.Device();
-            String deviceId = "server-" + host.replaceAll("[^a-zA-Z0-9\\-\\.]", "_") + ":" + port;
-            serverDevice.setDeviceId(deviceId != null ? deviceId : UUID.randomUUID().toString());
+            String serverDeviceId = "server-" + host.replaceAll("[^a-zA-Z0-9\\-\\.]", "_") + ":" + port;
+            serverDevice.setDeviceId(serverDeviceId != null ? serverDeviceId : UUID.randomUUID().toString());
             serverDevice.setDeviceName("Server (" + host + ":" + port + ")");
             serverDevice.setIpAddress(host);
             // 设置默认屏幕尺寸
@@ -363,6 +376,49 @@ public class NetworkManager {
         
         // 通知控制器客户端已断开连接
         controller.onClientDisconnected(deviceId);
+    }
+    
+    /**
+     * 获取实际屏幕分辨率
+     * @return 包含宽度和高度的数组，如果获取失败则返回默认值1920x1080
+     */
+    private int[] getScreenSize() {
+        try {
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            GraphicsDevice[] screens = ge.getScreenDevices();
+            
+            // 遍历所有屏幕设备，找到主屏幕或选择最大屏幕
+            GraphicsDevice primaryDevice = ge.getDefaultScreenDevice();
+            DisplayMode dm = primaryDevice.getDisplayMode();
+            
+            int width = dm.getWidth();
+            int height = dm.getHeight();
+            
+            // 确保获取到的尺寸是有效的
+            if (width > 0 && height > 0) {
+                logger.info("Primary screen size detected: {}x{}", width, height);
+                return new int[]{width, height};
+            }
+            
+            // 如果主屏幕无效，尝试其他屏幕
+            for (GraphicsDevice screen : screens) {
+                dm = screen.getDisplayMode();
+                width = dm.getWidth();
+                height = dm.getHeight();
+                
+                if (width > 0 && height > 0) {
+                    logger.info("Screen size detected from device {}: {}x{}", 
+                        screen.getIDstring(), width, height);
+                    return new int[]{width, height};
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to get screen size, using default 1920x1080", e);
+        }
+        
+        // 默认返回1920x1080
+        logger.info("Using default screen size: 1920x1080");
+        return new int[]{1920, 1080};
     }
     
     /**
