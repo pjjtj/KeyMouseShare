@@ -8,6 +8,9 @@ import com.keymouseshare.config.DeviceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.GraphicsEnvironment;
+import java.awt.GraphicsDevice;
+import java.awt.DisplayMode;
 import java.util.UUID;
 
 /**
@@ -44,14 +47,58 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
         device.setDeviceId(deviceId);
         device.setDeviceName("Client (" + remoteAddress + ")");
         device.setIpAddress(remoteAddress);
-        // 设置默认屏幕尺寸
-        device.setScreenWidth(1920);
-        device.setScreenHeight(1080);
+        // 获取实际屏幕分辨率，如果获取不到则使用默认值1920x1080
+        int[] screenSize = getScreenSize();
+        device.setScreenWidth(screenSize[0]);
+        device.setScreenHeight(screenSize[1]);
         // 设置默认网络位置，根据设备ID设置不同的位置以避免重叠
         int positionOffset = Math.abs(deviceId.hashCode()) % 100;
         device.setNetworkX(positionOffset * 200);  // 水平错开
         device.setNetworkY(positionOffset * 100);  // 垂直错开
         controller.onClientConnected(device);
+    }
+    
+    /**
+     * 获取实际屏幕分辨率
+     * @return 包含宽度和高度的数组，如果获取失败则返回默认值1920x1080
+     */
+    private int[] getScreenSize() {
+        try {
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            GraphicsDevice[] screens = ge.getScreenDevices();
+            
+            // 遍历所有屏幕设备，找到主屏幕或选择最大屏幕
+            GraphicsDevice primaryDevice = ge.getDefaultScreenDevice();
+            DisplayMode dm = primaryDevice.getDisplayMode();
+            
+            int width = dm.getWidth();
+            int height = dm.getHeight();
+            
+            // 确保获取到的尺寸是有效的
+            if (width > 0 && height > 0) {
+                logger.info("Primary screen size detected: {}x{}", width, height);
+                return new int[]{width, height};
+            }
+            
+            // 如果主屏幕无效，尝试其他屏幕
+            for (GraphicsDevice screen : screens) {
+                dm = screen.getDisplayMode();
+                width = dm.getWidth();
+                height = dm.getHeight();
+                
+                if (width > 0 && height > 0) {
+                    logger.info("Screen size detected from device {}: {}x{}", 
+                        screen.getIDstring(), width, height);
+                    return new int[]{width, height};
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to get screen size, using default 1920x1080", e);
+        }
+        
+        // 默认返回1920x1080
+        logger.info("Using default screen size: 1920x1080");
+        return new int[]{1920, 1080};
     }
     
     @Override
@@ -74,21 +121,33 @@ public class InputEventHandler extends SimpleChannelInboundHandler<InputEvent> {
         // 根据事件类型进行处理
         switch (event.getType()) {
             case MOUSE_MOVE:
+                logger.info("Received mouse wake event - MOUSE_MOVE: ({}, {})", 
+                    ((MouseEvent) event).getX(), ((MouseEvent) event).getY());
                 controller.onMouseMove((MouseEvent) event);
                 break;
             case MOUSE_PRESS:
+                logger.info("Received mouse wake event - MOUSE_PRESS: button={}", 
+                    ((MouseEvent) event).getButton());
                 controller.onMousePress((MouseEvent) event);
                 break;
             case MOUSE_RELEASE:
+                logger.info("Received mouse wake event - MOUSE_RELEASE: button={}", 
+                    ((MouseEvent) event).getButton());
                 controller.onMouseRelease((MouseEvent) event);
                 break;
             case MOUSE_WHEEL:
+                logger.info("Received mouse wake event - MOUSE_WHEEL: amount={}", 
+                    ((MouseEvent) event).getWheelAmount());
                 controller.onMouseWheel((MouseEvent) event);
                 break;
             case KEY_PRESS:
+                logger.info("Received keyboard wake event - KEY_PRESS: keyCode={}", 
+                    ((KeyEvent) event).getKeyCode());
                 controller.onKeyPress((KeyEvent) event);
                 break;
             case KEY_RELEASE:
+                logger.info("Received keyboard wake event - KEY_RELEASE: keyCode={}", 
+                    ((KeyEvent) event).getKeyCode());
                 controller.onKeyRelease((KeyEvent) event);
                 break;
             case FILE_DRAG_START:

@@ -21,7 +21,7 @@ public class ScreenLayoutPanel extends JPanel {
     private static final Color GRID_COLOR = new Color(200, 200, 200);
     
     // 吸附距离阈值
-    private static final int SNAP_DISTANCE = 20;
+    private static final int SNAP_DISTANCE = 200;
     
     private ScreenLayoutConfig layoutConfig;
     private DeviceScreen selectedScreen;
@@ -31,8 +31,8 @@ public class ScreenLayoutPanel extends JPanel {
     private double scale = 0.5; // 缩放比例
     
     // 用于保持屏幕相对尺寸的基准屏幕大小
-    private int baseScreenWidth = 1920;
-    private int baseScreenHeight = 1080;
+    private int baseScreenWidth;
+    private int baseScreenHeight;
     
     // 拖拽相关变量
     private DeviceScreen draggedScreen = null;
@@ -42,6 +42,11 @@ public class ScreenLayoutPanel extends JPanel {
     public ScreenLayoutPanel(ScreenLayoutConfig layoutConfig) {
         this.layoutConfig = layoutConfig;
         this.screenRectangles = new ArrayList<>();
+        
+        // 获取实际屏幕分辨率，如果获取不到则使用默认值1920x1080
+        int[] screenSize = getScreenSize();
+        this.baseScreenWidth = screenSize[0];
+        this.baseScreenHeight = screenSize[1];
         
         // 设置面板属性
         setBackground(Color.WHITE);
@@ -173,13 +178,13 @@ public class ScreenLayoutPanel extends JPanel {
     }
     
     /**
-     * 应用屏幕吸附效果
+     * 应用屏幕吸附效果，使用实际屏幕尺寸进行计算
      * @param draggedScreen 被拖拽的屏幕
      */
     private void applySnapEffect(DeviceScreen draggedScreen) {
-        // 确保屏幕有有效的尺寸
-        int draggedWidth = draggedScreen.getWidth() > 0 ? draggedScreen.getWidth() : baseScreenWidth;
-        int draggedHeight = draggedScreen.getHeight() > 0 ? draggedScreen.getHeight() : baseScreenHeight;
+        // 获取被拖拽屏幕的实际尺寸
+        int draggedWidth = getScreenWidth(draggedScreen);
+        int draggedHeight = getScreenHeight(draggedScreen);
         
         // 获取所有其他屏幕
         List<DeviceScreen> allScreens = layoutConfig.getAllScreens();
@@ -191,50 +196,102 @@ public class ScreenLayoutPanel extends JPanel {
                 continue;
             }
             
-            // 确保其他屏幕有有效的尺寸
-            int otherWidth = otherScreen.getWidth() > 0 ? otherScreen.getWidth() : baseScreenWidth;
-            int otherHeight = otherScreen.getHeight() > 0 ? otherScreen.getHeight() : baseScreenHeight;
+            // 获取其他屏幕的实际尺寸
+            int otherWidth = getScreenWidth(otherScreen);
+            int otherHeight = getScreenHeight(otherScreen);
             
-            // 计算拖拽屏幕的边缘坐标
-            int draggedLeft = draggedScreen.getX();
-            int draggedRight = draggedScreen.getX() + draggedWidth;
-            int draggedTop = draggedScreen.getY();
-            int draggedBottom = draggedScreen.getY() + draggedHeight;
-            
-            // 计算其他屏幕的边缘坐标
-            int otherLeft = otherScreen.getX();
-            int otherRight = otherScreen.getX() + otherWidth;
-            int otherTop = otherScreen.getY();
-            int otherBottom = otherScreen.getY() + otherHeight;
+            // 计算两个屏幕的边界坐标
+            Rectangle draggedRect = new Rectangle(draggedScreen.getX(), draggedScreen.getY(), draggedWidth, draggedHeight);
+            Rectangle otherRect = new Rectangle(otherScreen.getX(), otherScreen.getY(), otherWidth, otherHeight);
             
             // 检查水平方向的吸附
-            if (Math.abs(draggedLeft - otherRight) < SNAP_DISTANCE) {
-                // 拖拽屏幕的左边缘吸附到其他屏幕的右边缘
-                draggedScreen.setX(otherRight);
-            } else if (Math.abs(draggedRight - otherLeft) < SNAP_DISTANCE) {
-                // 拖拽屏幕的右边缘吸附到其他屏幕的左边缘
-                draggedScreen.setX(otherLeft - draggedWidth);
-            } else if (Math.abs(draggedLeft - otherLeft) < SNAP_DISTANCE) {
-                // 拖拽屏幕的左边缘吸附到其他屏幕的左边缘
-                draggedScreen.setX(otherLeft);
-            } else if (Math.abs(draggedRight - otherRight) < SNAP_DISTANCE) {
-                // 拖拽屏幕的右边缘吸附到其他屏幕的右边缘
-                draggedScreen.setX(otherRight - draggedWidth);
-            }
+            checkHorizontalSnap(draggedRect, otherRect);
             
             // 检查垂直方向的吸附
-            if (Math.abs(draggedTop - otherBottom) < SNAP_DISTANCE) {
+            checkVerticalSnap(draggedRect, otherRect);
+        }
+    }
+    
+    /**
+     * 获取屏幕的实际宽度，如果无效则使用基准宽度
+     * @param screen 设备屏幕
+     * @return 屏幕宽度
+     */
+    private int getScreenWidth(DeviceScreen screen) {
+        return screen.getWidth() > 0 ? screen.getWidth() : baseScreenWidth;
+    }
+    
+    /**
+     * 获取屏幕的实际高度，如果无效则使用基准高度
+     * @param screen 设备屏幕
+     * @return 屏幕高度
+     */
+    private int getScreenHeight(DeviceScreen screen) {
+        return screen.getHeight() > 0 ? screen.getHeight() : baseScreenHeight;
+    }
+    
+    /**
+     * 检查水平方向的吸附
+     * @param draggedRect 拖拽屏幕的矩形区域
+     * @param otherRect 其他屏幕的矩形区域
+     */
+    private void checkHorizontalSnap(Rectangle draggedRect, Rectangle otherRect) {
+        // 计算边缘距离
+        int leftToRight = Math.abs(draggedRect.x - (otherRect.x + otherRect.width));
+        int rightToLeft = Math.abs((draggedRect.x + draggedRect.width) - otherRect.x);
+        int leftToLeft = Math.abs(draggedRect.x - otherRect.x);
+        int rightToRight = Math.abs((draggedRect.x + draggedRect.width) - (otherRect.x + otherRect.width));
+        
+        // 找出最小的吸附距离
+        int minDistance = Math.min(Math.min(Math.min(leftToRight, rightToLeft), leftToLeft), rightToRight);
+        
+        // 如果在吸附范围内，则调整位置
+        if (minDistance < SNAP_DISTANCE) {
+            if (leftToRight == minDistance) {
+                // 拖拽屏幕的左边缘吸附到其他屏幕的右边缘
+                draggedScreen.setX(otherRect.x + otherRect.width);
+            } else if (rightToLeft == minDistance) {
+                // 拖拽屏幕的右边缘吸附到其他屏幕的左边缘
+                draggedScreen.setX(otherRect.x - draggedRect.width);
+            } else if (leftToLeft == minDistance) {
+                // 拖拽屏幕的左边缘吸附到其他屏幕的左边缘
+                draggedScreen.setX(otherRect.x);
+            } else if (rightToRight == minDistance) {
+                // 拖拽屏幕的右边缘吸附到其他屏幕的右边缘
+                draggedScreen.setX(otherRect.x + otherRect.width - draggedRect.width);
+            }
+        }
+    }
+    
+    /**
+     * 检查垂直方向的吸附
+     * @param draggedRect 拖拽屏幕的矩形区域
+     * @param otherRect 其他屏幕的矩形区域
+     */
+    private void checkVerticalSnap(Rectangle draggedRect, Rectangle otherRect) {
+        // 计算边缘距离
+        int topToBottom = Math.abs(draggedRect.y - (otherRect.y + otherRect.height));
+        int bottomToTop = Math.abs((draggedRect.y + draggedRect.height) - otherRect.y);
+        int topToTop = Math.abs(draggedRect.y - otherRect.y);
+        int bottomToBottom = Math.abs((draggedRect.y + draggedRect.height) - (otherRect.y + otherRect.height));
+        
+        // 找出最小的吸附距离
+        int minDistance = Math.min(Math.min(Math.min(topToBottom, bottomToTop), topToTop), bottomToBottom);
+        
+        // 如果在吸附范围内，则调整位置
+        if (minDistance < SNAP_DISTANCE) {
+            if (topToBottom == minDistance) {
                 // 拖拽屏幕的上边缘吸附到其他屏幕的下边缘
-                draggedScreen.setY(otherBottom);
-            } else if (Math.abs(draggedBottom - otherTop) < SNAP_DISTANCE) {
+                draggedScreen.setY(otherRect.y + otherRect.height);
+            } else if (bottomToTop == minDistance) {
                 // 拖拽屏幕的下边缘吸附到其他屏幕的上边缘
-                draggedScreen.setY(otherTop - draggedHeight);
-            } else if (Math.abs(draggedTop - otherTop) < SNAP_DISTANCE) {
+                draggedScreen.setY(otherRect.y - draggedRect.height);
+            } else if (topToTop == minDistance) {
                 // 拖拽屏幕的上边缘吸附到其他屏幕的上边缘
-                draggedScreen.setY(otherTop);
-            } else if (Math.abs(draggedBottom - otherBottom) < SNAP_DISTANCE) {
+                draggedScreen.setY(otherRect.y);
+            } else if (bottomToBottom == minDistance) {
                 // 拖拽屏幕的下边缘吸附到其他屏幕的下边缘
-                draggedScreen.setY(otherBottom - draggedHeight);
+                draggedScreen.setY(otherRect.y + otherRect.height - draggedRect.height);
             }
         }
     }
@@ -327,9 +384,13 @@ public class ScreenLayoutPanel extends JPanel {
         int maxX = Integer.MIN_VALUE;
         int maxY = Integer.MIN_VALUE;
         
+        // 获取面板可用尺寸
+        int panelWidth = getWidth() - 100;
+        int panelHeight = getHeight() - 100;
+        
         // 计算所有屏幕的边界
         for (DeviceScreen screen : screens) {
-            // 确保屏幕有有效的尺寸
+            // 获取当前屏幕的有效尺寸
             int width = screen.getWidth() > 0 ? screen.getWidth() : baseScreenWidth;
             int height = screen.getHeight() > 0 ? screen.getHeight() : baseScreenHeight;
             
@@ -339,23 +400,30 @@ public class ScreenLayoutPanel extends JPanel {
             maxY = Math.max(maxY, screen.getY() + height);
         }
         
-        // 计算偏移量以居中显示
+        // 计算布局尺寸
         int layoutWidth = maxX - minX;
         int layoutHeight = maxY - minY;
         
-        int panelWidth = getWidth() - 100;
-        int panelHeight = getHeight() - 100;
-        
-        // 计算缩放比例
+        // 计算缩放比例，保持屏幕的宽高比
+        scale = 1.0;
         if (layoutWidth > 0 && layoutHeight > 0) {
-            scale = Math.min((double) panelWidth / layoutWidth, (double) panelHeight / layoutHeight);
+            double widthRatio = panelWidth / (double) layoutWidth;
+            double heightRatio = panelHeight / (double) layoutHeight;
+            
+            // 使用最小的比例确保整个布局可见
+            scale = Math.min(widthRatio, heightRatio);
+            
+            // 限制缩放比例在合理范围内
             scale = Math.min(scale, 0.5); // 最大缩放比例为0.5
-            scale = Math.max(scale, 0.1); // 最小缩放比例为0.1
+            scale = Math.max(scale, 0.05); // 最小缩放比例为0.05，确保小屏幕也能看到
         }
         
-        // 计算偏移量
-        offsetX = (getWidth() - (int) (layoutWidth * scale)) / 2 - (int) (minX * scale);
-        offsetY = (getHeight() - (int) (layoutHeight * scale)) / 2 - (int) (minY * scale);
+        // 计算偏移量以居中显示
+        int scaledLayoutWidth = (int) (layoutWidth * scale);
+        int scaledLayoutHeight = (int) (layoutHeight * scale);
+        
+        offsetX = (getWidth() - scaledLayoutWidth) / 2 - (int) (minX * scale);
+        offsetY = (getHeight() - scaledLayoutHeight) / 2 - (int) (minY * scale);
     }
     
     /**
@@ -422,7 +490,23 @@ public class ScreenLayoutPanel extends JPanel {
         int textX = x + Math.max(5, (scaledWidth - textWidth) / 2);
         int textY = y + Math.max(textHeight, (scaledHeight + fm.getAscent()) / 2);
         
-        g2d.drawString(sizeInfo, textX, textY);
+        // 如果文本太宽放不进矩形内，则只显示设备名称
+        if (textWidth > scaledWidth - 10) {
+            String shortInfo = String.format("%s", name);
+            textWidth = fm.stringWidth(shortInfo);
+            textX = x + Math.max(5, (scaledWidth - textWidth) / 2);
+            g2d.drawString(shortInfo, textX, textY);
+            
+            // 如果还有空间，再显示尺寸信息在下方
+            if (scaledHeight > textHeight * 2) {
+                String dimensionInfo = String.format("(%dx%d)", width, height);
+                int dimTextWidth = fm.stringWidth(dimensionInfo);
+                int dimTextX = x + Math.max(5, (scaledWidth - dimTextWidth) / 2);
+                g2d.drawString(dimensionInfo, dimTextX, textY + textHeight);
+            }
+        } else {
+            g2d.drawString(sizeInfo, textX, textY);
+        }
     }
     
     /**
@@ -469,21 +553,28 @@ public class ScreenLayoutPanel extends JPanel {
         int width2 = screen2.getWidth() > 0 ? screen2.getWidth() : baseScreenWidth;
         int height2 = screen2.getHeight() > 0 ? screen2.getHeight() : baseScreenHeight;
         
-        // 检查水平相邻
+        // 检查水平方向是否相邻
         boolean horizontalAdjacent = 
-            (screen1.getX() + width1 == screen2.getX() || 
-             screen2.getX() + width2 == screen1.getX()) &&
-            (Math.max(screen1.getY(), screen2.getY()) < 
-             Math.min(screen1.getY() + height1, screen2.getY() + height2));
-        
-        // 检查垂直相邻
+            (screen1.getX() + width1 == screen2.getX()) ||  // screen1在screen2左侧
+            (screen2.getX() + width2 == screen1.getX());    // screen2在screen1左侧
+            
+        // 检查垂直方向是否相邻
         boolean verticalAdjacent = 
-            (screen1.getY() + height1 == screen2.getY() || 
-             screen2.getY() + height2 == screen1.getY()) &&
-            (Math.max(screen1.getX(), screen2.getX()) < 
-             Math.min(screen1.getX() + width1, screen2.getX() + width2));
-        
-        return horizontalAdjacent || verticalAdjacent;
+            (screen1.getY() + height1 == screen2.getY()) || // screen1在screen2上方
+            (screen2.getY() + height2 == screen1.getY());   // screen2在screen1上方
+            
+        // 检查是否在同一条直线上
+        boolean horizontallyAligned = 
+            (screen1.getY() >= screen2.getY() && screen1.getY() <= screen2.getY() + height2) ||
+            (screen2.getY() >= screen1.getY() && screen2.getY() <= screen1.getY() + height1);
+            
+        boolean verticallyAligned = 
+            (screen1.getX() >= screen2.getX() && screen1.getX() <= screen2.getX() + width2) ||
+            (screen2.getX() >= screen1.getX() && screen2.getX() <= screen1.getX() + width1);
+            
+        // 如果水平相邻且在同一条水平线上，或垂直相邻且在同一条垂直线上，则认为相邻
+        return (horizontalAdjacent && horizontallyAligned) || 
+               (verticalAdjacent && verticallyAligned);
     }
     
     /**
@@ -497,23 +588,28 @@ public class ScreenLayoutPanel extends JPanel {
         int x = rect.x + rect.width / 2;
         int y = rect.y + rect.height / 2;
         
-        // 根据相邻屏幕的位置调整连接点
-        int width = screen.getWidth() > 0 ? screen.getWidth() : baseScreenWidth;
-        int height = screen.getHeight() > 0 ? screen.getHeight() : baseScreenHeight;
+        // 获取当前屏幕的实际尺寸
+        int actualWidth = screen.getWidth() > 0 ? screen.getWidth() : baseScreenWidth;
+        int actualHeight = screen.getHeight() > 0 ? screen.getHeight() : baseScreenHeight;
         
-        if (adjacentScreen.getX() + (adjacentScreen.getWidth() > 0 ? adjacentScreen.getWidth() : baseScreenWidth) == screen.getX()) {
+        // 获取相邻屏幕的实际尺寸
+        int adjacentActualWidth = adjacentScreen.getWidth() > 0 ? adjacentScreen.getWidth() : baseScreenWidth;
+        int adjacentActualHeight = adjacentScreen.getHeight() > 0 ? adjacentScreen.getHeight() : baseScreenHeight;
+        
+        // 根据相邻屏幕的位置调整连接点
+        if (adjacentScreen.getX() + adjacentActualWidth == screen.getX()) {
             // 相邻屏幕在左侧
             x = rect.x;
             y = rect.y + rect.height / 2;
-        } else if (adjacentScreen.getX() == screen.getX() + width) {
+        } else if (adjacentScreen.getX() == screen.getX() + actualWidth) {
             // 相邻屏幕在右侧
             x = rect.x + rect.width;
             y = rect.y + rect.height / 2;
-        } else if (adjacentScreen.getY() + (adjacentScreen.getHeight() > 0 ? adjacentScreen.getHeight() : baseScreenHeight) == screen.getY()) {
+        } else if (adjacentScreen.getY() + adjacentActualHeight == screen.getY()) {
             // 相邻屏幕在上方
             x = rect.x + rect.width / 2;
             y = rect.y;
-        } else if (adjacentScreen.getY() == screen.getY() + height) {
+        } else if (adjacentScreen.getY() == screen.getY() + actualHeight) {
             // 相邻屏幕在下方
             x = rect.x + rect.width / 2;
             y = rect.y + rect.height;
@@ -555,5 +651,72 @@ public class ScreenLayoutPanel extends JPanel {
         this.baseScreenWidth = width;
         this.baseScreenHeight = height;
         repaint();
+    }
+
+    /**
+     * 根据屏幕实际尺寸计算显示尺寸
+     * @param actualWidth 实际屏幕宽度
+     * @param actualHeight 实际屏幕高度
+     * @return 计算后的显示尺寸数组，[0]为宽度，[1]为高度
+     */
+    private int[] calculateDisplaySize(int actualWidth, int actualHeight) {
+        int[] result = new int[2];
+        
+        // 如果尺寸无效，使用基准尺寸
+        if (actualWidth <= 0 || actualHeight <= 0) {
+            result[0] = (int) (baseScreenWidth * scale);
+            result[1] = (int) (baseScreenHeight * scale);
+            return result;
+        }
+        
+        // 计算基于基准比例的显示尺寸
+        double widthRatio = (double) actualWidth / baseScreenWidth;
+        double heightRatio = (double) actualHeight / baseScreenHeight;
+        
+        // 保持屏幕宽高比，根据缩放比例计算显示尺寸
+        result[0] = (int) (actualWidth * scale);
+        result[1] = (int) (actualHeight * scale);
+        
+        return result;
+    }
+    
+    /**
+     * 获取实际屏幕分辨率
+     * @return 包含宽度和高度的数组，如果获取失败则返回默认值1920x1080
+     */
+    private int[] getScreenSize() {
+        try {
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            GraphicsDevice[] screens = ge.getScreenDevices();
+            
+            // 遍历所有屏幕设备，找到主屏幕或选择最大屏幕
+            GraphicsDevice primaryDevice = ge.getDefaultScreenDevice();
+            DisplayMode dm = primaryDevice.getDisplayMode();
+            
+            int width = dm.getWidth();
+            int height = dm.getHeight();
+            
+            // 确保获取到的尺寸是有效的
+            if (width > 0 && height > 0) {
+                return new int[]{width, height};
+            }
+            
+            // 如果主屏幕无效，尝试其他屏幕
+            for (GraphicsDevice screen : screens) {
+                dm = screen.getDisplayMode();
+                width = dm.getWidth();
+                height = dm.getHeight();
+                
+                if (width > 0 && height > 0) {
+                    return new int[]{width, height};
+                }
+            }
+        } catch (Exception e) {
+            // 默认返回1920x1080
+            return new int[]{1920, 1080};
+        }
+        
+        // 默认返回1920x1080
+        return new int[]{1920, 1080};
     }
 }
