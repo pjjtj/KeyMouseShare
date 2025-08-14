@@ -414,7 +414,7 @@ public class ScreenLayoutPanel extends JPanel {
             scale = Math.min(widthRatio, heightRatio);
             
             // 限制缩放比例在合理范围内
-            scale = Math.min(scale, 0.5); // 最大缩放比例为0.5
+            scale = Math.min(scale, 0.8); // 最大缩放比例为0.8
             scale = Math.max(scale, 0.05); // 最小缩放比例为0.05，确保小屏幕也能看到
         }
         
@@ -506,6 +506,18 @@ public class ScreenLayoutPanel extends JPanel {
             }
         } else {
             g2d.drawString(sizeInfo, textX, textY);
+        }
+        
+        // 如果缩放比例较大，还可以显示更多信息
+        if (scale > 0.3) {
+            String resolutionInfo = String.format("%dx%d", width, height);
+            int resTextWidth = fm.stringWidth(resolutionInfo);
+            if (resTextWidth <= scaledWidth - 10) {
+                int resTextX = x + Math.max(5, (scaledWidth - resTextWidth) / 2);
+                int resTextY = y + scaledHeight - 10;
+                g2d.setColor(new Color(255, 255, 255, 180)); // 半透明白色
+                g2d.drawString(resolutionInfo, resTextX, resTextY);
+            }
         }
     }
     
@@ -669,14 +681,9 @@ public class ScreenLayoutPanel extends JPanel {
             return result;
         }
         
-        // 计算基于基准比例的显示尺寸
-        double widthRatio = (double) actualWidth / baseScreenWidth;
-        double heightRatio = (double) actualHeight / baseScreenHeight;
-        
-        // 保持屏幕宽高比，根据缩放比例计算显示尺寸
+        // 根据缩放比例计算显示尺寸
         result[0] = (int) (actualWidth * scale);
         result[1] = (int) (actualHeight * scale);
-        
         return result;
     }
     
