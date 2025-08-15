@@ -15,6 +15,12 @@ import java.awt.GraphicsEnvironment;
 import java.awt.GraphicsDevice;
 import java.awt.DisplayMode;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 import java.net.UnknownHostException;
 
 /**
@@ -35,6 +41,9 @@ public class Controller implements InputListener {
     // 当前活动的设备ID（鼠标所在的设备）
     private String activeDeviceId;
     
+    // 本地IP地址集合，用于识别本地设备
+    private Set<String> localIpAddresses = new HashSet<>();
+    
     public Controller() {
         this.configManager = new ConfigManager();
         this.deviceConfig = configManager.getConfig();
@@ -43,8 +52,55 @@ public class Controller implements InputListener {
         this.fileTransferManager = new FileTransferManager();
         this.activeDeviceId = deviceConfig.getDeviceId(); // 初始化为当前设备
         
+        // 初始化本地IP地址集合
+        initializeLocalIpAddresses();
+        
         // 初始化设备配置
         initializeDeviceConfig();
+    }
+    
+    /**
+     * 初始化本地IP地址集合
+     */
+    private void initializeLocalIpAddresses() {
+        try {
+            // 添加localhost地址
+            localIpAddresses.add("127.0.0.1");
+            localIpAddresses.add("localhost");
+            
+            // 获取所有网络接口的IP地址
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                if (networkInterface.isUp() && !networkInterface.isLoopback()) {
+                    networkInterface.getInterfaceAddresses().stream()
+                        .filter(addr -> addr.getAddress() instanceof java.net.Inet4Address)
+                        .forEach(addr -> {
+                            localIpAddresses.add(addr.getAddress().getHostAddress());
+                            logger.debug("Added local IP address: {}", addr.getAddress().getHostAddress());
+                        });
+                }
+            }
+            
+            logger.info("Initialized local IP addresses: {}", localIpAddresses);
+        } catch (SocketException e) {
+            logger.warn("Failed to get local IP addresses", e);
+        }
+    }
+    
+    /**
+     * 检查给定的IP地址是否为本地地址
+     * @param ipAddress IP地址
+     * @return true表示是本地地址，false表示不是
+     */
+    public boolean isLocalIpAddress(String ipAddress) {
+        if (ipAddress == null) {
+            return false;
+        }
+        
+        // 移除端口号（如果存在）
+        String ipOnly = ipAddress.split(":")[0];
+        return localIpAddresses.contains(ipOnly);
     }
     
     /**
@@ -193,6 +249,37 @@ public class Controller implements InputListener {
     public void onServerStarted() {
         isServer = true;
         logger.info("Device is now acting as server");
+        
+        // 创建本地设备对象并添加到连接设备列表中
+        DeviceConfig.Device localDevice = new DeviceConfig.Device();
+        localDevice.setDeviceId(deviceConfig.getDeviceId());
+        localDevice.setDeviceName(deviceConfig.getDeviceName());
+        localDevice.setScreenWidth(deviceConfig.getScreenWidth());
+        localDevice.setScreenHeight(deviceConfig.getScreenHeight());
+        localDevice.setNetworkX(deviceConfig.getNetworkX());
+        localDevice.setNetworkY(deviceConfig.getNetworkY());
+        localDevice.setDeviceType(DeviceConfig.Device.DeviceType.SERVER);
+        localDevice.setConnectionState(DeviceConfig.Device.ConnectionState.CONNECTED);
+        
+        // 检查设备是否已存在
+        boolean deviceExists = false;
+        for (DeviceConfig.Device device : deviceConfig.getConnectedDevices()) {
+            if (device.getDeviceId() != null && device.getDeviceId().equals(localDevice.getDeviceId())) {
+                deviceExists = true;
+                // 更新现有设备信息
+                device.setDeviceType(DeviceConfig.Device.DeviceType.SERVER);
+                device.setConnectionState(DeviceConfig.Device.ConnectionState.CONNECTED);
+                break;
+            }
+        }
+        
+        // 如果设备不存在，则添加到连接设备列表中
+        if (!deviceExists) {
+            deviceConfig.addDevice(localDevice);
+        }
+        
+        // 更新屏幕布局
+        screenLayoutManager.addDevice(localDevice);
     }
     
     /**
@@ -209,6 +296,13 @@ public class Controller implements InputListener {
      */
     public void onClientConnected(DeviceConfig.Device device) {
         logger.info("Client connected: {}", device.getDeviceName());
+        
+        // 检查是否为本地设备作为服务器运行的情况
+        if (isServer && device.getIpAddress() != null && isLocalIpAddress(device.getIpAddress())) {
+            logger.info("Local device connected as server, updating device type and state");
+            device.setDeviceType(DeviceConfig.Device.DeviceType.SERVER);
+            device.setConnectionState(DeviceConfig.Device.ConnectionState.CONNECTED);
+        }
         
         // 添加设备到屏幕布局
         screenLayoutManager.addDevice(device);

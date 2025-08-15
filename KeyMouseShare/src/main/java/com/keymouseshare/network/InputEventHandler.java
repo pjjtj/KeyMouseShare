@@ -52,6 +52,25 @@
                 logger.info("No screen data from client, using default resolution 1920x1080");
             }
             
+            // 检查设备是否已存在，避免重复添加
+            if (controller.getScreenLayoutManager() != null) {
+                ScreenLayoutConfig layoutConfig = controller.getScreenLayoutManager().getLayoutConfig();
+                DeviceScreen existingScreen = layoutConfig.getScreen(deviceId);
+                if (existingScreen != null) {
+                    // 更新现有屏幕信息
+                    existingScreen.setDeviceName(device.getDeviceName());
+                    existingScreen.setWidth(device.getScreenWidth());
+                    existingScreen.setHeight(device.getScreenHeight());
+                    layoutConfig.updateScreen(existingScreen);
+                    logger.info("Updated existing screen: {}", deviceId);
+                } else {
+                    // 添加新屏幕
+                    DeviceScreen newScreen = ScreenLayoutConfig.createFromDeviceConfig(device);
+                    layoutConfig.addScreen(newScreen);
+                    logger.info("Added new screen: {}", deviceId);
+                }
+            }
+            
             // 设置默认网络位置，根据设备ID设置不同的位置以避免重叠
             int positionOffset = Math.abs(deviceId.hashCode()) % 100;
             device.setNetworkX(positionOffset * 200);  // 水平错开

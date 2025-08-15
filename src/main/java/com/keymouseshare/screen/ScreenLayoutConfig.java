@@ -39,22 +39,8 @@ public class ScreenLayoutConfig {
                 return;
             }
             
-            // 检查是否已存在相同IP地址的设备
-            boolean duplicateFound = false;
-            for (DeviceScreen screen : screenLayout) {
-                if (screen.getDeviceId() != null && deviceScreen.getDeviceId() != null &&
-                    screen.getDeviceId().equals(deviceScreen.getDeviceId())) {
-                    duplicateFound = true;
-                    break;
-                }
-            }
-            
-            if (!duplicateFound) {
-                screenLayout.add(deviceScreen);
-                logger.info("Added screen to layout: {}", deviceScreen);
-            } else {
-                logger.debug("Duplicate screen not added: {}", deviceScreen);
-            }
+            screenLayout.add(deviceScreen);
+            logger.info("Added screen to layout: {}", deviceScreen);
         }
     }
     
@@ -231,5 +217,27 @@ public class ScreenLayoutConfig {
         deviceConfig.setScreenHeight(screen.getHeight());
         deviceConfig.setNetworkX(screen.getX());
         deviceConfig.setNetworkY(screen.getY());
+    }
+    
+    /**
+     * 根据设备配置中的设备创建设备屏幕对象列表
+     * @param deviceConfig 设备配置
+     * @return 设备屏幕对象列表
+     */
+    public static List<DeviceScreen> createFromConnectedDevices(DeviceConfig deviceConfig) {
+        List<DeviceScreen> screens = new ArrayList<>();
+        if (deviceConfig.getConnectedDevices() != null) {
+            for (DeviceConfig.Device device : deviceConfig.getConnectedDevices()) {
+                DeviceScreen screen = new DeviceScreen();
+                screen.setDeviceId(device.getDeviceId());
+                screen.setDeviceName(device.getDeviceName());
+                screen.setWidth(device.getScreenWidth());
+                screen.setHeight(device.getScreenHeight());
+                screen.setX(device.getNetworkX());
+                screen.setY(device.getNetworkY());
+                screens.add(screen);
+            }
+        }
+        return screens;
     }
 }

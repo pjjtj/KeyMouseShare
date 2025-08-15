@@ -38,7 +38,7 @@ public class MainWindow extends JFrame {
         setupEventHandlers();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setTitle("KeyMouseShare - 跨平台鼠标键盘共享工具");
-        setSize(600, 400);
+        setSize(800, 600);
         setLocationRelativeTo(null); // 居中显示
     }
     

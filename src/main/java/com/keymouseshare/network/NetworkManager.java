@@ -144,13 +144,6 @@ public class NetworkManager {
             clientChannel = f.channel();
             logger.info("Connected to server {}:{}", host, port);
             
-            // 发送连接消息，包含设备ID、设备名称和屏幕分辨率信息
-            int[] screenSize = getScreenSize();
-            String screenData = screenSize[0] + "x" + screenSize[1];
-            DataPacket connectPacket = new DataPacket("CONNECT", controller.getDeviceConfig().getDeviceId(), 
-                controller.getDeviceConfig().getDeviceName(), screenData);
-            clientChannel.writeAndFlush(connectPacket);
-            
             // 通知控制器客户端已连接
             controller.onClientConnected();
             
@@ -165,6 +158,10 @@ public class NetworkManager {
             // 设置默认网络位置
             serverDevice.setNetworkX(0);
             serverDevice.setNetworkY(0);
+            // 设置设备类型为服务器
+            serverDevice.setDeviceType(DeviceConfig.Device.DeviceType.SERVER);
+            // 设置连接状态为已连接
+            serverDevice.setConnectionState(DeviceConfig.Device.ConnectionState.CONNECTED);
             controller.onClientConnected(serverDevice);
             
             // 启动设备发现
@@ -213,8 +210,31 @@ public class NetworkManager {
             @Override
             public void onDeviceDiscovered(DeviceConfig.Device device) {
                 logger.info("New device discovered: {}", device.getIpAddress());
-                // 可以在这里自动连接到新发现的设备
-                controller.onClientConnected(device);
+                
+                // 检查设备是否为本地设备
+                if (controller.isLocalIpAddress(device.getIpAddress())) {
+                    logger.info("Discovered device is local device, skipping");
+                    return;
+                }
+                
+                // 检查设备是否已存在（通过IP地址）
+                boolean deviceExists = false;
+                for (DeviceConfig.Device existingDevice : controller.getDeviceConfig().getConnectedDevices()) {
+                    if (existingDevice.getIpAddress() != null && 
+                        existingDevice.getIpAddress().equals(device.getIpAddress())) {
+                        deviceExists = true;
+                        break;
+                    }
+                }
+                
+                // 如果设备不存在，则添加为可连接设备
+                if (!deviceExists) {
+                    // 设置设备类型为可连接设备
+                    device.setDeviceType(DeviceConfig.Device.DeviceType.CONNECTABLE);
+                    // 设置连接状态为断开连接
+                    device.setConnectionState(DeviceConfig.Device.ConnectionState.DISCONNECTED);
+                    controller.onClientConnected(device);
+                }
             }
         });
         deviceDiscovery.startDiscovery();

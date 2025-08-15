@@ -54,14 +54,18 @@ public class ScreenLayoutManager {
         
         layoutConfig.getAllScreens().clear();
         for (DeviceConfig.Device device : devices) {
-            DeviceScreen screen = new DeviceScreen();
-            screen.setDeviceId(device.getDeviceId());
-            screen.setDeviceName(device.getDeviceName());
-            screen.setWidth(device.getScreenWidth());
-            screen.setHeight(device.getScreenHeight());
-            screen.setX(device.getNetworkX());
-            screen.setY(device.getNetworkY());
-            layoutConfig.addScreen(screen);
+            // 只添加已连接或服务器类型的设备
+            if (device.getConnectionState() == DeviceConfig.Device.ConnectionState.CONNECTED || 
+                device.getDeviceType() == DeviceConfig.Device.DeviceType.SERVER) {
+                DeviceScreen screen = new DeviceScreen();
+                screen.setDeviceId(device.getDeviceId());
+                screen.setDeviceName(device.getDeviceName());
+                screen.setWidth(device.getScreenWidth());
+                screen.setHeight(device.getScreenHeight());
+                screen.setX(device.getNetworkX());
+                screen.setY(device.getNetworkY());
+                layoutConfig.addScreen(screen);
+            }
         }
         
         logger.info("Layout set with {} devices", devices.size());
@@ -93,6 +97,13 @@ public class ScreenLayoutManager {
             return;
         }
         
+        // 只有已连接或服务器类型的设备才添加到布局中
+        if (device.getConnectionState() != DeviceConfig.Device.ConnectionState.CONNECTED && 
+            device.getDeviceType() != DeviceConfig.Device.DeviceType.SERVER) {
+            logger.debug("Device {} is not connected or server, not adding to layout", device.getDeviceName());
+            return;
+        }
+        
         DeviceScreen screen = new DeviceScreen();
         screen.setDeviceId(device.getDeviceId());
         screen.setDeviceName(device.getDeviceName());
@@ -120,6 +131,13 @@ public class ScreenLayoutManager {
     public void updateDevice(DeviceConfig.Device device) {
         if (device == null) {
             logger.warn("Device is null");
+            return;
+        }
+        
+        // 如果设备已断开连接且不是服务器类型，则从布局中移除
+        if (device.getConnectionState() == DeviceConfig.Device.ConnectionState.DISCONNECTED && 
+            device.getDeviceType() != DeviceConfig.Device.DeviceType.SERVER) {
+            removeDevice(device.getDeviceId());
             return;
         }
         
@@ -182,5 +200,14 @@ public class ScreenLayoutManager {
         }
         
         logger.info("Screen layout synchronized with device config");
+    }
+    
+    /**
+     * 检查设备是否已在布局中（通过设备ID）
+     * @param deviceId 设备ID
+     * @return true表示设备已存在，false表示不存在
+     */
+    public boolean isDeviceInLayout(String deviceId) {
+        return layoutConfig.getScreen(deviceId) != null;
     }
 }
