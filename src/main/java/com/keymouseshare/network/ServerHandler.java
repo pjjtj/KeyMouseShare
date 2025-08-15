@@ -4,6 +4,7 @@ import com.keymouseshare.core.Controller;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import javax.swing.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,7 +28,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         
         // 通知主窗口刷新设备列表
         if (controller.getMainWindow() != null) {
-            controller.getMainWindow().refreshDeviceList();
+            SwingUtilities.invokeLater(() -> {
+                controller.getMainWindow().refreshDeviceList();
+            });
         }
         
         super.channelActive(ctx);
@@ -41,7 +44,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         
         // 通知主窗口刷新设备列表
         if (controller.getMainWindow() != null) {
-            controller.getMainWindow().refreshDeviceList();
+            SwingUtilities.invokeLater(() -> {
+                controller.getMainWindow().refreshDeviceList();
+            });
         }
         
         super.channelInactive(ctx);

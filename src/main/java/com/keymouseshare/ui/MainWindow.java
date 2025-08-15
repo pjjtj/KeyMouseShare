@@ -107,7 +107,14 @@ public class MainWindow extends JFrame {
     /**
      * 刷新设备列表
      */
-    private void refreshDeviceList() {
+    public void refreshDeviceList() {
+        refreshDeviceListInternal();
+    }
+    
+    /**
+     * 刷新设备列表
+     */
+    private void refreshDeviceListInternal() {
         // 清空当前列表（除了本地设备）
         deviceListModel.clear();
         deviceListModel.addElement(new DeviceItem("local", "本地设备", DeviceControlManager.ControlPermission.ALLOWED));

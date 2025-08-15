@@ -771,6 +771,50 @@ public class NetworkManager {
     }
     
     /**
+     * 处理数据包
+     */
+    public void handleDataPacket(DataPacket packet, ChannelHandlerContext ctx) {
+        if (packet == null) {
+            return;
+        }
+        
+        System.out.println("Handling data packet: " + packet.getType() + " from device: " + packet.getDeviceId());
+        
+        // 根据数据包类型进行处理
+        switch (packet.getType()) {
+            case DataPacket.TYPE_MOUSE_MOVE:
+                // 处理鼠标移动事件
+                // controller.getMouseMovementManager().handleMouseMove(packet);
+                break;
+            case DataPacket.TYPE_MOUSE_PRESS:
+            case DataPacket.TYPE_MOUSE_RELEASE:
+                // 处理鼠标点击事件
+                // controller.getMouseMovementManager().handleMouseClick(packet);
+                break;
+            case DataPacket.TYPE_KEY_PRESS:
+            case DataPacket.TYPE_KEY_RELEASE:
+                // 处理键盘事件
+                // controller.getKeyboardManager().handleKeyboardEvent(packet);
+                break;
+            case DataPacket.TYPE_FILE_TRANSFER_REQUEST:
+                // 处理文件传输请求
+                // controller.getFileTransferManager().handleFileTransferRequest(packet);
+                break;
+            case DataPacket.TYPE_FILE_TRANSFER_RESPONSE:
+                // 处理文件传输响应
+                // controller.getFileTransferManager().handleFileTransferResponse(packet);
+                break;
+            case DataPacket.TYPE_FILE_DATA:
+                // 处理文件数据
+                // controller.getFileTransferManager().handleFileData(packet);
+                break;
+            default:
+                System.out.println("Unknown packet type: " + packet.getType());
+                break;
+        }
+    }
+    
+    /**
      * 停止网络管理器
      */
     public void stop() {

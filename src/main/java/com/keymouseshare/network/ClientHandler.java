@@ -3,6 +3,7 @@ package com.keymouseshare.network;
 import com.keymouseshare.core.Controller;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import javax.swing.*;
 
 /**
  * 客户端处理器
@@ -21,7 +22,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         
         // 通知主窗口刷新设备列表
         if (controller.getMainWindow() != null) {
-            controller.getMainWindow().refreshDeviceList();
+            SwingUtilities.invokeLater(() -> {
+                controller.getMainWindow().refreshDeviceList();
+            });
         }
         
         super.channelActive(ctx);
@@ -33,7 +36,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         
         // 通知主窗口刷新设备列表
         if (controller.getMainWindow() != null) {
-            controller.getMainWindow().refreshDeviceList();
+            SwingUtilities.invokeLater(() -> {
+                controller.getMainWindow().refreshDeviceList();
+            });
         }
         
         super.channelInactive(ctx);
@@ -43,6 +48,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof DataPacket) {
             DataPacket packet = (DataPacket) msg;
+            // 使用更具体的日志记录
             System.out.println("Received data packet from server: " + packet.getType());
             
             // 处理数据包
@@ -54,6 +60,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        // 使用更具体的日志记录
         System.err.println("Exception in client handler: " + cause.getMessage());
         cause.printStackTrace();
         ctx.close();
