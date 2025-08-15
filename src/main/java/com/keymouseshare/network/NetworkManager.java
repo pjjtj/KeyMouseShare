@@ -444,17 +444,44 @@ public class NetworkManager {
         String deviceId = deviceInfo.getDeviceId();
         DeviceInfo existingDevice = discoveredDevices.get(deviceId);
         
+        // 验证设备信息是否有效
+        if (deviceInfo.getIpAddress() == null || deviceInfo.getDeviceName() == null) {
+            System.err.println("Received invalid device info: " + deviceInfo);
+            return;
+        }
+        
         if (existingDevice == null) {
             // 新设备
             discoveredDevices.put(deviceId, deviceInfo);
-            System.out.println("Discovered new device: " + deviceInfo);
+            System.out.println("Discovered new device: " + deviceInfo.getDeviceName() + 
+                              " (" + deviceInfo.getIpAddress() + ")");
+            
             // 通知控制器发现新设备
-            controller.getMainWindow().onDeviceDiscovered(deviceInfo.getIpAddress());
+            if (controller.getMainWindow() != null) {
+                controller.getMainWindow().onDeviceDiscovered(deviceInfo.getIpAddress());
+            }
         } else {
-            // 更新现有设备的时间戳
-            existingDevice.updateTimestamp();
-            existingDevice.setScreens(deviceInfo.getScreens());
-            existingDevice.setIpAddress(deviceInfo.getIpAddress());
+            // 更新现有设备的信息
+            boolean infoChanged = false;
+            
+            // 检查IP地址是否变化
+            if (!existingDevice.getIpAddress().equals(deviceInfo.getIpAddress())) {
+                existingDevice.setIpAddress(deviceInfo.getIpAddress());
+                infoChanged = true;
+            }
+            
+            // 检查屏幕信息是否变化
+            if (deviceInfo.getScreens() != null && !deviceInfo.getScreens().isEmpty() && 
+                !existingDevice.getScreens().equals(deviceInfo.getScreens())) {
+                existingDevice.setScreens(deviceInfo.getScreens());
+                infoChanged = true;
+            }
+            
+            // 如果设备信息有变化或设备重新上线，更新时间戳
+            if (infoChanged || !existingDevice.isOnline()) {
+                existingDevice.updateTimestamp();
+                System.out.println("Updated device info: " + deviceInfo.getDeviceName());
+            }
         }
     }
     
@@ -470,9 +497,6 @@ public class NetworkManager {
             if (!deviceInfo.isOnline()) {
                 System.out.println("Removing offline device: " + deviceInfo.getDeviceName());
                 iterator.remove();
-                
-                // 通知屏幕布局管理器移除该设备的屏幕
-                controller.getScreenLayoutManager().removeRemoteScreens(deviceInfo.getDeviceId());
             }
         }
     }
@@ -808,9 +832,63 @@ public class NetworkManager {
                 // 处理文件数据
                 // controller.getFileTransferManager().handleFileData(packet);
                 break;
+            case DataPacket.TYPE_DEVICE_INFO:
+                // 处理设备信息数据包
+                handleDeviceInfoPacket(packet, ctx);
+                break;
             default:
                 System.out.println("Unknown packet type: " + packet.getType());
                 break;
+        }
+    }
+    
+    /**
+     * 处理设备信息数据包
+     */
+    private void handleDeviceInfoPacket(DataPacket packet, ChannelHandlerContext ctx) {
+        try {
+            String deviceInfoJson = packet.getData();
+            DeviceInfo deviceInfo = new Gson().fromJson(deviceInfoJson, DeviceInfo.class);
+            
+            if (deviceInfo != null) {
+                // 设置设备为在线状态
+                deviceInfo.setOnline(true);
+                
+                // 检查设备是否已存在
+                DeviceInfo existingDevice = discoveredDevices.get(deviceInfo.getDeviceId());
+                if (existingDevice != null) {
+                    // 更新现有设备信息
+                    existingDevice.setIpAddress(deviceInfo.getIpAddress());
+                    existingDevice.setDeviceName(deviceInfo.getDeviceName());
+                    existingDevice.setOsName(deviceInfo.getOsName());
+                    existingDevice.setScreens(deviceInfo.getScreens());
+                    existingDevice.setLastSeen(System.currentTimeMillis());
+                    existingDevice.setOnline(true);
+                    
+                    // 将设备添加到已连接设备列表
+                    connectedDevices.put(existingDevice.getDeviceId(), existingDevice);
+                } else {
+                    // 如果设备不存在，则添加新设备
+                    deviceInfo.setLastSeen(System.currentTimeMillis());
+                    discoveredDevices.put(deviceInfo.getDeviceId(), deviceInfo);
+                    
+                    // 将设备添加到已连接设备列表
+                    connectedDevices.put(deviceInfo.getDeviceId(), deviceInfo);
+                }
+                
+                // 如果是服务器端，通知主窗口刷新设备列表
+                if (serverBootstrap != null) {
+                    System.out.println("New client connected: " + deviceInfo.getDeviceName());
+                    if (controller.getMainWindow() != null) {
+                        SwingUtilities.invokeLater(() -> {
+                            controller.getMainWindow().refreshDeviceList();
+                        });
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error handling device info packet: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -887,12 +965,6 @@ public class NetworkManager {
         return discoveredDevices.values();
     }
     
-    /**
-     * 获取已连接的设备列表
-     */
-    public Collection<DeviceInfo> getConnectedDevices() {
-        return connectedDevices.values();
-    }
     
     /**
      * 获取等待授权的设备列表
@@ -901,6 +973,13 @@ public class NetworkManager {
         return pendingAuthorizationDevices.values();
     }
     
+    /**
+     * 获取已连接的设备列表
+     */
+    public Collection<DeviceInfo> getConnectedDevices() {
+        return connectedDevices.values();
+    }
+
     // Getter方法
     public boolean isServerRunning() {
         return isServerRunning;

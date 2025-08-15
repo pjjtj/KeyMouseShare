@@ -96,6 +96,19 @@ public class DeviceInfo {
         this.timestamp = System.currentTimeMillis();
     }
     
+    public void setOnline(boolean online) {
+        if (online) {
+            updateTimestamp();
+        } else {
+            // 设置为5秒前的时间戳，使其离线
+            this.timestamp = System.currentTimeMillis() - 6000;
+        }
+    }
+    
+    public void setLastSeen(long timestamp) {
+        this.timestamp = timestamp;
+    }
+    
     /**
      * 检查设备是否在线（5秒内有更新认为在线）
      */

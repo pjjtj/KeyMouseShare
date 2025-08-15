@@ -180,6 +180,7 @@ public class MainWindow extends JFrame {
             }
         } catch (Exception e) {
             System.err.println("Error refreshing device list: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -493,31 +494,36 @@ public class MainWindow extends JFrame {
             
             if (value instanceof DeviceItem) {
                 DeviceItem item = (DeviceItem) value;
-                setText(item.toString());
-                
-                // 根据权限状态和连接状态设置颜色
+                String deviceId = item.getDeviceId();
+                String displayName = item.getDisplayName();
                 DeviceControlManager.ControlPermission permission = item.getPermission();
                 
-                // 检查是否包含已连接状态
-                String displayName = item.getDisplayName();
-                if (displayName.contains("[已连接]")) {
-                    // 已连接设备使用绿色
-                    setForeground(Color.GREEN);
-                } else if (permission == DeviceControlManager.ControlPermission.ALLOWED) {
-                    setForeground(Color.BLACK);
-                } else if (permission == DeviceControlManager.ControlPermission.DELAY_5_MINUTES ||
-                           permission == DeviceControlManager.ControlPermission.DELAY_10_MINUTES ||
-                           permission == DeviceControlManager.ControlPermission.DELAY_30_MINUTES) {
-                    // 等待授权的设备使用灰色
-                    setForeground(Color.GRAY);
-                } else {
-                    // 默认状态（未允许）使用红色显示
-                    setForeground(Color.RED);
-                }
+                setText(displayName);
                 
-                // 本地设备使用特殊颜色
-                if ("local".equals(item.getDeviceId())) {
+                // 设置本地设备的特殊显示
+                if ("local".equals(deviceId)) {
                     setBackground(Color.CYAN);
+                    setForeground(Color.BLACK);
+                } else {
+                    // 根据设备状态设置颜色
+                    if (displayName.contains("[已连接]")) {
+                        // 已连接设备显示为绿色
+                        setForeground(Color.GREEN);
+                    } else if (displayName.contains("[等待授权]")) {
+                        // 等待授权设备显示为灰色
+                        setForeground(Color.GRAY);
+                    } else {
+                        // 未连接设备显示为红色
+                        setForeground(Color.RED);
+                    }
+                    
+                    // 保持选中状态的背景色
+                    if (isSelected) {
+                        setBackground(list.getSelectionBackground());
+                        setForeground(list.getSelectionForeground());
+                    } else {
+                        setBackground(list.getBackground());
+                    }
                 }
             }
             
