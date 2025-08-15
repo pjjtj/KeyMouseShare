@@ -52,6 +52,9 @@ public class NetworkManager {
     // 存储已连接的设备
     private Map<String, DeviceInfo> connectedDevices = new ConcurrentHashMap<>();
     
+    // 存储已授权但尚未连接的设备
+    private Map<String, DeviceInfo> authorizedDevices = new ConcurrentHashMap<>();
+    
     // 存储等待授权的设备
     private Map<String, DeviceInfo> pendingAuthorizationDevices = new ConcurrentHashMap<>();
     
@@ -491,8 +494,14 @@ public class NetworkManager {
      */
     private void sendControlAuthorizationRequest(DeviceInfo device) {
         try {
+            String deviceId = device.getDeviceId();
+            // 检查设备是否已经连接或者已经授权，避免重复发送请求
+            if (connectedDevices.containsKey(deviceId) || authorizedDevices.containsKey(deviceId)) {
+                return;
+            }
+            
             // 将设备添加到等待授权列表
-            pendingAuthorizationDevices.put(device.getDeviceId(), device);
+            pendingAuthorizationDevices.put(deviceId, device);
             
             // 创建控制授权请求消息
             String authRequestMessage = "CONTROL_AUTHORIZATION_REQUEST:" + 
@@ -524,6 +533,12 @@ public class NetworkManager {
                 return;
             }
             
+            String deviceId = requestingDevice.getDeviceId();
+            // 检查设备是否已经连接或者已经授权，避免重复提示
+            if (connectedDevices.containsKey(deviceId) || authorizedDevices.containsKey(deviceId)) {
+                return;
+            }
+            
             // 通知主窗口显示授权请求对话框
             SwingUtilities.invokeLater(() -> {
                 controller.getMainWindow().showControlAuthorizationRequest(requestingDevice);
@@ -538,14 +553,20 @@ public class NetworkManager {
      * 处理控制授权响应
      */
     public void handleControlAuthorizationResponse(DeviceInfo deviceInfo, boolean authorized) {
+        String deviceId = deviceInfo.getDeviceId();
+        
         if (authorized) {
-            // 用户允许控制，建立连接
-            connectToServer(deviceInfo.getIpAddress());
+            // 用户允许控制，将设备添加到已授权列表
+            authorizedDevices.put(deviceId, deviceInfo);
             
             // 从等待授权列表移除
-            pendingAuthorizationDevices.remove(deviceInfo.getDeviceId());
+            pendingAuthorizationDevices.remove(deviceId);
+            
+            // 建立连接
+            connectToServer(deviceInfo.getIpAddress());
         } else {
-            // 用户拒绝控制，保持在等待授权列表中，下次还会发送请求
+            // 用户拒绝控制或选择延迟提醒
+            // 保持在等待授权列表中，下次还会发送请求
             System.out.println("Control authorization denied for device: " + deviceInfo.getDeviceName());
         }
     }
@@ -607,8 +628,47 @@ public class NetworkManager {
             connectedDevice.setPort(8888);
             connectedDevices.put(serverIp, connectedDevice);
             
+            // 从已授权设备列表中移除（如果存在）
+            authorizedDevices.remove(serverIp);
+            
+            // 通知控制器设备已连接
+            onDeviceConnected(connectedDevice);
+            
         } catch (Exception e) {
             System.err.println("Failed to connect to server " + serverIp + ": " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 当设备连接成功时调用此方法
+     */
+    private void onDeviceConnected(DeviceInfo deviceInfo) {
+        if (deviceInfo != null) {
+            // 通知屏幕布局管理器添加该设备的屏幕
+            controller.getScreenLayoutManager().addRemoteScreens(deviceInfo);
+            
+            System.out.println("Device connected: " + deviceInfo.getDeviceName());
+        }
+    }
+    
+    /**
+     * 当设备被允许控制时调用此方法
+     */
+    public void onDeviceControlAllowed(DeviceInfo deviceInfo) {
+        if (deviceInfo != null) {
+            String deviceId = deviceInfo.getDeviceId();
+            
+            // 将设备添加到已连接设备列表
+            connectedDevices.put(deviceId, deviceInfo);
+            
+            // 从等待授权和已授权列表中移除
+            pendingAuthorizationDevices.remove(deviceId);
+            authorizedDevices.remove(deviceId);
+            
+            // 通知屏幕布局管理器添加该设备的屏幕
+            controller.getScreenLayoutManager().addRemoteScreens(deviceInfo);
+            
+            System.out.println("Device control allowed for: " + deviceInfo.getDeviceName());
         }
     }
     
@@ -697,24 +757,6 @@ public class NetworkManager {
      */
     public Collection<DeviceInfo> getPendingAuthorizationDevices() {
         return pendingAuthorizationDevices.values();
-    }
-    
-    /**
-     * 当设备被允许控制时调用此方法
-     */
-    public void onDeviceControlAllowed(DeviceInfo deviceInfo) {
-        if (deviceInfo != null) {
-            // 将设备添加到已连接设备列表
-            connectedDevices.put(deviceInfo.getDeviceId(), deviceInfo);
-            
-            // 从等待授权列表移除
-            pendingAuthorizationDevices.remove(deviceInfo.getDeviceId());
-            
-            // 通知屏幕布局管理器添加该设备的屏幕
-            controller.getScreenLayoutManager().addRemoteScreens(deviceInfo);
-            
-            System.out.println("Device control allowed for: " + deviceInfo.getDeviceName());
-        }
     }
     
     // Getter方法

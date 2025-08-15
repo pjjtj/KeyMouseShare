@@ -69,8 +69,22 @@ public class ScreenLayoutManager {
      * 添加屏幕
      */
     public void addScreen(ScreenInfo screen) {
-        screens.add(screen);
-        screenMap.put(screen.getId(), screen);
+        // 检查屏幕是否已存在
+        ScreenInfo existingScreen = screenMap.get(screen.getId());
+        if (existingScreen != null) {
+            // 更新现有屏幕信息
+            existingScreen.setX(screen.getX());
+            existingScreen.setY(screen.getY());
+            existingScreen.setWidth(screen.getWidth());
+            existingScreen.setHeight(screen.getHeight());
+            existingScreen.setName(screen.getName());
+            existingScreen.setDeviceType(screen.getDeviceType());
+            existingScreen.setConnectionStatus(screen.getConnectionStatus());
+        } else {
+            // 添加新屏幕
+            screens.add(screen);
+            screenMap.put(screen.getId(), screen);
+        }
     }
     
     /**
@@ -78,6 +92,11 @@ public class ScreenLayoutManager {
      */
     public void updateScreen(ScreenInfo screen) {
         // 屏幕信息已经在列表中，这里只是确保位置更新已生效
+        ScreenInfo existingScreen = screenMap.get(screen.getId());
+        if (existingScreen != null) {
+            existingScreen.setX(screen.getX());
+            existingScreen.setY(screen.getY());
+        }
         System.out.println("Updated screen position: " + screen.getId() + 
                           " at (" + screen.getX() + ", " + screen.getY() + ")");
     }
@@ -137,6 +156,7 @@ public class ScreenLayoutManager {
                 existingScreen.setWidth(remoteScreen.getWidth());
                 existingScreen.setHeight(remoteScreen.getHeight());
                 existingScreen.setConnectionStatus(ScreenInfo.ConnectionStatus.CONNECTED);
+                existingScreen.setDeviceType(remoteScreen.getDeviceType());
             } else {
                 // 添加新屏幕
                 ScreenInfo newScreen = new ScreenInfo();

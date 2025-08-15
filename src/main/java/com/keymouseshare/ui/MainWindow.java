@@ -275,6 +275,14 @@ public class MainWindow extends JFrame {
      * 显示控制授权请求对话框
      */
     public void showControlAuthorizationRequest(DeviceInfo requestingDevice) {
+        // 检查设备是否已经连接或者已经授权，避免重复提示
+        String deviceId = requestingDevice.getDeviceId();
+        if (controller.getNetworkManager().getConnectedDevices().stream()
+                .anyMatch(device -> device.getDeviceId().equals(deviceId)) ||
+            controller.getDeviceControlManager().isDeviceAllowed(deviceId)) {
+            return;
+        }
+        
         SwingUtilities.invokeLater(() -> {
             String message = String.format(
                 "<html><b>%s (%s)</b> 请求控制您的设备<br><br>请选择操作：</html>",
