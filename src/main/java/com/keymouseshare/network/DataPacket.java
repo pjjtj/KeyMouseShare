@@ -1,13 +1,25 @@
 package com.keymouseshare.network;
 
 /**
- * 数据包类，用于在网络中传输数据
+ * 数据包类
+ * 用于在网络中传输各种类型的数据
  */
 public class DataPacket {
-    private String type;        // 数据包类型
-    private String deviceId;    // 设备ID
-    private String data;        // 主要数据
-    private String extraData;   // 额外数据
+    public static final String TYPE_MOUSE_MOVE = "MOUSE_MOVE";
+    public static final String TYPE_MOUSE_PRESS = "MOUSE_PRESS";
+    public static final String TYPE_MOUSE_RELEASE = "MOUSE_RELEASE";
+    public static final String TYPE_MOUSE_WHEEL = "MOUSE_WHEEL";
+    public static final String TYPE_KEY_PRESS = "KEY_PRESS";
+    public static final String TYPE_KEY_RELEASE = "KEY_RELEASE";
+    public static final String TYPE_DEVICE_INFO = "DEVICE_INFO";
+    public static final String TYPE_FILE_TRANSFER_REQUEST = "FILE_TRANSFER_REQUEST";
+    public static final String TYPE_FILE_TRANSFER_RESPONSE = "FILE_TRANSFER_RESPONSE";
+    public static final String TYPE_FILE_DATA = "FILE_DATA";
+    
+    private String type;
+    private String deviceId;
+    private String data;
+    private String extraData;
     
     public DataPacket() {
     }
@@ -25,7 +37,7 @@ public class DataPacket {
         this.extraData = extraData;
     }
     
-    // Getter和Setter方法
+    // Getters and Setters
     public String getType() {
         return type;
     }
@@ -56,5 +68,15 @@ public class DataPacket {
     
     public void setExtraData(String extraData) {
         this.extraData = extraData;
+    }
+    
+    @Override
+    public String toString() {
+        return "DataPacket{" +
+                "type='" + type + '\'' +
+                ", deviceId='" + deviceId + '\'' +
+                ", data='" + data + '\'' +
+                ", extraData='" + extraData + '\'' +
+                '}';
     }
 }

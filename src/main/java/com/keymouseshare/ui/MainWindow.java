@@ -1,299 +1,330 @@
 package com.keymouseshare.ui;
 
 import com.keymouseshare.core.Controller;
-import com.keymouseshare.screen.ScreenLayoutConfig;
-import com.keymouseshare.util.OSUtil;
+import com.keymouseshare.core.DeviceControlManager;
+import com.keymouseshare.network.DeviceInfo;
+import com.keymouseshare.screen.ScreenInfo;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.util.List;
 
 /**
- * 主窗口界面，提供图形化配置和控制功能
+ * 主窗口界面
+ * 提供图形用户界面用于设备管理和屏幕布局配置
  */
 public class MainWindow extends JFrame {
     private Controller controller;
-    private JTextField serverHostField;
-    private JTextField serverPortField;
-    private JButton connectButton;
-    private JButton startServerButton;
-    private JButton screenLayoutButton;
-    private JButton diagnoseButton;
-    private JTextArea logArea;
+    private JPanel mainPanel;
+    private JButton serverButton;
+    private JButton configLayoutButton;
+    private JPanel devicePanel;
+    private DefaultListModel<DeviceItem> deviceListModel;
+    private JList<DeviceItem> deviceList;
     
     public MainWindow(Controller controller) {
         this.controller = controller;
+        
         initializeComponents();
         setupLayout();
         setupEventHandlers();
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
         setTitle("KeyMouseShare - 跨平台鼠标键盘共享工具");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null); // 居中显示
     }
     
+    /**
+     * 初始化组件
+     */
     private void initializeComponents() {
-        serverHostField = new JTextField("localhost", 15);
-        serverPortField = new JTextField("8888", 5);
-        connectButton = new JButton("连接到服务器");
-        startServerButton = new JButton("启动服务器");
-        screenLayoutButton = new JButton("配置屏幕布局");
-        diagnoseButton = new JButton("网络诊断");
-        logArea = new JTextArea(10, 50);
-        logArea.setEditable(false);
-        logArea.setLineWrap(true);
-        logArea.setWrapStyleWord(true);
+        mainPanel = new JPanel(new BorderLayout());
+        
+        // 创建按钮面板
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        serverButton = new JButton("启动服务器");
+        configLayoutButton = new JButton("配置屏幕布局");
+        JButton refreshButton = new JButton("刷新设备");
+        buttonPanel.add(serverButton);
+        buttonPanel.add(configLayoutButton);
+        buttonPanel.add(refreshButton);
+        
+        // 创建设备列表
+        deviceListModel = new DefaultListModel<>();
+        deviceList = new JList<>(deviceListModel);
+        deviceList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        deviceList.setCellRenderer(new DeviceListCellRenderer());
+        JScrollPane scrollPane = new JScrollPane(deviceList);
+        
+        devicePanel = new JPanel(new BorderLayout());
+        devicePanel.setBorder(BorderFactory.createTitledBorder("发现的设备"));
+        devicePanel.add(scrollPane, BorderLayout.CENTER);
+        
+        // 添加本地设备示例
+        deviceListModel.addElement(new DeviceItem("local", "本地设备", DeviceControlManager.ControlPermission.ALLOWED));
+        
+        // 添加刷新按钮事件处理
+        refreshButton.addActionListener(e -> refreshDeviceList());
     }
     
+    /**
+     * 刷新设备列表
+     */
+    private void refreshDeviceList() {
+        // 清空当前列表（除了本地设备）
+        deviceListModel.clear();
+        deviceListModel.addElement(new DeviceItem("local", "本地设备", DeviceControlManager.ControlPermission.ALLOWED));
+        
+        // 添加发现的设备
+        for (DeviceInfo deviceInfo : controller.getNetworkManager().getDiscoveredDevices()) {
+            if (deviceInfo.isOnline()) {
+                deviceListModel.addElement(new DeviceItem(
+                    deviceInfo.getDeviceId(),
+                    deviceInfo.getDeviceName() + " (" + deviceInfo.getIpAddress() + ")",
+                    DeviceControlManager.ControlPermission.ALLOWED
+                ));
+            }
+        }
+    }
+    
+    /**
+     * 设置布局
+     */
     private void setupLayout() {
-        // 创建主面板
-        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(devicePanel, BorderLayout.CENTER);
         
-        // 创建顶部配置面板
-        JPanel topPanel = new JPanel(new FlowLayout());
-        topPanel.setBorder(BorderFactory.createTitledBorder("网络配置"));
-        topPanel.add(new JLabel("服务器地址:"));
-        topPanel.add(serverHostField);
-        topPanel.add(new JLabel("端口:"));
-        topPanel.add(serverPortField);
-        topPanel.add(connectButton);
-        topPanel.add(startServerButton);
-        topPanel.add(screenLayoutButton);
-        topPanel.add(diagnoseButton);
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.add(new JLabel("状态: 就绪"), BorderLayout.WEST);
         
-        // 创建日志面板
-        JPanel logPanel = new JPanel(new BorderLayout());
-        logPanel.setBorder(BorderFactory.createTitledBorder("运行日志"));
-        logPanel.add(new JScrollPane(logArea), BorderLayout.CENTER);
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(serverButton);
+        buttonPanel.add(configLayoutButton);
+        bottomPanel.add(buttonPanel, BorderLayout.EAST);
         
-        // 添加到主面板
-        mainPanel.add(topPanel, BorderLayout.NORTH);
-        mainPanel.add(logPanel, BorderLayout.CENTER);
+        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
         
         add(mainPanel);
     }
     
+    /**
+     * 设置事件处理器
+     */
     private void setupEventHandlers() {
-        connectButton.addActionListener(new ActionListener() {
+        serverButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                connectToServer();
+                toggleServerMode();
             }
         });
         
-        startServerButton.addActionListener(new ActionListener() {
+        configLayoutButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                startServer();
+                openScreenLayoutConfig();
             }
         });
         
-        screenLayoutButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                configureScreenLayout();
-            }
-        });
-        
-        diagnoseButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                diagnoseNetwork();
-            }
-        });
-    }
-    
-    private void connectToServer() {
-        String host = serverHostField.getText().trim();
-        String portStr = serverPortField.getText().trim();
-        
-        if (host.isEmpty()) {
-            showError("请输入服务器地址");
-            return;
-        }
-        
-        int port;
-        try {
-            port = Integer.parseInt(portStr);
-        } catch (NumberFormatException e) {
-            showError("端口号必须是数字");
-            return;
-        }
-        
-        appendLog("正在连接到服务器 " + host + ":" + port);
-        new Thread(() -> {
-            try {
-                if (controller.getNetworkManager() != null) {
-                    controller.getNetworkManager().startClient(host, port);
-                } else {
-                    appendLog("网络管理器未初始化");
-                    showError("网络管理器未初始化");
+        // 添加设备列表双击事件
+        deviceList.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (evt.getClickCount() == 2) {
+                    int index = deviceList.locationToIndex(evt.getPoint());
+                    if (index >= 0) {
+                        DeviceItem item = deviceListModel.getElementAt(index);
+                        showPermissionDialog(item);
+                    }
                 }
-                appendLog("连接成功");
-                
-                // 连接成功后刷新屏幕布局
-                SwingUtilities.invokeLater(() -> {
-                    appendLog("屏幕布局已更新");
-                });
-            } catch (Exception e) {
-                appendLog("连接失败: " + e.getMessage());
-                showError("连接失败: " + e.getMessage());
             }
-        }).start();
+        });
     }
     
-    private void startServer() {
-        String portStr = serverPortField.getText().trim();
-        
-        int port;
-        try {
-            port = Integer.parseInt(portStr);
-        } catch (NumberFormatException e) {
-            showError("端口号必须是数字");
-            return;
+    /**
+     * 切换服务器模式
+     */
+    private void toggleServerMode() {
+        if (controller.isServerMode()) {
+            controller.stopServer();
+            serverButton.setText("启动服务器");
+        } else {
+            controller.startServer();
+            serverButton.setText("停止服务器");
         }
-        
-        appendLog("正在启动服务器，端口:" + port);
-        new Thread(() -> {
-            try {
-                if (controller.getNetworkManager() != null) {
-                    controller.getNetworkManager().startServer(port);
-                } else {
-                    appendLog("网络管理器未初始化");
-                    showError("网络管理器未初始化");
-                }
-                appendLog("服务器启动成功");
-                
-                // 启动成功后刷新屏幕布局
-                SwingUtilities.invokeLater(() -> {
-                    appendLog("屏幕布局已更新");
-                });
-            } catch (Exception e) {
-                appendLog("服务器启动失败: " + e.getMessage());
-                showError("服务器启动失败: " + e.getMessage());
-            }
-        }).start();
     }
     
-    private void configureScreenLayout() {
-        ScreenLayoutConfig layoutConfig = controller.getScreenLayoutManager().getLayoutConfig();
-        ScreenLayoutDialog dialog = new ScreenLayoutDialog(this, layoutConfig);
+    /**
+     * 打开屏幕布局配置窗口
+     */
+    private void openScreenLayoutConfig() {
+        ScreenLayoutConfigDialog dialog = new ScreenLayoutConfigDialog(this, controller);
         dialog.setVisible(true);
-        
-        appendLog("屏幕布局配置完成");
     }
     
-    private void diagnoseNetwork() {
-        String host = serverHostField.getText().trim();
-        String portStr = serverPortField.getText().trim();
-        
-        if (host.isEmpty()) {
-            showError("请输入服务器地址");
-            return;
-        }
-        
-        int port;
-        try {
-            port = Integer.parseInt(portStr);
-        } catch (NumberFormatException e) {
-            showError("端口号必须是数字");
-            return;
-        }
-        
-        appendLog("开始网络诊断...");
-        new Thread(() -> {
-            try {
-                // 1. 检查主机名解析
-                appendLog("1. 解析主机名 '" + host + "'...");
-                InetAddress[] addresses = InetAddress.getAllByName(host);
-                for (InetAddress address : addresses) {
-                    appendLog("   解析结果: " + address.getHostAddress());
-                }
-                
-                // 2. 检查网络连通性
-                appendLog("2. 检查网络连通性...");
-                boolean reachable = false;
-                for (InetAddress address : addresses) {
-                    if (address.isReachable(5000)) { // 5秒超时
-                        appendLog("   " + address.getHostAddress() + " 可达");
-                        reachable = true;
-                    } else {
-                        appendLog("   " + address.getHostAddress() + " 不可达");
-                    }
-                }
-                
-                if (!reachable) {
-                    appendLog("   警告: 所有地址均不可达，可能存在网络问题");
-                }
-                
-                // 3. 检查端口连通性
-                appendLog("3. 检查端口连通性 " + host + ":" + port + "...");
-                boolean connected = false;
-                for (InetAddress address : addresses) {
-                    try (Socket socket = new Socket()) {
-                        socket.connect(new InetSocketAddress(address, port), 5000); // 5秒超时
-                        appendLog("   成功连接到 " + address.getHostAddress() + ":" + port);
-                        connected = true;
-                        break;
-                    } catch (IOException e) {
-                        appendLog("   无法连接到 " + address.getHostAddress() + ":" + port + 
-                                 " - " + e.getMessage());
-                    }
-                }
-                
-                if (!connected) {
-                    appendLog("   错误: 无法连接到任何服务器地址");
-                    appendLog("   可能的原因:");
-                    appendLog("   1. 服务器未启动");
-                    appendLog("   2. 防火墙阻止了连接");
-                    appendLog("   3. 网络配置问题");
-                    if (OSUtil.isMac()) {
-                        appendLog("   4. macOS防火墙或安全设置阻止了连接");
-                    }
-                } else {
-                    appendLog("   网络诊断完成，连接正常");
-                }
-            } catch (UnknownHostException e) {
-                appendLog("   错误: 无法解析主机名 '" + host + "' - " + e.getMessage());
-            } catch (IOException e) {
-                appendLog("   错误: 网络诊断过程中发生IO异常 - " + e.getMessage());
-            } catch (Exception e) {
-                appendLog("   错误: 网络诊断过程中发生未知异常 - " + e.getMessage());
-                e.printStackTrace();
-            }
-        }).start();
+    /**
+     * 当服务器启动时调用
+     */
+    public void onServerStarted() {
+        serverButton.setText("停止服务器");
+        // 更新UI状态
     }
     
-    private void showError(String message) {
-        JOptionPane.showMessageDialog(this, message, "错误", JOptionPane.ERROR_MESSAGE);
+    /**
+     * 当服务器停止时调用
+     */
+    public void onServerStopped() {
+        serverButton.setText("启动服务器");
+        // 更新UI状态
     }
     
-    private void appendLog(String message) {
+    /**
+     * 当发现新设备时调用
+     */
+    public void onDeviceDiscovered(String deviceIp) {
         SwingUtilities.invokeLater(() -> {
-            logArea.append("[" + new java.util.Date() + "] " + message + "\n");
-            logArea.setCaretPosition(logArea.getDocument().getLength());
+            // 检查设备是否已存在于列表中
+            boolean exists = false;
+            for (int i = 0; i < deviceListModel.size(); i++) {
+                DeviceItem item = deviceListModel.getElementAt(i);
+                if (item.getDisplayName().contains(deviceIp)) {
+                    exists = true;
+                    break;
+                }
+            }
+            
+            // 如果不存在，则添加到列表
+            if (!exists) {
+                deviceListModel.addElement(new DeviceItem(
+                    deviceIp, 
+                    "新设备 (" + deviceIp + ")", 
+                    DeviceControlManager.ControlPermission.ALLOWED));
+            }
         });
     }
     
-    public void showWindow() {
-        setVisible(true);
-        appendLog("KeyMouseShare 已启动. 操作系统: " + OSUtil.getOSName());
+    /**
+     * 显示权限设置对话框
+     */
+    private void showPermissionDialog(DeviceItem item) {
+        String[] options = {"允许", "5分钟后提醒", "10分钟后提醒", "30分钟后提醒"};
+        int choice = JOptionPane.showOptionDialog(
+            this,
+            "设置设备 " + item.getDisplayName() + " 的控制权限:",
+            "控制权限设置",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
         
-        // 提供macOS特定的提示信息
-        if (OSUtil.isMac()) {
-            appendLog("提示: 如果在macOS上遇到连接问题，请检查:");
-            appendLog("1. 系统偏好设置 -> 安全性与隐私 -> 辅助功能权限");
-            appendLog("2. 防火墙设置是否阻止了端口 8888 和 8889");
+        if (choice >= 0) {
+            DeviceControlManager.ControlPermission permission = DeviceControlManager.ControlPermission.ALLOWED;
+            switch (choice) {
+                case 0:
+                    permission = DeviceControlManager.ControlPermission.ALLOWED;
+                    break;
+                case 1:
+                    permission = DeviceControlManager.ControlPermission.DELAY_5_MINUTES;
+                    break;
+                case 2:
+                    permission = DeviceControlManager.ControlPermission.DELAY_10_MINUTES;
+                    break;
+                case 3:
+                    permission = DeviceControlManager.ControlPermission.DELAY_30_MINUTES;
+                    break;
+            }
+            
+            item.setPermission(permission);
+            controller.getDeviceControlManager().setDevicePermission(item.getDeviceId(), permission);
+            deviceList.repaint();
+        }
+    }
+    
+    /**
+     * 设备列表项类
+     */
+    private static class DeviceItem {
+        private String deviceId;
+        private String displayName;
+        private DeviceControlManager.ControlPermission permission;
+        
+        public DeviceItem(String deviceId, String displayName, DeviceControlManager.ControlPermission permission) {
+            this.deviceId = deviceId;
+            this.displayName = displayName;
+            this.permission = permission;
+        }
+        
+        // Getters and Setters
+        public String getDeviceId() {
+            return deviceId;
+        }
+        
+        public String getDisplayName() {
+            return displayName;
+        }
+        
+        public DeviceControlManager.ControlPermission getPermission() {
+            return permission;
+        }
+        
+        public void setPermission(DeviceControlManager.ControlPermission permission) {
+            this.permission = permission;
+        }
+        
+        @Override
+        public String toString() {
+            String permissionStr = "";
+            switch (permission) {
+                case ALLOWED:
+                    permissionStr = " [允许]";
+                    break;
+                case DELAY_5_MINUTES:
+                    permissionStr = " [5分钟后提醒]";
+                    break;
+                case DELAY_10_MINUTES:
+                    permissionStr = " [10分钟后提醒]";
+                    break;
+                case DELAY_30_MINUTES:
+                    permissionStr = " [30分钟后提醒]";
+                    break;
+            }
+            return displayName + permissionStr;
+        }
+    }
+    
+    /**
+     * 设备列表单元格渲染器
+     */
+    private static class DeviceListCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            
+            if (value instanceof DeviceItem) {
+                DeviceItem item = (DeviceItem) value;
+                setText(item.toString());
+                
+                // 根据权限状态设置颜色
+                switch (item.getPermission()) {
+                    case ALLOWED:
+                        setForeground(Color.BLACK);
+                        break;
+                    case DELAY_5_MINUTES:
+                    case DELAY_10_MINUTES:
+                    case DELAY_30_MINUTES:
+                        setForeground(Color.GRAY);
+                        break;
+                }
+                
+                // 本地设备使用特殊颜色
+                if ("local".equals(item.getDeviceId())) {
+                    setBackground(Color.CYAN);
+                }
+            }
+            
+            return this;
         }
     }
 }

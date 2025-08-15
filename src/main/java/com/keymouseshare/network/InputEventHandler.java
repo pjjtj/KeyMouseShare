@@ -1,190 +1,264 @@
 package com.keymouseshare.network;
 
-import com.keymouseshare.config.DeviceConfig;
 import com.keymouseshare.core.Controller;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.keymouseshare.screen.ScreenInfo;
+import com.keymouseshare.screen.ScreenLayoutManager;
 
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
+import java.util.List;
 
 /**
- * 输入事件处理器，处理从网络接收到的输入事件
+ * 输入事件处理器
+ * 捕获本地输入事件并转发到远程设备
  */
-public class InputEventHandler extends SimpleChannelInboundHandler<DataPacket> {
-    private static final Logger logger = LoggerFactory.getLogger(InputEventHandler.class);
-    
+public class InputEventHandler implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private Controller controller;
-    private String deviceId;
+    private String activeRemoteDeviceId;
+    private boolean isLocalInputEnabled = true;
     
     public InputEventHandler(Controller controller) {
         this.controller = controller;
     }
     
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        super.channelActive(ctx);
-        // 生成设备ID，基于远程地址和通道ID确保唯一性
-        String remoteAddress = ctx.channel().remoteAddress().toString();
-        String channelId = ctx.channel().id().asShortText();
-        deviceId = "client-" + remoteAddress.replaceAll("[^a-zA-Z0-9\\-\\.]", "_") + "-" + channelId;
-        
-        logger.info("Client connected: {} (remote: {})", deviceId, remoteAddress);
-        
-        // 添加客户端通道到管理器
-        if (controller.getNetworkManager() != null) {
-            controller.getNetworkManager().addClientChannel(deviceId, ctx.channel());
-            logger.debug("Client channel added to NetworkManager: {}", deviceId);
-        }
-        
-        // 通知控制器有客户端连接
-        DeviceConfig.Device device = new DeviceConfig.Device();
-        device.setDeviceId(deviceId);
-        device.setDeviceName("Client (" + remoteAddress + ")");
-        device.setIpAddress(remoteAddress);
-        // 获取实际屏幕分辨率，如果获取不到则使用默认值1920x1080
-        int[] screenSize = getScreenSize();
-        device.setScreenWidth(screenSize[0]);
-        device.setScreenHeight(screenSize[1]);
-        // 设置默认网络位置，根据设备ID设置不同的位置以避免重叠
-        int positionOffset = Math.abs(deviceId.hashCode()) % 100;
-        device.setNetworkX(positionOffset * 200);  // 水平错开
-        device.setNetworkY(positionOffset * 100);  // 垂直错开
-        controller.onClientConnected(device);
+    /**
+     * 启用本地输入
+     */
+    public void enableLocalInput() {
+        this.isLocalInputEnabled = true;
     }
     
     /**
-     * 获取实际屏幕分辨率
-     * @return 包含宽度和高度的数组，如果获取失败则返回默认值1920x1080
+     * 禁用本地输入（转发到远程设备）
      */
-    private int[] getScreenSize() {
+    public void disableLocalInput(String remoteDeviceId) {
+        this.isLocalInputEnabled = false;
+        this.activeRemoteDeviceId = remoteDeviceId;
+    }
+    
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        if (!isLocalInputEnabled) {
+            sendMouseEvent(DataPacket.TYPE_MOUSE_PRESS, e);
+            sendMouseEvent(DataPacket.TYPE_MOUSE_RELEASE, e);
+        }
+    }
+    
+    @Override
+    public void mousePressed(MouseEvent e) {
+        if (!isLocalInputEnabled) {
+            sendMouseEvent(DataPacket.TYPE_MOUSE_PRESS, e);
+        }
+    }
+    
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        if (!isLocalInputEnabled) {
+            sendMouseEvent(DataPacket.TYPE_MOUSE_RELEASE, e);
+        }
+    }
+    
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        // 不处理
+    }
+    
+    @Override
+    public void mouseExited(MouseEvent e) {
+        // 不处理
+    }
+    
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        if (!isLocalInputEnabled) {
+            sendMouseEvent(DataPacket.TYPE_MOUSE_MOVE, e);
+        }
+    }
+    
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        if (!isLocalInputEnabled) {
+            sendMouseEvent(DataPacket.TYPE_MOUSE_MOVE, e);
+        }
+    }
+    
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        if (!isLocalInputEnabled) {
+            sendMouseWheelEvent(e);
+        }
+    }
+    
+    @Override
+    public void keyTyped(KeyEvent e) {
+        // KeyListener要求实现，但通常不使用
+    }
+    
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (!isLocalInputEnabled) {
+            sendKeyEvent(DataPacket.TYPE_KEY_PRESS, e);
+        }
+    }
+    
+    @Override
+    public void keyReleased(KeyEvent e) {
+        if (!isLocalInputEnabled) {
+            sendKeyEvent(DataPacket.TYPE_KEY_RELEASE, e);
+        }
+    }
+    
+    /**
+     * 发送鼠标事件到远程设备
+     */
+    private void sendMouseEvent(String eventType, MouseEvent e) {
         try {
-            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-            GraphicsDevice[] screens = ge.getScreenDevices();
+            // 创建数据包
+            DataPacket packet = new DataPacket();
+            packet.setType(eventType);
+            packet.setDeviceId(activeRemoteDeviceId);
             
-            // 遍历所有屏幕设备，找到主屏幕或选择最大屏幕
-            GraphicsDevice primaryDevice = ge.getDefaultScreenDevice();
-            DisplayMode dm = primaryDevice.getDisplayMode();
+            // 格式化鼠标事件数据
+            String mouseData = e.getX() + "," + e.getY() + "," + e.getButton();
+            packet.setData(mouseData);
             
-            int width = dm.getWidth();
-            int height = dm.getHeight();
+            // 发送到网络管理器
+            controller.getNetworkManager().sendDataPacket(packet);
             
-            // 确保获取到的尺寸是有效的
-            if (width > 0 && height > 0) {
-                logger.info("Primary screen size detected: {}x{}", width, height);
-                return new int[]{width, height};
-            }
-            
-            // 如果主屏幕无效，尝试其他屏幕
-            for (GraphicsDevice screen : screens) {
-                dm = screen.getDisplayMode();
-                width = dm.getWidth();
-                height = dm.getHeight();
-                
-                if (width > 0 && height > 0) {
-                    logger.info("Screen size detected from device {}: {}x{}", 
-                        screen.getIDstring(), width, height);
-                    return new int[]{width, height};
-                }
-            }
-        } catch (Exception e) {
-            logger.warn("Failed to get screen size, using default 1920x1080", e);
-        }
-        
-        // 默认返回1920x1080
-        logger.info("Using default screen size: 1920x1080");
-        return new int[]{1920, 1080};
-    }
-    
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        super.channelInactive(ctx);
-        String id = deviceId != null ? deviceId : "unknown-" + ctx.channel().id().asShortText();
-        logger.info("Client disconnected: {}", id);
-        
-        // 从管理器中移除客户端通道
-        if (controller.getNetworkManager() != null) {
-            controller.getNetworkManager().removeClientChannel(id);
-            logger.debug("Client channel removed from NetworkManager: {}", id);
+            System.out.println("Sent mouse event: " + eventType + " at (" + e.getX() + ", " + e.getY() + ")");
+        } catch (Exception ex) {
+            System.err.println("Error sending mouse event: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
     
-    @Override
-    public void channelRead0(ChannelHandlerContext ctx, DataPacket msg) throws Exception {
-        String type = msg.getType();
-        String deviceId = msg.getDeviceId();
-        String remoteAddress = ctx.channel().remoteAddress().toString();
-        
-        logger.debug("Received message type: {} from device: {} ({})", type, deviceId, remoteAddress);
-        
-        if ("CONNECT".equals(type)) {
-            // 处理客户端连接请求
-            logger.info("Client connected: {} ({})", deviceId, remoteAddress);
+    /**
+     * 发送鼠标滚轮事件到远程设备
+     */
+    private void sendMouseWheelEvent(MouseWheelEvent e) {
+        try {
+            // 创建数据包
+            DataPacket packet = new DataPacket();
+            packet.setType(DataPacket.TYPE_MOUSE_WHEEL);
+            packet.setDeviceId(activeRemoteDeviceId);
             
-            // 将客户端通道添加到网络管理器
-            if (controller.getNetworkManager() != null) {
-                controller.getNetworkManager().addClientChannel(deviceId, ctx.channel());
-                logger.debug("Client channel added to NetworkManager: {}", deviceId);
-            }
+            // 格式化滚轮事件数据
+            String wheelData = e.getX() + "," + e.getY() + "," + e.getWheelRotation();
+            packet.setData(wheelData);
             
-            // 通知控制器有客户端连接
-            DeviceConfig.Device device = new DeviceConfig.Device();
-            device.setDeviceId(deviceId);
-            device.setDeviceName(msg.getData()); // 使用客户端发送的设备名称
-            device.setIpAddress(remoteAddress);
+            // 发送到网络管理器
+            controller.getNetworkManager().sendDataPacket(packet);
             
-            // 获取客户端发送的屏幕分辨率信息
-            String screenData = msg.getExtraData();
-            if (screenData != null && !screenData.isEmpty()) {
-                try {
-                    String[] parts = screenData.split("x");
-                    if (parts.length == 2) {
-                        int width = Integer.parseInt(parts[0]);
-                        int height = Integer.parseInt(parts[1]);
-                        device.setScreenWidth(width);
-                        device.setScreenHeight(height);
-                        logger.info("Client screen resolution: {}x{}", width, height);
-                    } else {
-                        // 如果解析失败，使用默认值
-                        device.setScreenWidth(1920);
-                        device.setScreenHeight(1080);
-                        logger.warn("Failed to parse client screen data: {}, using default resolution", screenData);
-                    }
-                } catch (NumberFormatException e) {
-                    // 如果解析失败，使用默认值
-                    device.setScreenWidth(1920);
-                    device.setScreenHeight(1080);
-                    logger.warn("Failed to parse client screen resolution: {}, using default resolution", screenData, e);
-                }
-            } else {
-                // 如果没有屏幕数据，使用默认值
-                device.setScreenWidth(1920);
-                device.setScreenHeight(1080);
-                logger.info("No screen data from client, using default resolution 1920x1080");
-            }
-            
-            // 设置默认网络位置，根据设备ID设置不同的位置以避免重叠
-            int positionOffset = Math.abs(deviceId.hashCode()) % 100;
-            device.setNetworkX(positionOffset * 200);  // 水平错开
-            device.setNetworkY(positionOffset * 100);  // 垂直错开
-            controller.onClientConnected(device);
-        } else if ("INPUT".equals(type)) {
-            // 处理输入事件
-            // 暂时忽略，后续实现
-            logger.debug("Received input event from device: {}", deviceId);
-        } else if ("FILE_TRANSFER".equals(type)) {
-            // 处理文件传输事件
-            // 暂时忽略，后续实现
-            logger.debug("Received file transfer event from device: {}", deviceId);
-        } else {
-            logger.warn("Unknown message type: {}", type);
+            System.out.println("Sent mouse wheel event: rotation=" + e.getWheelRotation());
+        } catch (Exception ex) {
+            System.err.println("Error sending mouse wheel event: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
     
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("Exception in InputEventHandler", cause);
-        ctx.close();
+    /**
+     * 发送键盘事件到远程设备
+     */
+    private void sendKeyEvent(String eventType, KeyEvent e) {
+        try {
+            // 创建数据包
+            DataPacket packet = new DataPacket();
+            packet.setType(eventType);
+            packet.setDeviceId(activeRemoteDeviceId);
+            
+            // 格式化键盘事件数据
+            String keyData = String.valueOf(e.getKeyCode());
+            packet.setData(keyData);
+            
+            // 发送到网络管理器
+            controller.getNetworkManager().sendDataPacket(packet);
+            
+            System.out.println("Sent key event: " + eventType + " key=" + e.getKeyCode());
+        } catch (Exception ex) {
+            System.err.println("Error sending key event: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+    
+    /**
+     * 处理从远程设备接收到的鼠标事件
+     */
+    public void handleRemoteMouseEvent(DataPacket packet) {
+        try {
+            String[] data = packet.getData().split(",");
+            int x = Integer.parseInt(data[0]);
+            int y = Integer.parseInt(data[1]);
+            int button = data.length > 2 ? Integer.parseInt(data[2]) : 0;
+            
+            // 使用本地输入管理器执行鼠标操作
+            switch (packet.getType()) {
+                case DataPacket.TYPE_MOUSE_MOVE:
+                    controller.getMouseMovementManager().setLocalActive(true);
+                    // 实际应用中应该移动鼠标到指定位置
+                    System.out.println("Moving mouse to: (" + x + ", " + y + ")");
+                    break;
+                case DataPacket.TYPE_MOUSE_PRESS:
+                    controller.getMouseMovementManager().setLocalActive(true);
+                    // 实际应用中应该按下鼠标按钮
+                    System.out.println("Mouse pressed at: (" + x + ", " + y + ") button: " + button);
+                    break;
+                case DataPacket.TYPE_MOUSE_RELEASE:
+                    controller.getMouseMovementManager().setLocalActive(true);
+                    // 实际应用中应该释放鼠标按钮
+                    System.out.println("Mouse released at: (" + x + ", " + y + ") button: " + button);
+                    break;
+            }
+        } catch (Exception ex) {
+            System.err.println("Error handling remote mouse event: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+    
+    /**
+     * 处理从远程设备接收到的鼠标滚轮事件
+     */
+    public void handleRemoteMouseWheelEvent(DataPacket packet) {
+        try {
+            String[] data = packet.getData().split(",");
+            int x = Integer.parseInt(data[0]);
+            int y = Integer.parseInt(data[1]);
+            int wheelRotation = Integer.parseInt(data[2]);
+            
+            controller.getMouseMovementManager().setLocalActive(true);
+            // 实际应用中应该处理鼠标滚轮事件
+            System.out.println("Mouse wheel rotated: " + wheelRotation + " at (" + x + ", " + y + ")");
+        } catch (Exception ex) {
+            System.err.println("Error handling remote mouse wheel event: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+    
+    /**
+     * 处理从远程设备接收到的键盘事件
+     */
+    public void handleRemoteKeyEvent(DataPacket packet) {
+        try {
+            int keyCode = Integer.parseInt(packet.getData());
+            
+            controller.getMouseMovementManager().setLocalActive(true);
+            // 实际应用中应该处理键盘事件
+            switch (packet.getType()) {
+                case DataPacket.TYPE_KEY_PRESS:
+                    System.out.println("Key pressed: " + keyCode);
+                    break;
+                case DataPacket.TYPE_KEY_RELEASE:
+                    System.out.println("Key released: " + keyCode);
+                    break;
+            }
+        } catch (Exception ex) {
+            System.err.println("Error handling remote key event: " + ex.getMessage());
+            ex.printStackTrace();
+        }
     }
 }

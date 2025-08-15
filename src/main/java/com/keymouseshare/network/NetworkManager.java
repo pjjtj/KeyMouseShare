@@ -1,451 +1,549 @@
 package com.keymouseshare.network;
 
 import com.google.gson.Gson;
-import com.keymouseshare.config.DeviceConfig;
 import com.keymouseshare.core.Controller;
-import com.keymouseshare.input.InputEvent;
-import com.keymouseshare.screen.DeviceScreen;
-import io.netty.bootstrap.Bootstrap;
+import com.keymouseshare.filetransfer.FileDataPacket;
+import com.keymouseshare.filetransfer.FileTransferRequest;
+import com.keymouseshare.filetransfer.FileTransferResponse;
+import com.keymouseshare.screen.ScreenInfo;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.awt.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 网络管理器，负责处理设备间的通信
+ * 网络管理器
+ * 负责设备发现、连接管理等网络功能
  */
 public class NetworkManager {
-    private static final Logger logger = LoggerFactory.getLogger(NetworkManager.class);
+    private static final int DISCOVERY_PORT = 8889;
+    private static final String DISCOVERY_MESSAGE = "KEYMOUSESHARE_DISCOVERY";
+    private static final String DISCOVERY_RESPONSE_MESSAGE = "KEYMOUSESHARE_DISCOVERY_RESPONSE";
     
+    private Controller controller;
+    private ScheduledExecutorService discoveryScheduler;
+    private DatagramSocket discoverySocket;
+    private boolean isServerRunning = false;
+    private ServerBootstrap serverBootstrap;
+    private Channel serverChannel;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
-    private Channel serverChannel;
-    private Channel clientChannel;
-    private Controller controller;
-    private DeviceDiscovery deviceDiscovery;
-    private ConcurrentHashMap<String, Channel> clientChannels;
-    private boolean deviceDiscoveryStarted = false;
+    private Gson gson = new Gson();
+    
+    // 存储发现的设备信息
+    private Map<String, DeviceInfo> discoveredDevices = new ConcurrentHashMap<>();
+    
+    // 本地设备信息
+    private DeviceInfo localDeviceInfo;
     
     public NetworkManager(Controller controller) {
         this.controller = controller;
-        this.clientChannels = new ConcurrentHashMap<>();
-        this.deviceDiscovery = new DeviceDiscovery(); // 使用默认端口
+        // 注意：此时Controller的其他组件可能尚未初始化完成，推迟初始化到start方法
     }
     
     /**
-     * 启动服务器模式
-     * @param port 监听端口
+     * 初始化本地设备信息
      */
-    public void startServer(int port) {
-        bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup();
+    private void initializeLocalDeviceInfo() {
+        // 确保Controller的ScreenLayoutManager已经初始化
+        if (controller.getScreenLayoutManager() == null) {
+            System.err.println("ScreenLayoutManager not initialized yet, using empty screen list");
+        }
         
-        try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
-             .channel(NioServerSocketChannel.class)
-             .childHandler(new ChannelInitializer<SocketChannel>() {
-                 @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
-                     ch.pipeline().addLast(new InputEventDecoder());
-                     ch.pipeline().addLast(new InputEventEncoder());
-                     ch.pipeline().addLast(new InputEventHandler(controller));
-                 }
-             })
-             .option(ChannelOption.SO_BACKLOG, 128)
-             .childOption(ChannelOption.SO_KEEPALIVE, true);
-            
-            // 绑定端口并开始接收连接
-            ChannelFuture f = b.bind(port).sync();
-            serverChannel = f.channel();
-            logger.info("Server started on port {}", port);
-            
-            // 通知控制器服务器已启动
-            controller.onServerStarted();
-            
-            // 记录服务器IP地址信息
-            logServerAddresses(port);
-            
-            // 启动设备发现
-            startDeviceDiscovery();
-        } catch (InterruptedException e) {
-            logger.error("Failed to start server", e);
+        localDeviceInfo = new DeviceInfo();
+        localDeviceInfo.setDeviceId(getLocalDeviceId());
+        localDeviceInfo.setDeviceName(getLocalDeviceName());
+        localDeviceInfo.setIpAddress(getLocalIpAddress());
+        localDeviceInfo.setOsName(System.getProperty("os.name"));
+        localDeviceInfo.setOsVersion(System.getProperty("os.version"));
+        
+        // 安全地设置屏幕信息
+        if (controller.getScreenLayoutManager() != null) {
+            localDeviceInfo.setScreens(controller.getScreenLayoutManager().getAllScreens());
+        } else {
+            localDeviceInfo.setScreens(new ArrayList<>());
         }
     }
     
     /**
-     * 记录服务器地址信息
-     * @param port 服务器端口
+     * 获取本地设备ID
      */
-    private void logServerAddresses(int port) {
+    private String getLocalDeviceId() {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-            logger.info("Server is listening on port {}. Available server addresses:", port);
             while (interfaces.hasMoreElements()) {
                 NetworkInterface networkInterface = interfaces.nextElement();
-                if (networkInterface.isUp() && !networkInterface.isLoopback()) {
-                    networkInterface.getInterfaceAddresses().stream()
-                        .filter(addr -> addr.getAddress() instanceof java.net.Inet4Address)
-                        .forEach(addr -> {
-                            logger.info("  {}:{}", addr.getAddress().getHostAddress(), port);
-                        });
+                if (!networkInterface.isLoopback() && networkInterface.isUp()) {
+                    byte[] mac = networkInterface.getHardwareAddress();
+                    if (mac != null) {
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < mac.length; i++) {
+                            sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+                        }
+                        return sb.toString();
+                    }
                 }
             }
         } catch (SocketException e) {
-            logger.warn("Failed to get server addresses", e);
+            System.err.println("Error getting local device ID: " + e.getMessage());
         }
+        // 如果无法获取MAC地址，使用UUID
+        return UUID.randomUUID().toString();
     }
     
     /**
-     * 启动客户端模式
-     * @param host 服务器地址
-     * @param port 服务器端口
+     * 获取本地设备名称
      */
-    public void startClient(String host, int port) {
-        workerGroup = new NioEventLoopGroup();
-        
-        try {
-            logger.info("Attempting to connect to server {}:{}", host, port);
-            
-            // 检查网络连接性
-            checkNetworkConnectivity(host, port);
-            
-            Bootstrap b = new Bootstrap();
-            b.group(workerGroup)
-             .channel(NioSocketChannel.class)
-             .handler(new ChannelInitializer<SocketChannel>() {
-                 @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
-                     ch.pipeline().addLast(new InputEventDecoder());
-                     ch.pipeline().addLast(new InputEventEncoder());
-                     ch.pipeline().addLast(new InputEventHandler(controller));
-                 }
-             });
-            
-            // 连接到服务器
-            ChannelFuture f = b.connect(new InetSocketAddress(host, port)).sync();
-            clientChannel = f.channel();
-            logger.info("Connected to server {}:{}", host, port);
-            
-            // 通知控制器客户端已连接
-            controller.onClientConnected();
-            
-            DeviceConfig.Device serverDevice = new DeviceConfig.Device();
-            String serverDeviceId = "server-" + host.replaceAll("[^a-zA-Z0-9\\-\\.]", "_") + ":" + port;
-            serverDevice.setDeviceId(serverDeviceId != null ? serverDeviceId : UUID.randomUUID().toString());
-            serverDevice.setDeviceName("Server (" + host + ":" + port + ")");
-            serverDevice.setIpAddress(host);
-            // 设置默认屏幕尺寸
-            serverDevice.setScreenWidth(1920);
-            serverDevice.setScreenHeight(1080);
-            // 设置默认网络位置
-            serverDevice.setNetworkX(0);
-            serverDevice.setNetworkY(0);
-            // 设置设备类型为服务器
-            serverDevice.setDeviceType(DeviceConfig.Device.DeviceType.SERVER);
-            // 设置连接状态为已连接
-            serverDevice.setConnectionState(DeviceConfig.Device.ConnectionState.CONNECTED);
-            controller.onClientConnected(serverDevice);
-            
-            // 启动设备发现
-            startDeviceDiscovery();
-        } catch (InterruptedException e) {
-            logger.error("Failed to connect to server {}:{}", host, port, e);
-        } catch (Exception e) {
-            logger.error("Failed to connect to server {}:{} - {}", host, port, e.getMessage(), e);
+    private String getLocalDeviceName() {
+        String hostname = System.getenv("COMPUTERNAME"); // Windows
+        if (hostname == null) {
+            hostname = System.getenv("HOSTNAME"); // Unix/Linux
         }
-    }
-    
-    /**
-     * 检查网络连接性
-     * @param host 服务器地址
-     * @param port 服务器端口
-     */
-    private void checkNetworkConnectivity(String host, int port) {
-        try {
-            // 尝试解析主机名
-            InetAddress[] addresses = InetAddress.getAllByName(host);
-            logger.info("Resolved host {} to addresses: {}", host, (Object[]) addresses);
-            
-            // 检查是否能连接到端口
-            try (java.net.Socket socket = new java.net.Socket()) {
-                socket.connect(new InetSocketAddress(host, port), 5000); // 5秒超时
-                logger.info("Successfully connected to {}:{}", host, port);
+        if (hostname == null) {
+            try {
+                hostname = InetAddress.getLocalHost().getHostName();
             } catch (Exception e) {
-                logger.warn("Failed to connect to {}:{} - {}", host, port, e.getMessage());
+                hostname = "Unknown";
             }
-        } catch (Exception e) {
-            logger.warn("Failed to resolve host {} - {}", host, e.getMessage());
         }
+        return hostname;
+    }
+    
+    /**
+     * 获取本地IP地址
+     */
+    private String getLocalIpAddress() {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                if (!networkInterface.isLoopback() && networkInterface.isUp()) {
+                    Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+                    while (addresses.hasMoreElements()) {
+                        InetAddress address = addresses.nextElement();
+                        if (!address.isLoopbackAddress() && !address.isLinkLocalAddress() && address.isSiteLocalAddress()) {
+                            return address.getHostAddress();
+                        }
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            System.err.println("Error getting local IP address: " + e.getMessage());
+        }
+        return "127.0.0.1";
+    }
+    
+    /**
+     * 启动网络管理器
+     */
+    public void start() {
+        // 延迟初始化本地设备信息，确保Controller的所有组件都已初始化
+        if (localDeviceInfo == null) {
+            initializeLocalDeviceInfo();
+        }
+        startDeviceDiscovery();
     }
     
     /**
      * 启动设备发现功能
      */
     private void startDeviceDiscovery() {
-        // 避免重复启动设备发现
-        if (deviceDiscoveryStarted) {
-            logger.debug("Device discovery already started, skipping");
-            return;
+        try {
+            discoverySocket = new DatagramSocket(DISCOVERY_PORT);
+            discoveryScheduler = Executors.newScheduledThreadPool(3);
+            
+            // 启动发送广播消息的线程
+            discoveryScheduler.scheduleAtFixedRate(() -> {
+                try {
+                    sendDiscoveryBroadcast();
+                } catch (Exception e) {
+                    System.err.println("Error sending discovery broadcast: " + e.getMessage());
+                }
+            }, 0, 3, TimeUnit.SECONDS);
+            
+            // 启动接收广播消息的线程
+            discoveryScheduler.execute(this::receiveDiscoveryBroadcast);
+            
+            // 启动设备清理线程（定期清理离线设备）
+            discoveryScheduler.scheduleAtFixedRate(() -> {
+                try {
+                    cleanupOfflineDevices();
+                } catch (Exception e) {
+                    System.err.println("Error cleaning up offline devices: " + e.getMessage());
+                }
+            }, 5, 5, TimeUnit.SECONDS);
+            
+        } catch (Exception e) {
+            System.err.println("Failed to start device discovery: " + e.getMessage());
         }
-        
-        deviceDiscovery.setListener(new DeviceDiscovery.DeviceDiscoveryListener() {
-            @Override
-            public void onDeviceDiscovered(DeviceConfig.Device device) {
-                logger.info("New device discovered: {}", device.getIpAddress());
+    }
+    
+    /**
+     * 发送设备发现广播
+     */
+    private void sendDiscoveryBroadcast() {
+        try {
+            // 发送简单的发现消息
+            byte[] discoveryData = DISCOVERY_MESSAGE.getBytes();
+            
+            // 获取所有网络接口并发送广播
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
                 
-                // 检查设备是否为本地设备
-                if (controller.isLocalIpAddress(device.getIpAddress())) {
-                    logger.info("Discovered device is local device, skipping");
-                    return;
+                // 跳过禁用或虚拟接口
+                if (networkInterface.isLoopback() || networkInterface.isVirtual() || !networkInterface.isUp()) {
+                    continue;
                 }
                 
-                // 检查设备是否已存在（通过IP地址）
-                boolean deviceExists = false;
-                for (DeviceConfig.Device existingDevice : controller.getDeviceConfig().getConnectedDevices()) {
-                    if (existingDevice.getIpAddress() != null && 
-                        existingDevice.getIpAddress().equals(device.getIpAddress())) {
-                        deviceExists = true;
-                        break;
+                // 遍历接口的所有地址
+                for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
+                    InetAddress broadcast = interfaceAddress.getBroadcast();
+                    if (broadcast != null) {
+                        // 发送到该接口的广播地址
+                        DatagramPacket sendPacket = new DatagramPacket(
+                            discoveryData, discoveryData.length, broadcast, DISCOVERY_PORT);
+                        discoverySocket.send(sendPacket);
                     }
                 }
-                
-                // 如果设备不存在，则添加为可连接设备
-                if (!deviceExists) {
-                    // 设置设备类型为可连接设备
-                    device.setDeviceType(DeviceConfig.Device.DeviceType.CONNECTABLE);
-                    // 设置连接状态为断开连接
-                    device.setConnectionState(DeviceConfig.Device.ConnectionState.DISCONNECTED);
-                    controller.onClientConnected(device);
+            }
+            
+            // 同时发送包含详细设备信息的响应消息
+            // 更新本地设备信息，包括最新的屏幕配置
+            if (localDeviceInfo != null) {
+                localDeviceInfo.updateTimestamp();
+                // 安全地更新屏幕信息
+                if (controller.getScreenLayoutManager() != null) {
+                    localDeviceInfo.setScreens(controller.getScreenLayoutManager().getAllScreens());
                 }
-            }
-        });
-        deviceDiscovery.startDiscovery();
-        deviceDiscoveryStarted = true;
-    }
-    
-    /**
-     * 发送数据到连接的对端
-     * @param data 要发送的数据
-     */
-    public void sendData(Object data) {
-        // 检查当前活动设备
-        String activeDeviceId = controller.getActiveDeviceId();
-        String localDeviceId = controller.getDeviceConfig().getDeviceId();
-        
-        // 如果当前活动设备是本地设备，则在本地处理
-        if (activeDeviceId.equals(localDeviceId)) {
-            logger.debug("Processing event locally");
-            return;
-        }
-        
-        // 如果当前活动设备是服务器（作为客户端模式）
-        if (clientChannel != null && clientChannel.isActive() && 
-            activeDeviceId.startsWith("server-")) {
-            clientChannel.writeAndFlush(data);
-            return;
-        }
-        
-        // 如果当前活动设备是某个客户端（作为服务器模式）
-        Channel targetChannel = clientChannels.get(activeDeviceId);
-        if (targetChannel != null && targetChannel.isActive()) {
-            targetChannel.writeAndFlush(data);
-            return;
-        }
-        
-        // 如果没有找到特定的目标设备，则广播到所有客户端（作为服务器模式）
-        if (serverChannel != null && serverChannel.isActive()) {
-            // 在服务器模式下，广播到所有客户端
-            for (Channel channel : clientChannels.values()) {
-                if (channel.isActive()) {
-                    channel.writeAndFlush(data);
-                }
-            }
-        }
-        
-        logger.warn("No active connection found for device: {}", activeDeviceId);
-    }
-    
-    /**
-     * 发送数据到特定设备
-     * @param data 要发送的数据
-     * @param targetDeviceId 目标设备ID
-     */
-    public void sendDataTo(Object data, String targetDeviceId) {
-        // 如果目标设备是本地设备，则在本地处理
-        String localDeviceId = controller.getDeviceConfig().getDeviceId();
-        if (targetDeviceId.equals(localDeviceId)) {
-            logger.debug("Processing event locally for target device");
-            return;
-        }
-        
-        // 如果目标设备是服务器（作为客户端模式）
-        if (clientChannel != null && clientChannel.isActive() && 
-            targetDeviceId.startsWith("server-")) {
-            clientChannel.writeAndFlush(data);
-            return;
-        }
-        
-        // 如果目标设备是某个客户端（作为服务器模式）
-        Channel targetChannel = clientChannels.get(targetDeviceId);
-        if (targetChannel != null && targetChannel.isActive()) {
-            targetChannel.writeAndFlush(data);
-            return;
-        }
-        
-        logger.warn("No active connection found for target device: {}", targetDeviceId);
-    }
-    
-    /**
-     * 关闭网络连接
-     */
-    public void shutdown() {
-        if (serverChannel != null) {
-            serverChannel.close();
-        }
-        if (clientChannel != null) {
-            clientChannel.close();
-            
-            // 通知控制器客户端已断开连接
-            if (clientChannel.remoteAddress() instanceof InetSocketAddress) {
-                InetSocketAddress address = (InetSocketAddress) clientChannel.remoteAddress();
-                String deviceId = "server-" + address.getHostString().replaceAll("[^a-zA-Z0-9\\-\\.]", "_") + ":" + address.getPort();
-                controller.onClientDisconnected(deviceId != null ? deviceId : "");
-            }
-        }
-        if (bossGroup != null) {
-            bossGroup.shutdownGracefully(0, 5, TimeUnit.SECONDS);
-        }
-        if (workerGroup != null) {
-            workerGroup.shutdownGracefully(0, 5, TimeUnit.SECONDS);
-        }
-        if (deviceDiscovery != null) {
-            deviceDiscovery.stopDiscovery();
-        }
-    }
-    
-    /**
-     * 检查客户端连接是否处于活动状态
-     * @return true表示连接活动，false表示连接不活动
-     */
-    public boolean isClientActive() {
-        return clientChannel != null && clientChannel.isActive();
-    }
-    
-    /**
-     * 检查服务器是否处于活动状态
-     * @return true表示服务器活动，false表示服务器不活动
-     */
-    public boolean isServerActive() {
-        return serverChannel != null && serverChannel.isActive();
-    }
-    
-    /**
-     * 添加客户端通道
-     * @param deviceId 设备ID
-     * @param channel 客户端通道
-     */
-    public void addClientChannel(String deviceId, Channel channel) {
-        if (deviceId == null) {
-            deviceId = "client-" + channel.id().asShortText();
-            logger.warn("Null deviceId provided, generated new ID: {}", deviceId);
-        }
-        
-        // 检查是否已存在相同的通道
-        if (clientChannels.containsKey(deviceId)) {
-            logger.debug("Channel for device {} already exists, replacing", deviceId);
-        }
-        
-        clientChannels.put(deviceId, channel);
-        logger.info("Client channel added: {}", deviceId);
-    }
-    
-    /**
-     * 移除客户端通道
-     * @param deviceId 设备ID
-     */
-    public void removeClientChannel(String deviceId) {
-        if (deviceId == null) {
-            deviceId = "";
-            logger.warn("Null deviceId provided for removal");
-        }
-        
-        Channel removedChannel = clientChannels.remove(deviceId);
-        if (removedChannel != null) {
-            logger.info("Client channel removed: {}", deviceId);
-        } else {
-            logger.debug("No client channel found for removal: {}", deviceId);
-        }
-        
-        // 通知控制器客户端已断开连接
-        controller.onClientDisconnected(deviceId);
-    }
-    
-    /**
-     * 获取实际屏幕分辨率
-     * @return 包含宽度和高度的数组，如果获取失败则返回默认值1920x1080
-     */
-    private int[] getScreenSize() {
-        try {
-            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-            GraphicsDevice[] screens = ge.getScreenDevices();
-            
-            // 遍历所有屏幕设备，找到主屏幕或选择最大屏幕
-            GraphicsDevice primaryDevice = ge.getDefaultScreenDevice();
-            DisplayMode dm = primaryDevice.getDisplayMode();
-            
-            int width = dm.getWidth();
-            int height = dm.getHeight();
-            
-            // 确保获取到的尺寸是有效的
-            if (width > 0 && height > 0) {
-                logger.info("Primary screen size detected: {}x{}", width, height);
-                return new int[]{width, height};
-            }
-            
-            // 如果主屏幕无效，尝试其他屏幕
-            for (GraphicsDevice screen : screens) {
-                dm = screen.getDisplayMode();
-                width = dm.getWidth();
-                height = dm.getHeight();
                 
-                if (width > 0 && height > 0) {
-                    logger.info("Screen size detected from device {}: {}x{}", 
-                        screen.getIDstring(), width, height);
-                    return new int[]{width, height};
+                String deviceInfoJson = gson.toJson(localDeviceInfo);
+                String responseMessage = DISCOVERY_RESPONSE_MESSAGE + ":" + deviceInfoJson;
+                byte[] responseData = responseMessage.getBytes();
+                
+                // 广播设备信息
+                interfaces = NetworkInterface.getNetworkInterfaces();
+                while (interfaces.hasMoreElements()) {
+                    NetworkInterface networkInterface = interfaces.nextElement();
+                    
+                    if (networkInterface.isLoopback() || networkInterface.isVirtual() || !networkInterface.isUp()) {
+                        continue;
+                    }
+                    
+                    for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
+                        InetAddress broadcast = interfaceAddress.getBroadcast();
+                        if (broadcast != null) {
+                            DatagramPacket sendPacket = new DatagramPacket(
+                                responseData, responseData.length, broadcast, DISCOVERY_PORT);
+                            discoverySocket.send(sendPacket);
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
-            logger.warn("Failed to get screen size, using default 1920x1080", e);
+            System.err.println("Error sending broadcast: " + e.getMessage());
         }
-        
-        // 默认返回1920x1080
-        logger.info("Using default screen size: 1920x1080");
-        return new int[]{1920, 1080};
     }
     
     /**
-     * 检查设备发现是否已启动
-     * @return true表示已启动，false表示未启动
+     * 接收设备发现广播
      */
-    public boolean isDeviceDiscoveryStarted() {
-        return deviceDiscoveryStarted;
+    private void receiveDiscoveryBroadcast() {
+        try {
+            byte[] receiveData = new byte[4096]; // 增大缓冲区以容纳设备信息
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            
+            while (!discoverySocket.isClosed()) {
+                discoverySocket.receive(receivePacket);
+                String message = new String(receivePacket.getData(), 0, receivePacket.getLength());
+                
+                String deviceIp = receivePacket.getAddress().getHostAddress();
+                
+                // 检查是否为本地IP地址，避免发现自身
+                if (isLocalAddress(deviceIp)) {
+                    continue;
+                }
+                
+                // 处理发现消息
+                if (message.equals(DISCOVERY_MESSAGE)) {
+                    // 收到发现请求，发送设备信息响应
+                    sendDiscoveryResponse(deviceIp);
+                } 
+                // 处理发现响应消息
+                else if (message.startsWith(DISCOVERY_RESPONSE_MESSAGE + ":")) {
+                    String deviceInfoJson = message.substring((DISCOVERY_RESPONSE_MESSAGE + ":").length());
+                    try {
+                        DeviceInfo deviceInfo = gson.fromJson(deviceInfoJson, DeviceInfo.class);
+                        updateDiscoveredDevice(deviceInfo);
+                    } catch (Exception e) {
+                        System.err.println("Error parsing device info: " + e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            if (!discoverySocket.isClosed()) {
+                System.err.println("Error receiving broadcast: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * 发送设备发现响应
+     */
+    private void sendDiscoveryResponse(String targetIp) {
+        try {
+            // 确保本地设备信息已初始化
+            if (localDeviceInfo == null) {
+                initializeLocalDeviceInfo();
+            }
+            
+            // 更新本地设备信息，包括最新的屏幕配置
+            if (localDeviceInfo != null) {
+                localDeviceInfo.updateTimestamp();
+                // 安全地更新屏幕信息
+                if (controller.getScreenLayoutManager() != null) {
+                    localDeviceInfo.setScreens(controller.getScreenLayoutManager().getAllScreens());
+                }
+                
+                String deviceInfoJson = gson.toJson(localDeviceInfo);
+                String responseMessage = DISCOVERY_RESPONSE_MESSAGE + ":" + deviceInfoJson;
+                byte[] responseData = responseMessage.getBytes();
+                
+                InetAddress targetAddress = InetAddress.getByName(targetIp);
+                DatagramPacket sendPacket = new DatagramPacket(
+                    responseData, responseData.length, targetAddress, DISCOVERY_PORT);
+                discoverySocket.send(sendPacket);
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending discovery response: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新发现的设备信息
+     */
+    private void updateDiscoveredDevice(DeviceInfo deviceInfo) {
+        String deviceId = deviceInfo.getDeviceId();
+        DeviceInfo existingDevice = discoveredDevices.get(deviceId);
+        
+        if (existingDevice == null) {
+            // 新设备
+            discoveredDevices.put(deviceId, deviceInfo);
+            System.out.println("Discovered new device: " + deviceInfo);
+            // 通知控制器发现新设备
+            controller.getMainWindow().onDeviceDiscovered(deviceInfo.getIpAddress());
+        } else {
+            // 更新现有设备的时间戳
+            existingDevice.updateTimestamp();
+            existingDevice.setScreens(deviceInfo.getScreens());
+            existingDevice.setIpAddress(deviceInfo.getIpAddress());
+        }
+    }
+    
+    /**
+     * 清理离线设备
+     */
+    private void cleanupOfflineDevices() {
+        Iterator<Map.Entry<String, DeviceInfo>> iterator = discoveredDevices.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, DeviceInfo> entry = iterator.next();
+            DeviceInfo deviceInfo = entry.getValue();
+            
+            if (!deviceInfo.isOnline()) {
+                System.out.println("Removing offline device: " + deviceInfo.getDeviceName());
+                iterator.remove();
+            }
+        }
+    }
+    
+    /**
+     * 检查IP地址是否为本地地址
+     */
+    private boolean isLocalAddress(String ip) {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    if (ip.equals(address.getHostAddress())) {
+                        return true;
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            System.err.println("Error checking local addresses: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * 启动服务器模式
+     */
+    public void startServer() {
+        try {
+            bossGroup = new NioEventLoopGroup();
+            workerGroup = new NioEventLoopGroup();
+            serverBootstrap = new ServerBootstrap();
+            
+            serverBootstrap.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(new ServerHandler(controller));
+                        }
+                    })
+                    .option(ChannelOption.SO_BACKLOG, 128)
+                    .childOption(ChannelOption.SO_KEEPALIVE, true);
+            
+            // 绑定端口并启动服务器
+            serverChannel = serverBootstrap.bind(8888).sync().channel();
+            isServerRunning = true;
+            
+            System.out.println("Server started on port 8888");
+            
+        } catch (Exception e) {
+            System.err.println("Failed to start server: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 停止服务器模式
+     */
+    public void stopServer() {
+        try {
+            if (serverChannel != null) {
+                serverChannel.close().sync();
+            }
+            
+            if (bossGroup != null) {
+                bossGroup.shutdownGracefully();
+            }
+            
+            if (workerGroup != null) {
+                workerGroup.shutdownGracefully();
+            }
+            
+            isServerRunning = false;
+            System.out.println("Server stopped");
+        } catch (Exception e) {
+            System.err.println("Error stopping server: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 连接到指定服务器
+     */
+    public void connectToServer(String serverIp) {
+        try {
+            EventLoopGroup group = new NioEventLoopGroup();
+            Bootstrap bootstrap = new Bootstrap();
+            bootstrap.group(group)
+                    .channel(NioSocketChannel.class)
+                    .handler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(new ClientHandler(controller));
+                        }
+                    });
+            
+            Channel channel = bootstrap.connect(serverIp, 8888).sync().channel();
+            System.out.println("Connected to server: " + serverIp);
+            
+        } catch (Exception e) {
+            System.err.println("Failed to connect to server " + serverIp + ": " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 停止网络管理器
+     */
+    public void stop() {
+        try {
+            // 停止设备发现
+            if (discoverySocket != null && !discoverySocket.isClosed()) {
+                discoverySocket.close();
+            }
+            
+            if (discoveryScheduler != null) {
+                discoveryScheduler.shutdown();
+            }
+            
+            // 停止服务器（如果正在运行）
+            if (isServerRunning) {
+                stopServer();
+            }
+            
+            discoveredDevices.clear();
+        } catch (Exception e) {
+            System.err.println("Error stopping network manager: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 发送文件传输请求
+     */
+    public void sendFileTransferRequest(FileTransferRequest request) {
+        // 实现文件传输请求发送逻辑
+        System.out.println("Sending file transfer request: " + request.getFileName());
+    }
+    
+    /**
+     * 发送文件传输响应
+     */
+    public void sendFileTransferResponse(FileTransferResponse response) {
+        // 实现文件传输响应发送逻辑
+        System.out.println("Sending file transfer response for file: " + response.getFileId());
+    }
+    
+    /**
+     * 发送文件数据
+     */
+    public void sendFileData(FileDataPacket packet, String targetDeviceId) {
+        // 实现文件数据发送逻辑
+        System.out.println("Sending file data packet, offset: " + packet.getOffset() + 
+                          ", length: " + packet.getLength());
+    }
+    
+    /**
+     * 发送数据包
+     */
+    public void sendDataPacket(DataPacket packet) {
+        // 实现数据包发送逻辑
+        System.out.println("Sending data packet: " + packet.getType() + " to device: " + packet.getDeviceId());
+        // 在实际实现中，这里会通过Netty发送数据包到指定设备
+    }
+    
+    /**
+     * 获取发现的设备列表
+     */
+    public Collection<DeviceInfo> getDiscoveredDevices() {
+        return discoveredDevices.values();
+    }
+    
+    // Getter方法
+    public boolean isServerRunning() {
+        return isServerRunning;
+    }
+    
+    public DeviceInfo getLocalDeviceInfo() {
+        return localDeviceInfo;
     }
 }
