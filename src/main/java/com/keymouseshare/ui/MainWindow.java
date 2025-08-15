@@ -63,8 +63,8 @@ public class MainWindow extends JFrame {
         devicePanel.setBorder(BorderFactory.createTitledBorder("发现的设备"));
         devicePanel.add(scrollPane, BorderLayout.CENTER);
         
-        // 添加本地设备信息
-        addLocalDeviceToList();
+        // 添加本地设备信息（本地设备默认为允许控制）
+        deviceListModel.addElement(new DeviceItem("local", "本地设备", DeviceControlManager.ControlPermission.ALLOWED));
         
         // 添加刷新按钮事件处理
         refreshButton.addActionListener(e -> refreshDeviceList());
@@ -74,32 +74,8 @@ public class MainWindow extends JFrame {
      * 添加本地设备到列表
      */
     private void addLocalDeviceToList() {
-        // 获取本地设备信息
-        String localIpAddress = getLocalIpAddress();
-        int screenCount = 0; // 默认屏幕数量为0
-        
-        // 尝试从ScreenLayoutManager获取屏幕数量，只计算本地屏幕
-        try {
-            if (controller.getScreenLayoutManager() != null) {
-                List<ScreenInfo> screens = controller.getScreenLayoutManager().getAllScreens();
-                if (screens != null) {
-                    // 只计算本地屏幕（ID以"local:"开头的屏幕）
-                    screenCount = (int) screens.stream()
-                        .filter(screen -> screen.getId() != null && screen.getId().startsWith("local:"))
-                        .count();
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error getting screen count: " + e.getMessage());
-        }
-        
-        // 确保至少显示1个屏幕
-        if (screenCount <= 0) {
-            screenCount = 1;
-        }
-        
-        String displayName = "本地设备 (" + localIpAddress + ") [" + screenCount + "个屏幕]";
-        deviceListModel.addElement(new DeviceItem("local", displayName, DeviceControlManager.ControlPermission.ALLOWED));
+        // 本地设备默认显示简单名称，权限默认为允许
+        deviceListModel.addElement(new DeviceItem("local", "本地设备", DeviceControlManager.ControlPermission.ALLOWED));
     }
     
     /**
@@ -134,7 +110,7 @@ public class MainWindow extends JFrame {
     private void refreshDeviceList() {
         // 清空当前列表（除了本地设备）
         deviceListModel.clear();
-        addLocalDeviceToList();
+        deviceListModel.addElement(new DeviceItem("local", "本地设备", DeviceControlManager.ControlPermission.ALLOWED));
         
         // 添加发现的设备
         try {
@@ -145,11 +121,24 @@ public class MainWindow extends JFrame {
                         if (deviceInfo.getScreens() != null) {
                             screenCount = deviceInfo.getScreens().size();
                         }
+                        
+                        // 获取设备的控制权限状态
+                        DeviceControlManager.ControlPermission permission = null;
+                        try {
+                            permission = controller.getDeviceControlManager().getDevicePermission(deviceInfo.getDeviceId());
+                            // 如果权限为null，说明使用默认权限（未允许）
+                            if (permission == null) {
+                                permission = DeviceControlManager.ControlPermission.valueOf("DELAY_5_MINUTES"); // 占位符
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error getting device permission: " + e.getMessage());
+                        }
+                        
                         String displayName = deviceInfo.getDeviceName() + " (" + deviceInfo.getIpAddress() + ") [" + screenCount + "个屏幕]";
                         deviceListModel.addElement(new DeviceItem(
                             deviceInfo.getDeviceId(),
                             displayName,
-                            DeviceControlManager.ControlPermission.ALLOWED
+                            permission
                         ));
                     }
                 }
@@ -283,10 +272,11 @@ public class MainWindow extends JFrame {
                 }
                 
                 String displayName = "新设备 (" + deviceIp + ") [" + screenCount + "个屏幕]";
+                // 默认权限状态为未允许
                 deviceListModel.addElement(new DeviceItem(
                     deviceIp, 
                     displayName, 
-                    DeviceControlManager.ControlPermission.ALLOWED));
+                    null)); // null表示使用默认的未允许状态
             }
         });
     }
@@ -455,19 +445,17 @@ public class MainWindow extends JFrame {
         @Override
         public String toString() {
             String permissionStr = "";
-            switch (permission) {
-                case ALLOWED:
-                    permissionStr = " [允许]";
-                    break;
-                case DELAY_5_MINUTES:
-                    permissionStr = " [5分钟后提醒]";
-                    break;
-                case DELAY_10_MINUTES:
-                    permissionStr = " [10分钟后提醒]";
-                    break;
-                case DELAY_30_MINUTES:
-                    permissionStr = " [30分钟后提醒]";
-                    break;
+            if (permission == DeviceControlManager.ControlPermission.ALLOWED) {
+                permissionStr = " [允许]";
+            } else if (permission == DeviceControlManager.ControlPermission.DELAY_5_MINUTES) {
+                permissionStr = " [5分钟后提醒]";
+            } else if (permission == DeviceControlManager.ControlPermission.DELAY_10_MINUTES) {
+                permissionStr = " [10分钟后提醒]";
+            } else if (permission == DeviceControlManager.ControlPermission.DELAY_30_MINUTES) {
+                permissionStr = " [30分钟后提醒]";
+            } else {
+                // 默认状态为不允许
+                permissionStr = " [未允许]";
             }
             return displayName + permissionStr;
         }
@@ -486,15 +474,16 @@ public class MainWindow extends JFrame {
                 setText(item.toString());
                 
                 // 根据权限状态设置颜色
-                switch (item.getPermission()) {
-                    case ALLOWED:
-                        setForeground(Color.BLACK);
-                        break;
-                    case DELAY_5_MINUTES:
-                    case DELAY_10_MINUTES:
-                    case DELAY_30_MINUTES:
-                        setForeground(Color.GRAY);
-                        break;
+                DeviceControlManager.ControlPermission permission = item.getPermission();
+                if (permission == DeviceControlManager.ControlPermission.ALLOWED) {
+                    setForeground(Color.BLACK);
+                } else if (permission == DeviceControlManager.ControlPermission.DELAY_5_MINUTES ||
+                           permission == DeviceControlManager.ControlPermission.DELAY_10_MINUTES ||
+                           permission == DeviceControlManager.ControlPermission.DELAY_30_MINUTES) {
+                    setForeground(Color.GRAY);
+                } else {
+                    // 默认状态（未允许）使用红色显示
+                    setForeground(Color.RED);
                 }
                 
                 // 本地设备使用特殊颜色

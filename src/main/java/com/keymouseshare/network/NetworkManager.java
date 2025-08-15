@@ -601,6 +601,9 @@ public class NetworkManager {
             // 用户拒绝控制或选择延迟提醒
             // 保持在等待授权列表中，下次还会发送请求
             System.out.println("Control authorization denied for device: " + deviceInfo.getDeviceName());
+            
+            // 如果设备在已授权列表中，将其移除
+            authorizedDevices.remove(deviceId);
         }
     }
     

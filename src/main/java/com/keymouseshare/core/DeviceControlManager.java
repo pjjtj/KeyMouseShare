@@ -65,17 +65,13 @@ public class DeviceControlManager {
         // 检查是否已过期
         Long expiryTime = permissionExpiryTimes.get(deviceId);
         if (expiryTime != null && System.currentTimeMillis() >= expiryTime) {
-            // 权限已过期，默认允许控制
-            devicePermissions.put(deviceId, ControlPermission.ALLOWED);
+            // 权限已过期，移除过期权限
             permissionExpiryTimes.remove(deviceId);
-            
-            // 通知控制器权限已变为允许
-            controller.onDeviceControlPermissionChanged(deviceId, ControlPermission.ALLOWED);
-            
-            return ControlPermission.ALLOWED;
+            return devicePermissions.remove(deviceId); // 返回并移除过期权限
         }
         
-        return devicePermissions.getOrDefault(deviceId, ControlPermission.ALLOWED);
+        // 返回设备的权限设置，如果没有设置则返回null（表示默认不允许）
+        return devicePermissions.get(deviceId);
     }
     
     /**
@@ -83,6 +79,7 @@ public class DeviceControlManager {
      */
     public boolean isDeviceAllowed(String deviceId) {
         ControlPermission permission = getDevicePermission(deviceId);
+        // 默认所有非服务器设备控制状态为不允许
         return permission == ControlPermission.ALLOWED;
     }
     
@@ -121,6 +118,14 @@ public class DeviceControlManager {
         
         // 可以通过controller通知主窗口显示提醒对话框
         // controller.getMainWindow().showPermissionReminder(deviceId);
+        
+        // 检查权限是否仍然存在，如果存在则触发重新授权
+        ControlPermission permission = devicePermissions.get(deviceId);
+        if (permission != null && permission != ControlPermission.ALLOWED) {
+            // 权限到期，移除过期权限
+            devicePermissions.remove(deviceId);
+            permissionExpiryTimes.remove(deviceId);
+        }
     }
     
     /**
