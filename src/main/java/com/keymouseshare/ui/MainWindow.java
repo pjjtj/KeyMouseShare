@@ -76,16 +76,26 @@ public class MainWindow extends JFrame {
     private void addLocalDeviceToList() {
         // 获取本地设备信息
         String localIpAddress = getLocalIpAddress();
-        int screenCount = 1; // 默认屏幕数量
+        int screenCount = 0; // 默认屏幕数量为0
         
-        // 尝试从ScreenLayoutManager获取屏幕数量
+        // 尝试从ScreenLayoutManager获取屏幕数量，只计算本地屏幕
         try {
             if (controller.getScreenLayoutManager() != null) {
                 List<ScreenInfo> screens = controller.getScreenLayoutManager().getAllScreens();
-                screenCount = screens != null ? screens.size() : 1;
+                if (screens != null) {
+                    // 只计算本地屏幕（ID以"local:"开头的屏幕）
+                    screenCount = (int) screens.stream()
+                        .filter(screen -> screen.getId() != null && screen.getId().startsWith("local:"))
+                        .count();
+                }
             }
         } catch (Exception e) {
             System.err.println("Error getting screen count: " + e.getMessage());
+        }
+        
+        // 确保至少显示1个屏幕
+        if (screenCount <= 0) {
+            screenCount = 1;
         }
         
         String displayName = "本地设备 (" + localIpAddress + ") [" + screenCount + "个屏幕]";
@@ -131,7 +141,10 @@ public class MainWindow extends JFrame {
             if (controller.getNetworkManager() != null) {
                 for (DeviceInfo deviceInfo : controller.getNetworkManager().getDiscoveredDevices()) {
                     if (deviceInfo.isOnline()) {
-                        int screenCount = deviceInfo.getScreens() != null ? deviceInfo.getScreens().size() : 0;
+                        int screenCount = 0;
+                        if (deviceInfo.getScreens() != null) {
+                            screenCount = deviceInfo.getScreens().size();
+                        }
                         String displayName = deviceInfo.getDeviceName() + " (" + deviceInfo.getIpAddress() + ") [" + screenCount + "个屏幕]";
                         deviceListModel.addElement(new DeviceItem(
                             deviceInfo.getDeviceId(),
@@ -254,9 +267,16 @@ public class MainWindow extends JFrame {
                 // 获取屏幕数量
                 int screenCount = 1;
                 try {
-                    if (controller.getScreenLayoutManager() != null) {
-                        List<ScreenInfo> screens = controller.getScreenLayoutManager().getAllScreens();
-                        screenCount = screens != null ? screens.size() : 1;
+                    // 从已发现的设备中查找对应的设备信息
+                    if (controller.getNetworkManager() != null) {
+                        for (DeviceInfo deviceInfo : controller.getNetworkManager().getDiscoveredDevices()) {
+                            if (deviceIp.equals(deviceInfo.getIpAddress()) && deviceInfo.isOnline()) {
+                                if (deviceInfo.getScreens() != null) {
+                                    screenCount = deviceInfo.getScreens().size();
+                                }
+                                break;
+                            }
+                        }
                     }
                 } catch (Exception e) {
                     System.err.println("Error getting screen count for new device: " + e.getMessage());
@@ -277,9 +297,27 @@ public class MainWindow extends JFrame {
     public void showControlAuthorizationRequest(DeviceInfo requestingDevice) {
         // 检查设备是否已经连接或者已经授权，避免重复提示
         String deviceId = requestingDevice.getDeviceId();
-        if (controller.getNetworkManager().getConnectedDevices().stream()
-                .anyMatch(device -> device.getDeviceId().equals(deviceId)) ||
-            controller.getDeviceControlManager().isDeviceAllowed(deviceId)) {
+        
+        // 检查设备是否已经连接
+        boolean isConnected = false;
+        try {
+            isConnected = controller.getNetworkManager().getConnectedDevices().stream()
+                .anyMatch(device -> device.getDeviceId().equals(deviceId));
+        } catch (Exception e) {
+            System.err.println("Error checking connected devices: " + e.getMessage());
+        }
+        
+        // 检查设备是否已经被授权
+        boolean isAllowed = false;
+        try {
+            isAllowed = controller.getDeviceControlManager().isDeviceAllowed(deviceId);
+        } catch (Exception e) {
+            System.err.println("Error checking device permission: " + e.getMessage());
+        }
+        
+        // 如果设备已经连接或已授权，则不显示提示框
+        if (isConnected || isAllowed) {
+            System.out.println("Device " + deviceId + " is already connected or allowed, skipping authorization dialog");
             return;
         }
         
@@ -302,31 +340,44 @@ public class MainWindow extends JFrame {
                 options[0]
             );
             
-            switch (choice) {
-                case 0: // 允许
-                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, true);
-                    controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
-                        DeviceControlManager.ControlPermission.ALLOWED);
-                    break;
-                case 1: // 5分钟后提醒
-                    controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
-                        DeviceControlManager.ControlPermission.DELAY_5_MINUTES);
-                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
-                    break;
-                case 2: // 10分钟后提醒
-                    controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
-                        DeviceControlManager.ControlPermission.DELAY_10_MINUTES);
-                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
-                    break;
-                case 3: // 30分钟后提醒
-                    controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
-                        DeviceControlManager.ControlPermission.DELAY_30_MINUTES);
-                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
-                    break;
-                case 4: // 拒绝
-                default:
-                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
-                    break;
+            // 确保在处理用户选择前设备仍然未连接
+            boolean stillNotConnected = true;
+            try {
+                stillNotConnected = !controller.getNetworkManager().getConnectedDevices().stream()
+                    .anyMatch(device -> device.getDeviceId().equals(deviceId));
+            } catch (Exception e) {
+                System.err.println("Error re-checking connected devices: " + e.getMessage());
+            }
+            
+            if (stillNotConnected) {
+                switch (choice) {
+                    case 0: // 允许
+                        controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, true);
+                        controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
+                            DeviceControlManager.ControlPermission.ALLOWED);
+                        break;
+                    case 1: // 5分钟后提醒
+                        controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
+                            DeviceControlManager.ControlPermission.DELAY_5_MINUTES);
+                        controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
+                        break;
+                    case 2: // 10分钟后提醒
+                        controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
+                            DeviceControlManager.ControlPermission.DELAY_10_MINUTES);
+                        controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
+                        break;
+                    case 3: // 30分钟后提醒
+                        controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
+                            DeviceControlManager.ControlPermission.DELAY_30_MINUTES);
+                        controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
+                        break;
+                    case 4: // 拒绝
+                    default:
+                        controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
+                        break;
+                }
+            } else {
+                System.out.println("Device " + deviceId + " got connected while showing dialog, skipping action");
             }
         });
     }

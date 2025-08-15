@@ -143,21 +143,54 @@ public class NetworkManager {
     private String getLocalIpAddress() {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            String bestIpAddress = null;
+            
             while (interfaces.hasMoreElements()) {
                 NetworkInterface networkInterface = interfaces.nextElement();
-                if (!networkInterface.isLoopback() && networkInterface.isUp()) {
-                    Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
-                    while (addresses.hasMoreElements()) {
-                        InetAddress address = addresses.nextElement();
-                        if (!address.isLoopbackAddress() && !address.isLinkLocalAddress() && address.isSiteLocalAddress()) {
-                            return address.getHostAddress();
-                        }
+                
+                // 跳过环回接口和禁用接口
+                if (networkInterface.isLoopback() || !networkInterface.isUp()) {
+                    continue;
+                }
+                
+                Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    
+                    // 跳过环回地址和链路本地地址
+                    if (address.isLoopbackAddress() || address.isLinkLocalAddress()) {
+                        continue;
+                    }
+                    
+                    String hostAddress = address.getHostAddress();
+                    
+                    // 优先选择站点本地地址（通常是局域网地址）
+                    if (address.isSiteLocalAddress()) {
+                        return hostAddress;
+                    }
+                    
+                    // 记录第一个非链路本地的地址作为备选
+                    if (bestIpAddress == null && !address.isLinkLocalAddress()) {
+                        bestIpAddress = hostAddress;
                     }
                 }
+            }
+            
+            // 如果找到了合适的IP地址，返回它
+            if (bestIpAddress != null) {
+                return bestIpAddress;
             }
         } catch (SocketException e) {
             System.err.println("Error getting local IP address: " + e.getMessage());
         }
+        
+        // 备用方法：使用系统属性
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            System.err.println("Error getting local IP from system: " + e.getMessage());
+        }
+        
         return "127.0.0.1";
     }
     
