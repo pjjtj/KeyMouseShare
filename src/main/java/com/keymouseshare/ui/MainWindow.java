@@ -272,6 +272,58 @@ public class MainWindow extends JFrame {
     }
     
     /**
+     * 显示控制授权请求对话框
+     */
+    public void showControlAuthorizationRequest(DeviceInfo requestingDevice) {
+        SwingUtilities.invokeLater(() -> {
+            String message = String.format(
+                "<html><b>%s (%s)</b> 请求控制您的设备<br><br>请选择操作：</html>",
+                requestingDevice.getDeviceName(),
+                requestingDevice.getIpAddress()
+            );
+            
+            String[] options = {"允许", "5分钟后提醒", "10分钟后提醒", "30分钟后提醒", "拒绝"};
+            int choice = JOptionPane.showOptionDialog(
+                this,
+                message,
+                "控制授权请求",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+            );
+            
+            switch (choice) {
+                case 0: // 允许
+                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, true);
+                    controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
+                        DeviceControlManager.ControlPermission.ALLOWED);
+                    break;
+                case 1: // 5分钟后提醒
+                    controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
+                        DeviceControlManager.ControlPermission.DELAY_5_MINUTES);
+                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
+                    break;
+                case 2: // 10分钟后提醒
+                    controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
+                        DeviceControlManager.ControlPermission.DELAY_10_MINUTES);
+                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
+                    break;
+                case 3: // 30分钟后提醒
+                    controller.getDeviceControlManager().setDevicePermission(requestingDevice.getDeviceId(), 
+                        DeviceControlManager.ControlPermission.DELAY_30_MINUTES);
+                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
+                    break;
+                case 4: // 拒绝
+                default:
+                    controller.getNetworkManager().handleControlAuthorizationResponse(requestingDevice, false);
+                    break;
+            }
+        });
+    }
+    
+    /**
      * 显示权限设置对话框
      */
     private void showPermissionDialog(DeviceItem item) {

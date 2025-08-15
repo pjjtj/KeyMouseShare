@@ -79,10 +79,22 @@ public class Controller {
         if (permission == DeviceControlManager.ControlPermission.ALLOWED) {
             // 查找设备信息
             DeviceInfo deviceInfo = null;
-            for (DeviceInfo discoveredDevice : networkManager.getDiscoveredDevices()) {
-                if (discoveredDevice.getDeviceId().equals(deviceId)) {
-                    deviceInfo = discoveredDevice;
+            
+            // 先在已连接设备中查找
+            for (DeviceInfo connectedDevice : networkManager.getConnectedDevices()) {
+                if (connectedDevice.getDeviceId().equals(deviceId)) {
+                    deviceInfo = connectedDevice;
                     break;
+                }
+            }
+            
+            // 如果没找到，再到发现的设备中查找
+            if (deviceInfo == null) {
+                for (DeviceInfo discoveredDevice : networkManager.getDiscoveredDevices()) {
+                    if (discoveredDevice.getDeviceId().equals(deviceId)) {
+                        deviceInfo = discoveredDevice;
+                        break;
+                    }
                 }
             }
             

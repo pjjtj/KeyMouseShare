@@ -14,6 +14,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
+import javax.swing.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -50,6 +51,12 @@ public class NetworkManager {
     
     // 存储已连接的设备
     private Map<String, DeviceInfo> connectedDevices = new ConcurrentHashMap<>();
+    
+    // 存储等待授权的设备
+    private Map<String, DeviceInfo> pendingAuthorizationDevices = new ConcurrentHashMap<>();
+    
+    // 控制授权请求调度器
+    private ScheduledExecutorService authorizationScheduler;
     
     // 本地设备信息
     private DeviceInfo localDeviceInfo;
@@ -297,6 +304,11 @@ public class NetworkManager {
                         System.err.println("Error parsing device info: " + e.getMessage());
                     }
                 }
+                // 处理控制授权请求
+                else if (message.startsWith("CONTROL_AUTHORIZATION_REQUEST:")) {
+                    String requestJson = message.substring("CONTROL_AUTHORIZATION_REQUEST:".length());
+                    handleControlAuthorizationRequest(requestJson);
+                }
             }
         } catch (Exception e) {
             if (!discoverySocket.isClosed()) {
@@ -430,9 +442,119 @@ public class NetworkManager {
             
             System.out.println("Server started on port 8888");
             
+            // 启动控制授权请求发送
+            startControlAuthorizationRequests();
+            
         } catch (Exception e) {
             System.err.println("Failed to start server: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 启动控制授权请求发送
+     */
+    private void startControlAuthorizationRequests() {
+        if (authorizationScheduler == null) {
+            authorizationScheduler = Executors.newScheduledThreadPool(1);
+        }
+        
+        // 定期向未授权设备发送控制请求
+        authorizationScheduler.scheduleWithFixedDelay(() -> {
+            try {
+                sendControlAuthorizationRequests();
+            } catch (Exception e) {
+                System.err.println("Error sending control authorization requests: " + e.getMessage());
+            }
+        }, 0, 30, TimeUnit.SECONDS); // 每30秒发送一次请求
+    }
+    
+    /**
+     * 发送控制授权请求
+     */
+    private void sendControlAuthorizationRequests() {
+        // 向所有发现但未连接的设备发送控制授权请求
+        for (DeviceInfo device : discoveredDevices.values()) {
+            String deviceId = device.getDeviceId();
+            
+            // 跳过本地设备和已连接设备
+            if (isLocalDevice(deviceId) || connectedDevices.containsKey(deviceId)) {
+                continue;
+            }
+            
+            // 发送控制授权请求
+            sendControlAuthorizationRequest(device);
+        }
+    }
+    
+    /**
+     * 发送控制授权请求到指定设备
+     */
+    private void sendControlAuthorizationRequest(DeviceInfo device) {
+        try {
+            // 将设备添加到等待授权列表
+            pendingAuthorizationDevices.put(device.getDeviceId(), device);
+            
+            // 创建控制授权请求消息
+            String authRequestMessage = "CONTROL_AUTHORIZATION_REQUEST:" + 
+                gson.toJson(localDeviceInfo);
+            
+            byte[] requestData = authRequestMessage.getBytes();
+            
+            // 发送到设备的UDP端口
+            InetAddress targetAddress = InetAddress.getByName(device.getIpAddress());
+            DatagramPacket sendPacket = new DatagramPacket(
+                requestData, requestData.length, targetAddress, DISCOVERY_PORT);
+            discoverySocket.send(sendPacket);
+            
+            System.out.println("Sent control authorization request to: " + device.getDeviceName());
+        } catch (Exception e) {
+            System.err.println("Error sending control authorization request: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 处理控制授权请求
+     */
+    private void handleControlAuthorizationRequest(String requestJson) {
+        try {
+            DeviceInfo requestingDevice = gson.fromJson(requestJson, DeviceInfo.class);
+            
+            // 检查是否为本地设备（防止处理自己的请求）
+            if (isLocalDevice(requestingDevice.getDeviceId())) {
+                return;
+            }
+            
+            // 通知主窗口显示授权请求对话框
+            SwingUtilities.invokeLater(() -> {
+                controller.getMainWindow().showControlAuthorizationRequest(requestingDevice);
+            });
+            
+        } catch (Exception e) {
+            System.err.println("Error handling control authorization request: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 处理控制授权响应
+     */
+    public void handleControlAuthorizationResponse(DeviceInfo deviceInfo, boolean authorized) {
+        if (authorized) {
+            // 用户允许控制，建立连接
+            connectToServer(deviceInfo.getIpAddress());
+            
+            // 从等待授权列表移除
+            pendingAuthorizationDevices.remove(deviceInfo.getDeviceId());
+        } else {
+            // 用户拒绝控制，保持在等待授权列表中，下次还会发送请求
+            System.out.println("Control authorization denied for device: " + deviceInfo.getDeviceName());
+        }
+    }
+    
+    /**
+     * 检查是否为本地设备
+     */
+    private boolean isLocalDevice(String deviceId) {
+        return localDeviceInfo != null && localDeviceInfo.getDeviceId().equals(deviceId);
     }
     
     /**
@@ -504,6 +626,11 @@ public class NetworkManager {
                 discoveryScheduler.shutdown();
             }
             
+            // 停止授权请求调度器
+            if (authorizationScheduler != null) {
+                authorizationScheduler.shutdown();
+            }
+            
             // 停止服务器（如果正在运行）
             if (isServerRunning) {
                 stopServer();
@@ -511,6 +638,7 @@ public class NetworkManager {
             
             discoveredDevices.clear();
             connectedDevices.clear();
+            pendingAuthorizationDevices.clear();
         } catch (Exception e) {
             System.err.println("Error stopping network manager: " + e.getMessage());
         }
@@ -565,12 +693,22 @@ public class NetworkManager {
     }
     
     /**
+     * 获取等待授权的设备列表
+     */
+    public Collection<DeviceInfo> getPendingAuthorizationDevices() {
+        return pendingAuthorizationDevices.values();
+    }
+    
+    /**
      * 当设备被允许控制时调用此方法
      */
     public void onDeviceControlAllowed(DeviceInfo deviceInfo) {
         if (deviceInfo != null) {
             // 将设备添加到已连接设备列表
             connectedDevices.put(deviceInfo.getDeviceId(), deviceInfo);
+            
+            // 从等待授权列表移除
+            pendingAuthorizationDevices.remove(deviceInfo.getDeviceId());
             
             // 通知屏幕布局管理器添加该设备的屏幕
             controller.getScreenLayoutManager().addRemoteScreens(deviceInfo);
