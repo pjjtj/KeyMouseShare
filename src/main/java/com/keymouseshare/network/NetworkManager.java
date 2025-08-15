@@ -144,12 +144,38 @@ public class NetworkManager {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             String bestIpAddress = null;
+            String preferredIpAddress = null;
+            String enInterfaceAddress = null;
             
             while (interfaces.hasMoreElements()) {
                 NetworkInterface networkInterface = interfaces.nextElement();
                 
-                // 跳过环回接口和禁用接口
-                if (networkInterface.isLoopback() || !networkInterface.isUp()) {
+                // 跳过环回接口、点对点接口和禁用接口
+                if (networkInterface.isLoopback() || !networkInterface.isUp() || networkInterface.isPointToPoint()) {
+                    continue;
+                }
+                
+                // 跳过虚拟接口（在Mac上经常出现）
+                if (networkInterface.isVirtual()) {
+                    continue;
+                }
+                
+                String displayName = networkInterface.getDisplayName();
+                String name = networkInterface.getName();
+                
+                // 跳过某些虚拟网络接口（常见于Mac系统）
+                if (displayName != null && (displayName.contains("utun") || 
+                                           displayName.contains("awdl") || 
+                                           displayName.contains("bridge") ||
+                                           displayName.contains("vmnet") ||
+                                           displayName.contains("vbox") ||
+                                           displayName.contains("lo"))) {
+                    continue;
+                }
+                
+                if (name != null && (name.startsWith("utun") ||
+                                    name.startsWith("awdl") ||
+                                    name.equals("lo0"))) {
                     continue;
                 }
                 
@@ -164,19 +190,45 @@ public class NetworkManager {
                     
                     String hostAddress = address.getHostAddress();
                     
-                    // 优先选择站点本地地址（通常是局域网地址）
-                    if (address.isSiteLocalAddress()) {
-                        return hostAddress;
+                    // 跳过IPv6地址
+                    if (hostAddress.contains(":")) {
+                        continue;
                     }
                     
-                    // 记录第一个非链路本地的地址作为备选
-                    if (bestIpAddress == null && !address.isLinkLocalAddress()) {
+                    // 优先选择站点本地地址（通常是局域网地址）
+                    if (address.isSiteLocalAddress()) {
+                        // 对于Mac系统，en0接口通常是WiFi接口，优先选择
+                        if (displayName != null && displayName.startsWith("en0")) {
+                            return hostAddress;
+                        }
+                        
+                        // 对于Mac系统，en1, en2等接口也可能是有效的
+                        if (displayName != null && displayName.startsWith("en")) {
+                            enInterfaceAddress = hostAddress;
+                        }
+                        
+                        preferredIpAddress = hostAddress;
+                    }
+                    
+                    // 记录第一个有效的IPv4地址作为备选
+                    if (bestIpAddress == null) {
                         bestIpAddress = hostAddress;
                     }
                 }
             }
             
-            // 如果找到了合适的IP地址，返回它
+            // 按优先级返回IP地址
+            // 1. en接口地址（Mac上通常是WiFi或以太网）
+            if (enInterfaceAddress != null) {
+                return enInterfaceAddress;
+            }
+            
+            // 2. 站点本地地址
+            if (preferredIpAddress != null) {
+                return preferredIpAddress;
+            }
+            
+            // 3. 其他有效地址
             if (bestIpAddress != null) {
                 return bestIpAddress;
             }
