@@ -6,7 +6,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 
 /**
  * 客户端处理器
- * 处理来自服务器的消息
+ * 处理与服务器的连接和消息
  */
 public class ClientHandler extends ChannelInboundHandlerAdapter {
     private Controller controller;
@@ -18,19 +18,44 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println("Connected to server: " + ctx.channel().remoteAddress());
+        
+        // 通知主窗口刷新设备列表
+        if (controller.getMainWindow() != null) {
+            controller.getMainWindow().refreshDeviceList();
+        }
+        
         super.channelActive(ctx);
     }
     
     @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("Disconnected from server: " + ctx.channel().remoteAddress());
+        
+        // 通知主窗口刷新设备列表
+        if (controller.getMainWindow() != null) {
+            controller.getMainWindow().refreshDeviceList();
+        }
+        
+        super.channelInactive(ctx);
+    }
+    
+    @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        // 处理从服务器接收到的消息
-        System.out.println("Received message from server: " + msg);
+        if (msg instanceof DataPacket) {
+            DataPacket packet = (DataPacket) msg;
+            System.out.println("Received data packet from server: " + packet.getType());
+            
+            // 处理数据包
+            controller.getNetworkManager().handleDataPacket(packet, ctx);
+        }
+        
         super.channelRead(ctx, msg);
     }
     
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        System.err.println("Client handler exception: " + cause.getMessage());
+        System.err.println("Exception in client handler: " + cause.getMessage());
+        cause.printStackTrace();
         ctx.close();
     }
 }

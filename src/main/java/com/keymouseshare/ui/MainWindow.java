@@ -115,31 +115,59 @@ public class MainWindow extends JFrame {
         // 添加发现的设备
         try {
             if (controller.getNetworkManager() != null) {
-                for (DeviceInfo deviceInfo : controller.getNetworkManager().getDiscoveredDevices()) {
+                // 添加已连接的设备
+                for (DeviceInfo deviceInfo : controller.getNetworkManager().getConnectedDevices()) {
                     if (deviceInfo.isOnline()) {
                         int screenCount = 0;
                         if (deviceInfo.getScreens() != null) {
                             screenCount = deviceInfo.getScreens().size();
                         }
                         
-                        // 获取设备的控制权限状态
-                        DeviceControlManager.ControlPermission permission = null;
-                        try {
-                            permission = controller.getDeviceControlManager().getDevicePermission(deviceInfo.getDeviceId());
-                            // 如果权限为null，说明使用默认权限（未允许）
-                            if (permission == null) {
-                                permission = DeviceControlManager.ControlPermission.valueOf("DELAY_5_MINUTES"); // 占位符
-                            }
-                        } catch (Exception e) {
-                            System.err.println("Error getting device permission: " + e.getMessage());
-                        }
-                        
-                        String displayName = deviceInfo.getDeviceName() + " (" + deviceInfo.getIpAddress() + ") [" + screenCount + "个屏幕]";
+                        String displayName = deviceInfo.getDeviceName() + " (" + deviceInfo.getIpAddress() + ") [" + screenCount + "个屏幕] [已连接]";
                         deviceListModel.addElement(new DeviceItem(
                             deviceInfo.getDeviceId(),
                             displayName,
-                            permission
+                            DeviceControlManager.ControlPermission.ALLOWED
                         ));
+                    }
+                }
+                
+                // 添加发现但未连接的设备
+                for (DeviceInfo deviceInfo : controller.getNetworkManager().getDiscoveredDevices()) {
+                    if (deviceInfo.isOnline()) {
+                        // 检查是否已经在已连接设备列表中
+                        boolean isConnected = false;
+                        for (DeviceInfo connectedDevice : controller.getNetworkManager().getConnectedDevices()) {
+                            if (connectedDevice.getDeviceId().equals(deviceInfo.getDeviceId())) {
+                                isConnected = true;
+                                break;
+                            }
+                        }
+                        
+                        // 如果未连接，则添加到列表中
+                        if (!isConnected) {
+                            int screenCount = 0;
+                            if (deviceInfo.getScreens() != null) {
+                                screenCount = deviceInfo.getScreens().size();
+                            }
+                            
+                            // 获取设备的控制权限状态
+                            DeviceControlManager.ControlPermission permission = controller.getDeviceControlManager().getDevicePermission(deviceInfo.getDeviceId());
+                            
+                            String status = "[未连接]";
+                            if (permission == null || permission == DeviceControlManager.ControlPermission.DELAY_5_MINUTES ||
+                                permission == DeviceControlManager.ControlPermission.DELAY_10_MINUTES ||
+                                permission == DeviceControlManager.ControlPermission.DELAY_30_MINUTES) {
+                                status = "[等待授权]";
+                            }
+                            
+                            String displayName = deviceInfo.getDeviceName() + " (" + deviceInfo.getIpAddress() + ") [" + screenCount + "个屏幕] " + status;
+                            deviceListModel.addElement(new DeviceItem(
+                                deviceInfo.getDeviceId(),
+                                displayName,
+                                permission
+                            ));
+                        }
                     }
                 }
             }
@@ -444,20 +472,7 @@ public class MainWindow extends JFrame {
         
         @Override
         public String toString() {
-            String permissionStr = "";
-            if (permission == DeviceControlManager.ControlPermission.ALLOWED) {
-                permissionStr = " [允许]";
-            } else if (permission == DeviceControlManager.ControlPermission.DELAY_5_MINUTES) {
-                permissionStr = " [5分钟后提醒]";
-            } else if (permission == DeviceControlManager.ControlPermission.DELAY_10_MINUTES) {
-                permissionStr = " [10分钟后提醒]";
-            } else if (permission == DeviceControlManager.ControlPermission.DELAY_30_MINUTES) {
-                permissionStr = " [30分钟后提醒]";
-            } else {
-                // 默认状态为不允许
-                permissionStr = " [未允许]";
-            }
-            return displayName + permissionStr;
+            return displayName;
         }
     }
     
@@ -473,13 +488,20 @@ public class MainWindow extends JFrame {
                 DeviceItem item = (DeviceItem) value;
                 setText(item.toString());
                 
-                // 根据权限状态设置颜色
+                // 根据权限状态和连接状态设置颜色
                 DeviceControlManager.ControlPermission permission = item.getPermission();
-                if (permission == DeviceControlManager.ControlPermission.ALLOWED) {
+                
+                // 检查是否包含已连接状态
+                String displayName = item.getDisplayName();
+                if (displayName.contains("[已连接]")) {
+                    // 已连接设备使用绿色
+                    setForeground(Color.GREEN);
+                } else if (permission == DeviceControlManager.ControlPermission.ALLOWED) {
                     setForeground(Color.BLACK);
                 } else if (permission == DeviceControlManager.ControlPermission.DELAY_5_MINUTES ||
                            permission == DeviceControlManager.ControlPermission.DELAY_10_MINUTES ||
                            permission == DeviceControlManager.ControlPermission.DELAY_30_MINUTES) {
+                    // 等待授权的设备使用灰色
                     setForeground(Color.GRAY);
                 } else {
                     // 默认状态（未允许）使用红色显示

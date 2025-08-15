@@ -735,6 +735,11 @@ public class NetworkManager {
             // 通知屏幕布局管理器添加该设备的屏幕
             controller.getScreenLayoutManager().addRemoteScreens(deviceInfo);
             
+            // 通知主窗口刷新设备列表
+            if (controller.getMainWindow() != null) {
+                controller.getMainWindow().refreshDeviceList();
+            }
+            
             System.out.println("Device connected: " + deviceInfo.getDeviceName());
         }
     }
@@ -755,6 +760,11 @@ public class NetworkManager {
             
             // 通知屏幕布局管理器添加该设备的屏幕
             controller.getScreenLayoutManager().addRemoteScreens(deviceInfo);
+            
+            // 通知主窗口刷新设备列表
+            if (controller.getMainWindow() != null) {
+                controller.getMainWindow().refreshDeviceList();
+            }
             
             System.out.println("Device control allowed for: " + deviceInfo.getDeviceName());
         }
