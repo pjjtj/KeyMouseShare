@@ -63,11 +63,59 @@ public class MainWindow extends JFrame {
         devicePanel.setBorder(BorderFactory.createTitledBorder("发现的设备"));
         devicePanel.add(scrollPane, BorderLayout.CENTER);
         
-        // 添加本地设备示例
-        deviceListModel.addElement(new DeviceItem("local", "本地设备", DeviceControlManager.ControlPermission.ALLOWED));
+        // 添加本地设备信息
+        addLocalDeviceToList();
         
         // 添加刷新按钮事件处理
         refreshButton.addActionListener(e -> refreshDeviceList());
+    }
+    
+    /**
+     * 添加本地设备到列表
+     */
+    private void addLocalDeviceToList() {
+        // 获取本地设备信息
+        String localIpAddress = getLocalIpAddress();
+        int screenCount = 1; // 默认屏幕数量
+        
+        // 尝试从ScreenLayoutManager获取屏幕数量
+        try {
+            if (controller.getScreenLayoutManager() != null) {
+                List<ScreenInfo> screens = controller.getScreenLayoutManager().getAllScreens();
+                screenCount = screens != null ? screens.size() : 1;
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting screen count: " + e.getMessage());
+        }
+        
+        String displayName = "本地设备 (" + localIpAddress + ") [" + screenCount + "个屏幕]";
+        deviceListModel.addElement(new DeviceItem("local", displayName, DeviceControlManager.ControlPermission.ALLOWED));
+    }
+    
+    /**
+     * 获取本地IP地址
+     */
+    private String getLocalIpAddress() {
+        try {
+            // 尝试从NetworkManager获取本地设备信息
+            if (controller.getNetworkManager() != null) {
+                DeviceInfo localDeviceInfo = controller.getNetworkManager().getLocalDeviceInfo();
+                if (localDeviceInfo != null) {
+                    return localDeviceInfo.getIpAddress();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting local IP from NetworkManager: " + e.getMessage());
+        }
+        
+        // 备用方法：使用系统属性
+        try {
+            return java.net.InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            System.err.println("Error getting local IP from system: " + e.getMessage());
+        }
+        
+        return "127.0.0.1"; // 默认值
     }
     
     /**
@@ -76,17 +124,25 @@ public class MainWindow extends JFrame {
     private void refreshDeviceList() {
         // 清空当前列表（除了本地设备）
         deviceListModel.clear();
-        deviceListModel.addElement(new DeviceItem("local", "本地设备", DeviceControlManager.ControlPermission.ALLOWED));
+        addLocalDeviceToList();
         
         // 添加发现的设备
-        for (DeviceInfo deviceInfo : controller.getNetworkManager().getDiscoveredDevices()) {
-            if (deviceInfo.isOnline()) {
-                deviceListModel.addElement(new DeviceItem(
-                    deviceInfo.getDeviceId(),
-                    deviceInfo.getDeviceName() + " (" + deviceInfo.getIpAddress() + ")",
-                    DeviceControlManager.ControlPermission.ALLOWED
-                ));
+        try {
+            if (controller.getNetworkManager() != null) {
+                for (DeviceInfo deviceInfo : controller.getNetworkManager().getDiscoveredDevices()) {
+                    if (deviceInfo.isOnline()) {
+                        int screenCount = deviceInfo.getScreens() != null ? deviceInfo.getScreens().size() : 0;
+                        String displayName = deviceInfo.getDeviceName() + " (" + deviceInfo.getIpAddress() + ") [" + screenCount + "个屏幕]";
+                        deviceListModel.addElement(new DeviceItem(
+                            deviceInfo.getDeviceId(),
+                            displayName,
+                            DeviceControlManager.ControlPermission.ALLOWED
+                        ));
+                    }
+                }
             }
+        } catch (Exception e) {
+            System.err.println("Error refreshing device list: " + e.getMessage());
         }
     }
     
@@ -195,9 +251,21 @@ public class MainWindow extends JFrame {
             
             // 如果不存在，则添加到列表
             if (!exists) {
+                // 获取屏幕数量
+                int screenCount = 1;
+                try {
+                    if (controller.getScreenLayoutManager() != null) {
+                        List<ScreenInfo> screens = controller.getScreenLayoutManager().getAllScreens();
+                        screenCount = screens != null ? screens.size() : 1;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error getting screen count for new device: " + e.getMessage());
+                }
+                
+                String displayName = "新设备 (" + deviceIp + ") [" + screenCount + "个屏幕]";
                 deviceListModel.addElement(new DeviceItem(
                     deviceIp, 
-                    "新设备 (" + deviceIp + ")", 
+                    displayName, 
                     DeviceControlManager.ControlPermission.ALLOWED));
             }
         });

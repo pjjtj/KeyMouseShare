@@ -36,6 +36,7 @@ public class DeviceControlManager {
      * 设置设备控制权限
      */
     public void setDevicePermission(String deviceId, ControlPermission permission) {
+        ControlPermission oldPermission = devicePermissions.get(deviceId);
         devicePermissions.put(deviceId, permission);
         
         // 如果是延迟权限，设置定时器
@@ -49,6 +50,11 @@ public class DeviceControlManager {
         } else {
             // 移除过期时间
             permissionExpiryTimes.remove(deviceId);
+            
+            // 如果权限从非允许变为允许，通知控制器
+            if (oldPermission != ControlPermission.ALLOWED) {
+                controller.onDeviceControlPermissionChanged(deviceId, permission);
+            }
         }
     }
     
@@ -62,6 +68,10 @@ public class DeviceControlManager {
             // 权限已过期，默认允许控制
             devicePermissions.put(deviceId, ControlPermission.ALLOWED);
             permissionExpiryTimes.remove(deviceId);
+            
+            // 通知控制器权限已变为允许
+            controller.onDeviceControlPermissionChanged(deviceId, ControlPermission.ALLOWED);
+            
             return ControlPermission.ALLOWED;
         }
         

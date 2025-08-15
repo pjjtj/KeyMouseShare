@@ -48,6 +48,9 @@ public class NetworkManager {
     // 存储发现的设备信息
     private Map<String, DeviceInfo> discoveredDevices = new ConcurrentHashMap<>();
     
+    // 存储已连接的设备
+    private Map<String, DeviceInfo> connectedDevices = new ConcurrentHashMap<>();
+    
     // 本地设备信息
     private DeviceInfo localDeviceInfo;
     
@@ -367,6 +370,9 @@ public class NetworkManager {
             if (!deviceInfo.isOnline()) {
                 System.out.println("Removing offline device: " + deviceInfo.getDeviceName());
                 iterator.remove();
+                
+                // 通知屏幕布局管理器移除该设备的屏幕
+                controller.getScreenLayoutManager().removeRemoteScreens(deviceInfo.getDeviceId());
             }
         }
     }
@@ -416,6 +422,11 @@ public class NetworkManager {
             // 绑定端口并启动服务器
             serverChannel = serverBootstrap.bind(8888).sync().channel();
             isServerRunning = true;
+            
+            // 更新本地设备信息为服务器模式
+            if (localDeviceInfo != null) {
+                localDeviceInfo.setPort(8888);
+            }
             
             System.out.println("Server started on port 8888");
             
@@ -467,6 +478,13 @@ public class NetworkManager {
             Channel channel = bootstrap.connect(serverIp, 8888).sync().channel();
             System.out.println("Connected to server: " + serverIp);
             
+            // 添加到已连接设备列表
+            DeviceInfo connectedDevice = new DeviceInfo();
+            connectedDevice.setIpAddress(serverIp);
+            connectedDevice.setDeviceId(serverIp); // 简化处理
+            connectedDevice.setPort(8888);
+            connectedDevices.put(serverIp, connectedDevice);
+            
         } catch (Exception e) {
             System.err.println("Failed to connect to server " + serverIp + ": " + e.getMessage());
         }
@@ -492,6 +510,7 @@ public class NetworkManager {
             }
             
             discoveredDevices.clear();
+            connectedDevices.clear();
         } catch (Exception e) {
             System.err.println("Error stopping network manager: " + e.getMessage());
         }
@@ -536,6 +555,28 @@ public class NetworkManager {
      */
     public Collection<DeviceInfo> getDiscoveredDevices() {
         return discoveredDevices.values();
+    }
+    
+    /**
+     * 获取已连接的设备列表
+     */
+    public Collection<DeviceInfo> getConnectedDevices() {
+        return connectedDevices.values();
+    }
+    
+    /**
+     * 当设备被允许控制时调用此方法
+     */
+    public void onDeviceControlAllowed(DeviceInfo deviceInfo) {
+        if (deviceInfo != null) {
+            // 将设备添加到已连接设备列表
+            connectedDevices.put(deviceInfo.getDeviceId(), deviceInfo);
+            
+            // 通知屏幕布局管理器添加该设备的屏幕
+            controller.getScreenLayoutManager().addRemoteScreens(deviceInfo);
+            
+            System.out.println("Device control allowed for: " + deviceInfo.getDeviceName());
+        }
     }
     
     // Getter方法

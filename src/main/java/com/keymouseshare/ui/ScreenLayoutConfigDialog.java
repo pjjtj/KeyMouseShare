@@ -99,14 +99,26 @@ public class ScreenLayoutConfigDialog extends JDialog {
         JPanel buttonPanel = new JPanel();
         JButton okButton = new JButton("确定");
         JButton cancelButton = new JButton("取消");
+        JButton refreshButton = new JButton("刷新");
         buttonPanel.add(okButton);
         buttonPanel.add(cancelButton);
+        buttonPanel.add(refreshButton);
         
         add(buttonPanel, BorderLayout.SOUTH);
         
         // 添加按钮事件处理
         okButton.addActionListener(e -> dispose());
         cancelButton.addActionListener(e -> dispose());
+        refreshButton.addActionListener(e -> refreshScreenLayout());
+    }
+    
+    /**
+     * 刷新屏幕布局
+     */
+    private void refreshScreenLayout() {
+        // 从网络管理器获取最新的设备信息并更新屏幕布局
+        controller.getScreenLayoutManager().refreshScreensFromNetwork();
+        layoutPanel.repaint();
     }
     
     /**
@@ -169,11 +181,14 @@ public class ScreenLayoutConfigDialog extends JDialog {
                 g2d.setColor(Color.BLACK);
                 FontMetrics fm = g2d.getFontMetrics();
                 
-                // 提取IP和屏幕ID信息
+                // 提取显示文本
                 String displayText = getScreenDisplayText(screen);
                 String[] lines = displayText.split("\n");
                 
-                int startY = y + (height - lines.length * fm.getHeight()) / 2 + fm.getAscent();
+                // 计算文本绘制位置，使其居中
+                int totalTextHeight = lines.length * fm.getHeight();
+                int startY = y + (height - totalTextHeight) / 2 + fm.getAscent();
+                
                 for (int i = 0; i < lines.length; i++) {
                     String line = lines[i];
                     int textWidth = fm.stringWidth(line);
@@ -196,6 +211,11 @@ public class ScreenLayoutConfigDialog extends JDialog {
             // 格式为"IP:屏幕ID"或"local:屏幕ID"
             String[] parts = id.split(":", 2);
             if (parts.length == 2) {
+                // 对于本地屏幕，显示为"本地:屏幕ID"
+                if ("local".equals(parts[0])) {
+                    return "本地:" + parts[1];
+                }
+                // 对于远程屏幕，显示为"IP:屏幕ID"
                 return parts[0] + ":" + parts[1];
             }
         }
