@@ -72,6 +72,7 @@ public class MousePositionDisplay extends HBox {
         // 查找鼠标所在的屏幕
         for (javafx.stage.Screen screen : screens) {
             Rectangle2D bounds = screen.getBounds();
+            // 检查鼠标位置是否在屏幕边界内（包含边界）
             if (x >= bounds.getMinX() && x <= bounds.getMaxX() && 
                 y >= bounds.getMinY() && y <= bounds.getMaxY()) {
                 targetScreen = screen;
@@ -96,7 +97,9 @@ public class MousePositionDisplay extends HBox {
             screenIndex = 0; // 如果未找到，使用主屏幕
         }
         
-        screenPositionLabel.setText(String.format("(屏幕%d: %.0f, %.0f)", screenIndex + 1, screenX, screenY));
+        // 显示更详细的信息，包括屏幕分辨率
+        screenPositionLabel.setText(String.format("(屏幕%d: %.0f, %.0f of %.0fx%.0f)", 
+            screenIndex + 1, screenX, screenY, bounds.getWidth(), bounds.getHeight()));
     }
     
     /**

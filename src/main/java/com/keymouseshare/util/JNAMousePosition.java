@@ -1,14 +1,17 @@
 package com.keymouseshare.util;
 
 import com.sun.jna.Library;
+import com.sun.jna.Memory;  // 添加Memory类导入
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
+import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.win32.W32APIOptions;
 
 import java.awt.Point;
 import java.awt.PointerInfo;
 import java.awt.MouseInfo;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -31,12 +34,61 @@ public class JNAMousePosition {
     }
     
     /**
+     * macOS CoreGraphics库接口（暂不需要直接使用，保留以备将来需要）
+     */
+    public interface CoreGraphics extends Library {
+        CoreGraphics INSTANCE = Native.load("CoreGraphics", CoreGraphics.class);
+        
+        /**
+         * 获取当前鼠标位置
+         * @param event 事件指针，通常传入null以获取当前位置
+         * @return 位置指针
+         */
+        Pointer CGEventGetLocation(Pointer event);
+        
+        /**
+         * 释放CoreFoundation对象
+         * @param cf CoreFoundation对象指针
+         */
+        void CFRelease(Pointer cf);
+    }
+    
+    /**
      * Windows POINT结构体
      */
     @Structure.FieldOrder({"x", "y"})
     public static class POINT extends Structure {
         public int x;
         public int y;
+        
+        @Override
+        protected List<String> getFieldOrder() {
+            return Arrays.asList("x", "y");
+        }
+    }
+    
+    /**
+     * macOS CGPoint结构体
+     */
+    @Structure.FieldOrder({"x", "y"})
+    public static class CGPoint extends Structure {
+        public double x;
+        public double y;
+        
+        public CGPoint() {
+            super();
+        }
+        
+        public CGPoint(double x, double y) {
+            super();
+            this.x = x;
+            this.y = y;
+        }
+        
+        public CGPoint(Pointer p) {
+            super(p);
+            read();
+        }
     }
     
     /**
@@ -77,8 +129,14 @@ public class JNAMousePosition {
      * @return 鼠标位置点
      */
     private static Point getMacMousePosition() {
-        // 在macOS上，暂时使用AWT方法
-        // 实际项目中可以使用更复杂的JNA绑定来直接调用Cocoa API
+        try {
+            // 在macOS上，我们使用AWT方法作为主要方法，因为直接使用CGEventGetLocation(null)可能不工作
+            return getAWTMousePosition();
+        } catch (Exception e) {
+            System.err.println("获取macOS鼠标位置时发生异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        // 如果AWT方法失败，回退到另一种方法
         return getAWTMousePosition();
     }
     

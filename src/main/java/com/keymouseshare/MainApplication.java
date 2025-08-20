@@ -1,7 +1,8 @@
 package com.keymouseshare;
 
 import com.keymouseshare.bean.DeviceInfo;
-import com.keymouseshare.input.JNAInputMonitor;
+import com.keymouseshare.input.JNativeHookInputMonitor;
+import com.keymouseshare.input.EventInjector;
 import com.keymouseshare.util.MacOSAccessibilityHelper;
 import com.keymouseshare.ui.MousePositionDisplay;
 import javafx.application.Application;
@@ -12,12 +13,9 @@ import javafx.stage.Stage;
 import com.keymouseshare.ui.DeviceListUI;
 import com.keymouseshare.ui.ScreenPreviewUI;
 import com.keymouseshare.network.DeviceDiscovery;
-import com.keymouseshare.util.JNAMousePosition;
 
 import java.net.SocketException;
 import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.logging.Logger;
 
 /**
@@ -30,10 +28,10 @@ public class MainApplication extends Application {
     private DeviceDiscovery deviceDiscovery;
     private DeviceListUI deviceListUI;
     private ScreenPreviewUI screenPreviewUI;
-    private JNAInputMonitor jnaInputMonitor;
+    private JNativeHookInputMonitor jNativeHookInputMonitor;
     private MousePositionDisplay mousePositionDisplay;
-    private Timer mousePositionTimer;
-    
+    private EventInjector eventInjector;
+
     @Override
     public void start(Stage primaryStage) {
         BorderPane root = new BorderPane();
@@ -62,17 +60,18 @@ public class MainApplication extends Application {
             screenPreviewUI.selectScreen(ipAddress);
         });
 
-        // 初始化并启动设备发现服务
+        // 初始化网络设备发现
         initDeviceDiscovery();
         
-        // 初始化并启动JNA输入监听
-        initJNAInputMonitoring();
+        // 初始化JNativeHook输入监听
+        initJNativeHookInputMonitoring();
         
-        // 启动鼠标位置定时更新
-        startMousePositionUpdates();
+        // 初始化事件注入器
+        initEventInjector();
         
-        Scene scene = new Scene(root, 1000, 600);
-        primaryStage.setTitle("KeyMouseShare");
+        // 创建场景并显示主窗口
+        Scene scene = new Scene(root, 800, 600);
+        primaryStage.setTitle("KeyMouseShare - 键鼠共享工具");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -117,34 +116,31 @@ public class MainApplication extends Application {
         }
     }
     
+
+    
     /**
-     * 初始化JNA输入监听
+     * 初始化JNativeHook输入监听
      */
-    private void initJNAInputMonitoring() {
-        jnaInputMonitor = new JNAInputMonitor();
-        jnaInputMonitor.startMonitoring();
-        System.out.println("JNA输入监听已启动");
+    private void initJNativeHookInputMonitoring() {
+        jNativeHookInputMonitor = new JNativeHookInputMonitor();
+        // 设置鼠标位置监听器
+        jNativeHookInputMonitor.setMousePositionListener((x, y) -> {
+            Platform.runLater(() -> {
+                if (mousePositionDisplay != null) {
+                    mousePositionDisplay.updateMousePosition(x, y);
+                }
+            });
+        });
+        jNativeHookInputMonitor.startMonitoring();
+        System.out.println("JNativeHook输入监听已启动");
     }
     
     /**
-     * 启动鼠标位置定时更新
+     * 初始化事件注入器
      */
-    private void startMousePositionUpdates() {
-        mousePositionTimer = new Timer(true);
-        mousePositionTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                Platform.runLater(() -> {
-                    if (mousePositionDisplay != null) {
-                        // 使用JNA获取鼠标位置并更新显示
-                        java.awt.Point mousePoint = JNAMousePosition.getMousePosition();
-                        if (mousePoint != null) {
-                            mousePositionDisplay.updateMousePosition(mousePoint.x, mousePoint.y);
-                        }
-                    }
-                });
-            }
-        }, 0, 100); // 每100毫秒更新一次
+    private void initEventInjector() {
+        eventInjector = new EventInjector();
+        System.out.println("事件注入器已初始化");
     }
     
     @Override
@@ -154,14 +150,9 @@ public class MainApplication extends Application {
             deviceDiscovery.stopDiscovery();
         }
         
-        // 停止JNA输入监听
-        if (jnaInputMonitor != null) {
-            jnaInputMonitor.stopMonitoring();
-        }
-        
-        // 停止鼠标位置更新定时器
-        if (mousePositionTimer != null) {
-            mousePositionTimer.cancel();
+        // 停止JNativeHook输入监听
+        if (jNativeHookInputMonitor != null) {
+            jNativeHookInputMonitor.stopMonitoring();
         }
     }
     

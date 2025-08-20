@@ -294,12 +294,12 @@ public class JNAInputMonitor {
                     final Pointer finalRunLoop = runLoop;
                     final Pointer finalRunLoopSource = runLoopSource;
                     safeCall(() -> {
-                        // 暂时禁用CFRunLoopAddSource调用，避免崩溃
-                        // coreGraphics.CFRunLoopAddSource(finalRunLoop, finalRunLoopSource, 
-                        //    createCFStringConstant("kCFRunLoopDefaultMode"));
+                        // 启用CFRunLoopAddSource调用
+                        coreGraphics.CFRunLoopAddSource(finalRunLoop, finalRunLoopSource, 
+                           createCFStringConstant("kCFRunLoopDefaultMode"));
                         return null;
                     });
-                    logger.info("运行循环源添加完成（已禁用以避免崩溃）");
+                    logger.info("运行循环源添加完成");
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "将运行循环源添加到运行循环时发生异常", e);
                     System.err.println("将运行循环源添加到运行循环时发生异常: " + e.getMessage());
@@ -323,23 +323,15 @@ public class JNAInputMonitor {
                 
                 // 运行事件循环直到停止
                 logger.info("开始运行事件循环");
-                while (monitor.isMonitoring() && !Thread.currentThread().isInterrupted()) {
-                    try {
-                        // 暂时禁用CFRunLoopRun调用，避免崩溃
-                        // safeCall(() -> {
-                        //     coreGraphics.CFRunLoopRun();
-                        //     return null;
-                        // });
-                        // 改为简单的sleep，避免占用过多CPU
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        logger.info("Mac监听线程被中断");
-                        break;
-                    } catch (Exception e) {
-                        logger.log(Level.SEVERE, "运行循环时发生异常", e);
-                        System.err.println("运行循环时发生异常: " + e.getMessage());
-                        break;
-                    }
+                try {
+                    // 启用CFRunLoopRun调用
+                    safeCall(() -> {
+                        coreGraphics.CFRunLoopRun();
+                        return null;
+                    });
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "运行循环时发生异常", e);
+                    System.err.println("运行循环时发生异常: " + e.getMessage());
                 }
                 
                 // 停止运行循环
@@ -347,11 +339,10 @@ public class JNAInputMonitor {
                     logger.info("尝试停止运行循环");
                     final Pointer finalRunLoop = runLoop;
                     safeCall(() -> {
-                        // 暂时禁用CFRunLoopStop调用，避免崩溃
-                        // coreGraphics.CFRunLoopStop(finalRunLoop);
+                        coreGraphics.CFRunLoopStop(finalRunLoop);
                         return null;
                     });
-                    logger.info("运行循环停止完成（已禁用以避免崩溃）");
+                    logger.info("运行循环停止完成");
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "停止运行循环时发生异常", e);
                 }
