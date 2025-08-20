@@ -15,6 +15,7 @@ import com.keymouseshare.bean.ScreenInfo;
 
 import java.lang.reflect.Type;
 import java.util.logging.Logger;
+import javafx.application.Platform;
 
 /**
  * UDP网络发现模块，用于发现局域网内的设备及其屏幕信息
@@ -24,8 +25,6 @@ public class DeviceDiscovery {
     
     // UDP广播端口
     private static final int DISCOVERY_PORT = 8888;
-    // 广播地址
-    private static final String BROADCAST_ADDRESS = "255.255.255.255";
     // 设备信息过期时间(毫秒)
     private static final long DEVICE_TIMEOUT = 30000; // 30秒
     
@@ -46,7 +45,9 @@ public class DeviceDiscovery {
      */
     private enum MessageType {
         DISCOVERY_REQUEST,  // 发现请求
-        DISCOVERY_RESPONSE   // 发现响应
+        DISCOVERY_RESPONSE, // 发现响应
+        CONTROL_REQUEST,    // 控制请求
+        CONTROL_RESPONSE    // 控制响应
     }
     
     /**
@@ -316,7 +317,9 @@ public class DeviceDiscovery {
                 DeviceInfo device = entry.getValue();
                 
                 // 如果设备超过30秒没有响应，则认为设备已离线
-                if (currentTime - device.getLastSeen() > DEVICE_TIMEOUT) {
+                // 但不要清理本地设备
+                if (!device.getIpAddress().equals(localIpAddress) && 
+                    currentTime - device.getLastSeen() > DEVICE_TIMEOUT) {
                     iterator.remove();
                     if (listener != null) {
                         listener.onDeviceLost(device);
@@ -358,6 +361,22 @@ public class DeviceDiscovery {
     }
     
     /**
+     * 发送控制请求
+     * @param targetIpAddress 目标设备IP地址
+     */
+    public void sendControlRequest(String targetIpAddress) throws IOException {
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.CONTROL_REQUEST,
+                                                       localDevice.getDeviceName(),
+                                                       localDevice.getScreens());
+        String jsonMessage = gson.toJson(message);
+        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
+        
+        InetAddress targetAddress = InetAddress.getByName(targetIpAddress);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, DISCOVERY_PORT);
+        socket.send(packet);
+    }
+    
+    /**
      * 处理接收到的消息
      * @param message 消息内容
      * @param senderAddress 发送方地址
@@ -386,10 +405,36 @@ public class DeviceDiscovery {
                     // 收到发现响应，更新设备信息
                     updateDeviceInfo(senderAddress, discoveryMessage);
                     break;
+                    
+                case CONTROL_REQUEST:
+                    // 收到控制请求，显示授权对话框
+                    handleControlRequest(senderAddress, discoveryMessage);
+                    break;
             }
         } catch (Exception e) {
             System.err.println("处理发现消息时出错: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 处理控制请求
+     * @param senderAddress 发送方地址
+     * @param discoveryMessage 发现消息
+     */
+    private void handleControlRequest(String senderAddress, DiscoveryMessage discoveryMessage) {
+        // 在JavaFX线程中显示权限对话框
+        Platform.runLater(() -> {
+            if (listener instanceof ControlRequestListener) {
+                ((ControlRequestListener) listener).onControlRequest(senderAddress, discoveryMessage.getDeviceName());
+            }
+        });
+    }
+    
+    /**
+     * 控制请求监听器接口
+     */
+    public interface ControlRequestListener extends DeviceDiscoveryListener {
+        void onControlRequest(String requesterIpAddress, String requesterDeviceName);
     }
     
     /**
@@ -406,6 +451,8 @@ public class DeviceDiscovery {
         DeviceInfo device = new DeviceInfo(ipAddress, 
                                           discoveryMessage.getDeviceName(), 
                                           discoveryMessage.getScreens());
+        // 更新设备的最后_seen时间
+        device.setLastSeen(System.currentTimeMillis());
         
         boolean isNewDevice = !discoveredDevices.containsKey(ipAddress);
         discoveredDevices.put(ipAddress, device);
@@ -481,42 +528,31 @@ public class DeviceDiscovery {
 
                 String screenName = "Screen" + (char) ('A' + i);
                 // 使用完整边界来获取实际的屏幕尺寸（包括系统UI区域）
-                int width = (int) bounds.getWidth();
-                int height = (int) bounds.getHeight();
-
-                screens.add(new ScreenInfo(screenName, width, height));
+                screens.add(new ScreenInfo(screenName, (int) bounds.getWidth(), (int) bounds.getHeight()));
             }
         } catch (Exception e) {
             logger.warning("Failed to get screen info using JavaFX: " + e.getMessage());
         }
 
-        // 如果JavaFX方法失败，使用传统AWT方法
+        // 如果上述方法都失败了，使用默认值
         if (screens.isEmpty()) {
-            try {
-                // 使用AWT获取屏幕设备
-                java.awt.GraphicsEnvironment ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment();
-                java.awt.GraphicsDevice[] gs = ge.getScreenDevices();
-
-                for (int i = 0; i < gs.length; i++) {
-                    java.awt.DisplayMode dm = gs[i].getDisplayMode();
-                    
-                    String screenName = "Screen" + (char) ('A' + i);
-                    // 使用DisplayMode获取实际分辨率
-                    int width = dm.getWidth();
-                    int height = dm.getHeight();
-
-                    screens.add(new ScreenInfo(screenName, width, height));
-                }
-            } catch (Exception e) {
-                logger.warning("Failed to get screen info using AWT GraphicsDevice: " + e.getMessage());
-            }
-        }
-
-        // 如果仍然没有获取到屏幕信息，使用默认值
-        if (screens.isEmpty()) {
-            screens.add(new ScreenInfo("ScreenA", 1920, 1080));
+            screens.add(new ScreenInfo("ScreenA", 1920, 1080)); // 默认1080p屏幕
         }
 
         return screens;
+    }
+    
+    /**
+     * 通知设备更新
+     * @param device 更新的设备信息
+     */
+    public void notifyDeviceUpdate(DeviceInfo device) {
+        // 更新设备信息
+        discoveredDevices.put(device.getIpAddress(), device);
+        
+        // 通知监听器
+        if (listener != null) {
+            listener.onDeviceDiscovered(device);
+        }
     }
 }

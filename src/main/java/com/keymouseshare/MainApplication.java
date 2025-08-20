@@ -13,15 +13,17 @@ import javafx.stage.Stage;
 import com.keymouseshare.ui.DeviceListUI;
 import com.keymouseshare.ui.ScreenPreviewUI;
 import com.keymouseshare.network.DeviceDiscovery;
+import com.keymouseshare.network.ControlRequestManager;
 
 import java.net.SocketException;
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
  * 主应用程序类
  */
-public class MainApplication extends Application {
+public class MainApplication extends Application implements DeviceDiscovery.ControlRequestListener {
     
     private static final Logger logger = Logger.getLogger(MainApplication.class.getName());
     
@@ -31,6 +33,7 @@ public class MainApplication extends Application {
     private JNativeHookInputMonitor jNativeHookInputMonitor;
     private MousePositionDisplay mousePositionDisplay;
     private EventInjector eventInjector;
+    private ControlRequestManager controlRequestManager;
     
     public static void main(String[] args) {
         // 设置高DPI相关的系统属性，以获取真实的屏幕尺寸
@@ -54,7 +57,7 @@ public class MainApplication extends Application {
         checkAndPromptAccessibilityPermission();
         
         // 创建设备列表UI（左侧）
-        deviceListUI = new DeviceListUI();
+        deviceListUI = new DeviceListUI(deviceDiscovery);
         root.setLeft(deviceListUI);
         
         // 创建屏幕预览UI（中心）
@@ -77,6 +80,9 @@ public class MainApplication extends Application {
         // 初始化网络设备发现
         initDeviceDiscovery();
         
+        // 初始化控制请求管理器
+        initControlRequestManager(primaryStage);
+        
         // 初始化JNativeHook输入监听
         initJNativeHookInputMonitoring();
         
@@ -85,9 +91,19 @@ public class MainApplication extends Application {
         
         // 创建场景并显示主窗口
         Scene scene = new Scene(root, 800, 600);
-        primaryStage.setTitle("KeyMouseShare - 键鼠共享工具");
+        primaryStage.setTitle("KeyMouseShare - 键盘鼠标共享工具");
         primaryStage.setScene(scene);
         primaryStage.show();
+        
+        // 在窗口显示后设置ControlRequestManager的父窗口
+        if (controlRequestManager != null) {
+            controlRequestManager.setParentWindow(primaryStage.getScene().getWindow());
+        }
+        
+        // 将DeviceListUI与控制请求管理器关联
+        if (deviceListUI != null && controlRequestManager != null) {
+            deviceListUI.setControlRequestManager(controlRequestManager);
+        }
     }
     
     /**
@@ -106,31 +122,73 @@ public class MainApplication extends Application {
             deviceDiscovery = new DeviceDiscovery();
             
             // 设置设备发现监听器
-            deviceDiscovery.setDeviceDiscoveryListener(new DeviceDiscovery.DeviceDiscoveryListener() {
-                @Override
-                public void onDeviceDiscovered(DeviceInfo device) {
-                    System.out.println("发现设备: " + device.getIpAddress());
-                    // 可以在这里更新UI，添加新发现的设备到设备列表
-                }
-                
-                @Override
-                public void onDeviceLost(DeviceInfo device) {
-                    System.out.println("设备离线: " + device.getIpAddress());
-                    // 可以在这里更新UI，从设备列表中移除离线设备
-                }
-            });
+            deviceDiscovery.setDeviceDiscoveryListener(this); // 使用this作为监听器
             
             // 启动设备发现服务
             deviceDiscovery.startDiscovery();
             
-        } catch (SocketException e) {
-            System.err.println("创建设备发现服务时出错: " + e.getMessage());
-        } catch (IOException e) {
-            System.err.println("启动设备发现服务时出错: " + e.getMessage());
+            // 设置DeviceListUI的设备发现服务
+            if (deviceListUI != null) {
+                deviceListUI.setDeviceDiscovery(deviceDiscovery);
+            }
+            
+            // 初始化设备列表
+            updateDeviceList();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     
-
+    @Override
+    public void onDeviceDiscovered(DeviceInfo device) {
+        System.out.println("发现设备: " + device.getIpAddress());
+        // 可以在这里更新UI，添加新发现的设备到设备列表
+        updateDeviceList();
+    }
+    
+    @Override
+    public void onDeviceLost(DeviceInfo device) {
+        System.out.println("设备离线: " + device.getIpAddress());
+        // 可以在这里更新UI，从设备列表中移除离线的设备
+        updateDeviceList();
+    }
+    
+    @Override
+    public void onControlRequest(String requesterIpAddress, String requesterDeviceName) {
+        // 显示控制请求对话框
+        if (controlRequestManager != null) {
+            controlRequestManager.showPermissionDialog(requesterIpAddress)
+                .thenAccept(permissionGranted -> {
+                    // 这里可以处理权限授予或拒绝后的逻辑
+                    if (permissionGranted) {
+                        System.out.println("用户授权控制请求: " + requesterIpAddress);
+                        // 如果需要，可以在这里建立连接
+                    } else {
+                        System.out.println("用户拒绝控制请求: " + requesterIpAddress);
+                    }
+                });
+        }
+    }
+    
+    /**
+     * 初始化控制请求管理器
+     */
+    private void initControlRequestManager(Stage primaryStage) {
+        controlRequestManager = new ControlRequestManager(deviceDiscovery);
+        // 先初始化，但暂时不设置父窗口，因为此时场景可能还没有创建
+        // 在需要时再重新设置父窗口
+    }
+    
+    /**
+     * 更新设备列表
+     */
+    private void updateDeviceList() {
+        if (deviceDiscovery != null && deviceListUI != null) {
+            List<DeviceInfo> devices = deviceDiscovery.getDiscoveredDevices();
+            deviceListUI.updateDeviceList(devices);
+        }
+    }
     
     /**
      * 初始化JNativeHook输入监听
@@ -168,5 +226,13 @@ public class MainApplication extends Application {
         if (jNativeHookInputMonitor != null) {
             jNativeHookInputMonitor.stopMonitoring();
         }
+        
+        // 停止控制请求管理器
+        if (controlRequestManager != null) {
+            controlRequestManager.disconnect();
+            controlRequestManager.setServerMode(false); // 停止服务端
+        }
+        
+        System.out.println("应用程序已停止");
     }
 }

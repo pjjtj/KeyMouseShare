@@ -95,56 +95,63 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     public void nativeKeyPressed(NativeKeyEvent e) {
         if (!isMonitoring) return;
         
-        logger.info("键盘事件: 类型=按键按下, 键码=" + e.getKeyCode() + ", 键值=" + NativeKeyEvent.getKeyText(e.getKeyCode()));
-        System.out.println("键盘事件: 类型=按键按下, 键码=" + e.getKeyCode() + ", 键值=" + NativeKeyEvent.getKeyText(e.getKeyCode()));
+        // 暂停键盘事件日志打印
+        // logger.info("键盘事件: 类型=按键按下, 键码=" + e.getKeyCode());
+        // System.out.println("键盘事件: 类型=按键按下, 键码=" + e.getKeyCode());
     }
     
     @Override
     public void nativeKeyReleased(NativeKeyEvent e) {
         if (!isMonitoring) return;
         
-        logger.info("键盘事件: 类型=按键释放, 键码=" + e.getKeyCode() + ", 键值=" + NativeKeyEvent.getKeyText(e.getKeyCode()));
-        System.out.println("键盘事件: 类型=按键释放, 键码=" + e.getKeyCode() + ", 键值=" + NativeKeyEvent.getKeyText(e.getKeyCode()));
+        // 暂停键盘事件日志打印
+        // logger.info("键盘事件: 类型=按键释放, 键码=" + e.getKeyCode());
+        // System.out.println("键盘事件: 类型=按键释放, 键码=" + e.getKeyCode());
     }
     
     @Override
     public void nativeKeyTyped(NativeKeyEvent e) {
         if (!isMonitoring) return;
         
-        logger.info("键盘事件: 类型=按键输入, 字符=" + e.getKeyChar());
-        System.out.println("键盘事件: 类型=按键输入, 字符=" + e.getKeyChar());
+        // 暂停键盘事件日志打印
+        // logger.info("键盘事件: 类型=按键输入, 字符=" + e.getKeyChar());
+        // System.out.println("键盘事件: 类型=按键输入, 字符=" + e.getKeyChar());
     }
     
     @Override
     public void nativeMouseClicked(NativeMouseEvent e) {
         if (!isMonitoring) return;
         
-        logger.info("鼠标事件: 类型=点击, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
-        System.out.println("鼠标事件: 类型=点击, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+        // 暂停鼠标事件日志打印
+        // logger.info("鼠标事件: 类型=点击, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+        // System.out.println("鼠标事件: 类型=点击, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
     }
     
     @Override
     public void nativeMousePressed(NativeMouseEvent e) {
         if (!isMonitoring) return;
         
-        logger.info("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
-        System.out.println("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+        // 暂停鼠标事件日志打印
+        // logger.info("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+        // System.out.println("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
     }
     
     @Override
     public void nativeMouseReleased(NativeMouseEvent e) {
         if (!isMonitoring) return;
         
-        logger.info("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
-        System.out.println("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+        // 暂停鼠标事件日志打印
+        // logger.info("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+        // System.out.println("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
     }
     
     @Override
     public void nativeMouseMoved(NativeMouseEvent e) {
         if (!isMonitoring) return;
         
-        logger.info("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
-        System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
+        // 暂停鼠标事件日志打印
+        // logger.info("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
+        // System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
         
         // 通知鼠标位置监听器
         if (mousePositionListener != null) {
@@ -156,8 +163,9 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     public void nativeMouseDragged(NativeMouseEvent e) {
         if (!isMonitoring) return;
         
-        logger.info("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
-        System.out.println("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
+        // 暂停鼠标事件日志打印
+        // logger.info("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
+        // System.out.println("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
         
         // 通知鼠标位置监听器
         if (mousePositionListener != null) {

@@ -114,20 +114,24 @@ public class JNAInputMonitor {
                         try {
                             switch (type) {
                                 case 1: // kCGEventLeftMouseDown
-                                    logger.info("Mac鼠标事件: 类型=左键按下");
-                                    System.out.println("Mac鼠标事件: 类型=左键按下");
+                                    // 暂停Mac鼠标事件日志打印
+                                    // logger.info("Mac鼠标事件: 类型=左键按下");
+                                    // System.out.println("Mac鼠标事件: 类型=左键按下");
                                     break;
                                 case 2: // kCGEventLeftMouseUp
-                                    logger.info("Mac鼠标事件: 类型=左键释放");
-                                    System.out.println("Mac鼠标事件: 类型=左键释放");
+                                    // 暂停Mac鼠标事件日志打印
+                                    // logger.info("Mac鼠标事件: 类型=左键释放");
+                                    // System.out.println("Mac鼠标事件: 类型=左键释放");
                                     break;
                                 case 3: // kCGEventRightMouseDown
-                                    logger.info("Mac鼠标事件: 类型=右键按下");
-                                    System.out.println("Mac鼠标事件: 类型=右键按下");
+                                    // 暂停Mac鼠标事件日志打印
+                                    // logger.info("Mac鼠标事件: 类型=右键按下");
+                                    // System.out.println("Mac鼠标事件: 类型=右键按下");
                                     break;
                                 case 4: // kCGEventRightMouseUp
-                                    logger.info("Mac鼠标事件: 类型=右键释放");
-                                    System.out.println("Mac鼠标事件: 类型=右键释放");
+                                    // 暂停Mac鼠标事件日志打印
+                                    // logger.info("Mac鼠标事件: 类型=右键释放");
+                                    // System.out.println("Mac鼠标事件: 类型=右键释放");
                                     break;
                                 case 5: // kCGEventMouseMoved
                                     // 获取鼠标位置
@@ -140,10 +144,11 @@ public class JNAInputMonitor {
                                             location.getPointer().setPointer(0, locationPtr);
                                             location.read();
                                             
-                                            logger.info("Mac鼠标事件: 类型=鼠标移动, 位置=(" + 
-                                                       location.x + "," + location.y + ")");
-                                            System.out.println("Mac鼠标事件: 类型=鼠标移动, 位置=(" + 
-                                                              location.x + "," + location.y + ")");
+                                            // 暂停Mac鼠标事件日志打印
+                                            // logger.info("Mac鼠标事件: 类型=鼠标移动, 位置=(" + 
+                                            //            location.x + "," + location.y + ")");
+                                            // System.out.println("Mac鼠标事件: 类型=鼠标移动, 位置=(" + 
+                                            //                      location.x + "," + location.y + ")");
                                         } else {
                                             logger.warning("无法获取鼠标位置指针");
                                         }
@@ -162,10 +167,11 @@ public class JNAInputMonitor {
                                             location.getPointer().setPointer(0, locationPtr);
                                             location.read();
                                             
-                                            logger.info("Mac鼠标事件: 类型=左键拖拽, 位置=(" + 
-                                                       location.x + "," + location.y + ")");
-                                            System.out.println("Mac鼠标事件: 类型=左键拖拽, 位置=(" + 
-                                                              location.x + "," + location.y + ")");
+                                            // 暂停Mac鼠标事件日志打印
+                                            // logger.info("Mac鼠标事件: 类型=左键拖拽, 位置=(" + 
+                                            //            location.x + "," + location.y + ")");
+                                            // System.out.println("Mac鼠标事件: 类型=左键拖拽, 位置=(" + 
+                                            //                      location.x + "," + location.y + ")");
                                         } else {
                                             logger.warning("无法获取鼠标位置指针");
                                         }
@@ -184,10 +190,11 @@ public class JNAInputMonitor {
                                             location.getPointer().setPointer(0, locationPtr);
                                             location.read();
                                             
-                                            logger.info("Mac鼠标事件: 类型=右键拖拽, 位置=(" + 
-                                                       location.x + "," + location.y + ")");
-                                            System.out.println("Mac鼠标事件: 类型=右键拖拽, 位置=(" + 
-                                                              location.x + "," + location.y + ")");
+                                            // 暂停Mac鼠标事件日志打印
+                                            // logger.info("Mac鼠标事件: 类型=右键拖拽, 位置=(" + 
+                                            //            location.x + "," + location.y + ")");
+                                            // System.out.println("Mac鼠标事件: 类型=右键拖拽, 位置=(" + 
+                                            //                      location.x + "," + location.y + ")");
                                         } else {
                                             logger.warning("无法获取鼠标位置指针");
                                         }
@@ -199,8 +206,9 @@ public class JNAInputMonitor {
                                     try {
                                         Integer keyCode = safeCall(() -> coreGraphics.CGEventGetIntegerValueField(event, 9)); // kCGKeyboardEventKeycode
                                         if (keyCode != null) {
-                                            logger.info("Mac键盘事件: 类型=按键按下, 键码=" + keyCode);
-                                            System.out.println("Mac键盘事件: 类型=按键按下, 键码=" + keyCode);
+                                            // 暂停Mac键盘事件日志打印
+                                            // logger.info("Mac键盘事件: 类型=按键按下, 键码=" + keyCode);
+                                            // System.out.println("Mac键盘事件: 类型=按键按下, 键码=" + keyCode);
                                         }
                                     } catch (Exception e) {
                                         logger.log(Level.WARNING, "获取键盘键码时发生异常", e);
@@ -210,8 +218,9 @@ public class JNAInputMonitor {
                                     try {
                                         Integer keyCode = safeCall(() -> coreGraphics.CGEventGetIntegerValueField(event, 9)); // kCGKeyboardEventKeycode
                                         if (keyCode != null) {
-                                            logger.info("Mac键盘事件: 类型=按键释放, 键码=" + keyCode);
-                                            System.out.println("Mac键盘事件: 类型=按键释放, 键码=" + keyCode);
+                                            // 暂停Mac键盘事件日志打印
+                                            // logger.info("Mac键盘事件: 类型=按键释放, 键码=" + keyCode);
+                                            // System.out.println("Mac键盘事件: 类型=按键释放, 键码=" + keyCode);
                                         }
                                     } catch (Exception e) {
                                         logger.log(Level.WARNING, "获取键盘键码时发生异常", e);
@@ -518,10 +527,11 @@ public class JNAInputMonitor {
                                     break;
                             }
                             
-                            logger.info("Windows鼠标事件: 类型=" + eventType + ", 位置=(" + 
-                                       mouseStruct.pt_x + "," + mouseStruct.pt_y + ")");
-                            System.out.println("Windows鼠标事件: 类型=" + eventType + ", 位置=(" + 
-                                              mouseStruct.pt_x + "," + mouseStruct.pt_y + ")");
+                            // 暂停Windows鼠标事件日志打印
+                            // logger.info("Windows鼠标事件: 类型=" + eventType + ", 位置=(" + 
+                            //            mouseStruct.pt_x + "," + mouseStruct.pt_y + ")");
+                            // System.out.println("Windows鼠标事件: 类型=" + eventType + ", 位置=(" + 
+                            //                  mouseStruct.pt_x + "," + mouseStruct.pt_y + ")");
                         }
                         return User32.INSTANCE.CallNextHookEx(null, nCode, wParam, lParam);
                     }
@@ -555,10 +565,11 @@ public class JNAInputMonitor {
                                     break;
                             }
                             
-                            logger.info("Windows键盘事件: 类型=" + eventType + ", 虚拟键码=" + 
-                                       keyboardStruct.vkCode);
-                            System.out.println("Windows键盘事件: 类型=" + eventType + ", 虚拟键码=" + 
-                                              keyboardStruct.vkCode);
+                            // 暂停Windows键盘事件日志打印
+                            // logger.info("Windows键盘事件: 类型=" + eventType + ", 虚拟键码=" + 
+                            //            keyboardStruct.vkCode);
+                            // System.out.println("Windows键盘事件: 类型=" + eventType + ", 虚拟键码=" + 
+                            //                  keyboardStruct.vkCode);
                         }
                         return User32.INSTANCE.CallNextHookEx(null, nCode, wParam, lParam);
                     }
