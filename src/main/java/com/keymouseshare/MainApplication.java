@@ -31,6 +31,20 @@ public class MainApplication extends Application {
     private JNativeHookInputMonitor jNativeHookInputMonitor;
     private MousePositionDisplay mousePositionDisplay;
     private EventInjector eventInjector;
+    
+    public static void main(String[] args) {
+        // 设置高DPI相关的系统属性，以获取真实的屏幕尺寸
+        // 启用高分辨率渲染
+        System.setProperty("sun.java2d.uiScale", "1.0");
+        // 禁用DPI缩放感知，获取真实像素坐标
+        System.setProperty("sun.java2d.dpiaware", "false");
+        // 对于JavaFX，设置使用真正的像素而不是逻辑像素
+        System.setProperty("javafx.css.scalingFactor", "1.0");
+        System.setProperty("prism.allowhidpi", "false");
+        
+        // 启动JavaFX应用程序
+        launch(args);
+    }
 
     @Override
     public void start(Stage primaryStage) {
@@ -154,9 +168,5 @@ public class MainApplication extends Application {
         if (jNativeHookInputMonitor != null) {
             jNativeHookInputMonitor.stopMonitoring();
         }
-    }
-    
-    public static void main(String[] args) {
-        launch(args);
     }
 }

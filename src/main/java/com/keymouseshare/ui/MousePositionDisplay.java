@@ -57,25 +57,28 @@ public class MousePositionDisplay extends HBox {
         xPositionLabel.setText("X: " + String.format("%.0f", x));
         yPositionLabel.setText("Y: " + String.format("%.0f", y));
         
-        // 使用JNA方法获取更准确的鼠标位置和屏幕信息
+        // 使用JavaFX获取更准确的鼠标位置和屏幕信息
         updateScreenInfo(x, y);
     }
     
     /**
-     * 使用JNA获取并更新屏幕信息
+     * 使用JavaFX获取并更新屏幕信息
      */
     public void updateScreenInfo(double x, double y) {
         // 获取所有屏幕信息
         List<javafx.stage.Screen> screens = javafx.stage.Screen.getScreens();
         javafx.stage.Screen targetScreen = null;
+        int targetScreenIndex = 0;
         
         // 查找鼠标所在的屏幕
-        for (javafx.stage.Screen screen : screens) {
+        for (int i = 0; i < screens.size(); i++) {
+            javafx.stage.Screen screen = screens.get(i);
             Rectangle2D bounds = screen.getBounds();
             // 检查鼠标位置是否在屏幕边界内（包含边界）
             if (x >= bounds.getMinX() && x <= bounds.getMaxX() && 
                 y >= bounds.getMinY() && y <= bounds.getMaxY()) {
                 targetScreen = screen;
+                targetScreenIndex = i;
                 break;
             }
         }
@@ -83,23 +86,59 @@ public class MousePositionDisplay extends HBox {
         // 如果没有找到特定屏幕，则使用主屏幕
         if (targetScreen == null) {
             targetScreen = javafx.stage.Screen.getPrimary();
+            targetScreenIndex = screens.indexOf(targetScreen);
         }
         
         Rectangle2D bounds = targetScreen.getBounds();
+        Rectangle2D visualBounds = targetScreen.getVisualBounds();
         
         // 计算相对于屏幕的位置
         double screenX = x - bounds.getMinX();
         double screenY = y - bounds.getMinY();
         
-        // 获取屏幕索引
-        int screenIndex = screens.indexOf(targetScreen);
-        if (screenIndex == -1) {
-            screenIndex = 0; // 如果未找到，使用主屏幕
+        // 尝试获取真实的屏幕分辨率
+        String resolutionInfo = getRealScreenResolution(targetScreenIndex);
+        
+        // 显示更详细的信息，包括屏幕分辨率和完整坐标空间信息
+        screenPositionLabel.setText(String.format("(屏幕%d: %.0f, %.0f of %s)", 
+            targetScreenIndex + 1, screenX, screenY, resolutionInfo));
+    }
+    
+    /**
+     * 获取真实的屏幕分辨率信息
+     * @param screenIndex 屏幕索引
+     * @return 分辨率信息字符串
+     */
+    private String getRealScreenResolution(int screenIndex) {
+        try {
+            // 使用Toolkit获取真实的屏幕分辨率
+            Toolkit toolkit = Toolkit.getDefaultToolkit();
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            GraphicsDevice[] screens = ge.getScreenDevices();
+            
+            if (screenIndex < screens.length) {
+                DisplayMode dm = screens[screenIndex].getDisplayMode();
+                int width = dm.getWidth();
+                int height = dm.getHeight();
+                return width + "x" + height;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         
-        // 显示更详细的信息，包括屏幕分辨率
-        screenPositionLabel.setText(String.format("(屏幕%d: %.0f, %.0f of %.0fx%.0f)", 
-            screenIndex + 1, screenX, screenY, bounds.getWidth(), bounds.getHeight()));
+        // 如果无法获取准确信息，回退到使用JavaFX的信息
+        try {
+            List<javafx.stage.Screen> fxScreens = javafx.stage.Screen.getScreens();
+            if (screenIndex < fxScreens.size()) {
+                javafx.stage.Screen fxScreen = fxScreens.get(screenIndex);
+                Rectangle2D visualBounds = fxScreen.getVisualBounds();
+                return (int)visualBounds.getWidth() + "x" + (int)visualBounds.getHeight();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return "未知分辨率";
     }
     
     /**
