@@ -182,6 +182,11 @@ public class ControlRequestManager {
                 deviceDiscovery.notifyDeviceUpdate(targetDevice);
             }
         }
+        
+        // 发送控制响应消息
+        if (deviceDiscovery != null) {
+            deviceDiscovery.sendControlResponse(targetDeviceIp);
+        }
     }
     
     /**

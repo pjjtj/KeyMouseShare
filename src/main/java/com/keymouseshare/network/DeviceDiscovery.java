@@ -377,6 +377,22 @@ public class DeviceDiscovery {
     }
     
     /**
+     * 发送控制响应
+     * @param targetIpAddress 目标设备IP地址
+     */
+    public void sendControlResponse(String targetIpAddress) throws IOException {
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.CONTROL_RESPONSE,
+                                                       localDevice.getDeviceName(),
+                                                       localDevice.getScreens());
+        String jsonMessage = gson.toJson(message);
+        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
+        
+        InetAddress targetAddress = InetAddress.getByName(targetIpAddress);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, DISCOVERY_PORT);
+        socket.send(packet);
+    }
+    
+    /**
      * 处理接收到的消息
      * @param message 消息内容
      * @param senderAddress 发送方地址
@@ -410,10 +426,25 @@ public class DeviceDiscovery {
                     // 收到控制请求，显示授权对话框
                     handleControlRequest(senderAddress, discoveryMessage);
                     break;
+                    
+                case CONTROL_RESPONSE:
+                    // 收到控制响应，可以在这里处理响应逻辑
+                    handleControlResponse(senderAddress, discoveryMessage);
+                    break;
             }
         } catch (Exception e) {
             System.err.println("处理发现消息时出错: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 处理控制响应
+     * @param senderAddress 发送方地址
+     * @param discoveryMessage 发现消息
+     */
+    private void handleControlResponse(String senderAddress, DiscoveryMessage discoveryMessage) {
+        // 可以在这里处理控制响应逻辑
+        System.out.println("收到控制响应来自: " + senderAddress);
     }
     
     /**

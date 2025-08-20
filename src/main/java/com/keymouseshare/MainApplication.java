@@ -163,7 +163,13 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
                     // 这里可以处理权限授予或拒绝后的逻辑
                     if (permissionGranted) {
                         System.out.println("用户授权控制请求: " + requesterIpAddress);
-                        // 如果需要，可以在这里建立连接
+                        // 建立与服务器的Netty连接
+                        try {
+                            controlRequestManager.establishConnection(requesterIpAddress);
+                        } catch (Exception e) {
+                            System.err.println("建立Netty连接失败: " + e.getMessage());
+                            e.printStackTrace();
+                        }
                     } else {
                         System.out.println("用户拒绝控制请求: " + requesterIpAddress);
                     }
