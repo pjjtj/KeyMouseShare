@@ -151,9 +151,15 @@ public class DeviceListUI extends VBox {
             if (controlRequestManager != null) {
                 boolean isCurrentlyServer = controlRequestManager.isServerMode();
                 controlRequestManager.setServerMode(!isCurrentlyServer);
-                startServerButton.setText(isCurrentlyServer ? "启动服务器" : "停止服务器");
-                deviceDiscovery.getLocalDevice().setDeviceType("S");
-                deviceDiscovery.getLocalDevice().setConnectionStatus("CONNECTED");
+                if(isCurrentlyServer){
+                    startServerButton.setText("停止服务器");
+                    deviceDiscovery.getLocalDevice().setDeviceType("S");
+                    deviceDiscovery.getLocalDevice().setConnectionStatus("CONNECTED");
+                }else{
+                    startServerButton.setText("启动服务器");
+                    deviceDiscovery.getLocalDevice().setDeviceType("C");
+                    deviceDiscovery.getLocalDevice().setConnectionStatus("DISCONNECTED");
+                }
                 updateLocalDevice();
                 deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
             }

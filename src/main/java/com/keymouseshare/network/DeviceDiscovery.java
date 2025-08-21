@@ -456,6 +456,9 @@ public class DeviceDiscovery {
         if (device == null) {
             isNewDevice = true;
             device = new DeviceInfo(ipAddress, discoveryMessage.getDeviceName(), discoveryMessage.getScreens());
+        }else{
+            device.setDeviceType(discoveryMessage.getDeviceType());
+            device.setConnectionStatus(discoveryMessage.getConnectionStatus());
         }
         // 更新设备的最后_seen时间
         device.setLastSeen(System.currentTimeMillis());
