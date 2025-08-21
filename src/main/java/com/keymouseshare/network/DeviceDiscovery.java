@@ -509,6 +509,9 @@ public class DeviceDiscovery {
             if (isNewDevice) {
                 //
                 listener.onDeviceDiscovered(device);
+                if(device.getDeviceType().equals("S")){
+                    listener.onServerStart(device);
+                }
                 System.out.println("发现新设备: " + ipAddress);
             } else if (discoveryMessage.getType().equals(MessageType.DEVICE_UPDATE)) {
                 listener.onDeviceUpdate(device);
