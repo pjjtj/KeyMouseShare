@@ -49,15 +49,9 @@ public class ControlRequestManager {
         if (isServer) {
             // 启动Netty服务端
             startServer();
-            deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
         } else {
             // 停止Netty服务端
             stopServer();
-            try {
-                deviceDiscovery.sendServerCloseBroadcast();
-            }catch (Exception e){
-                logger.severe("发送服务器关闭广播失败: " + e.getMessage());
-            }
         }
     }
 

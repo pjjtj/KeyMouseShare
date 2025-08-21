@@ -46,10 +46,10 @@ public class DeviceDiscovery {
      * 消息类型枚举
      */
     private enum MessageType {
-        DISCOVERY_REQUEST,  // 发现请求
-        DISCOVERY_RESPONSE,  // 发现请求
+        DEVICE_HEARTBEAT,  // 设备心跳广播消息
         DEVICE_UPDATE, // 设备更新
-        SERVER_CLOSE, // 服务器关闭
+        SERVER_START, // 服务器启动
+        SERVER_STOP, // 服务器关闭
         CONTROL_REQUEST,    // 控制请求
         CONTROL_RESPONSE    // 控制响应
     }
@@ -150,17 +150,6 @@ public class DeviceDiscovery {
      */
     public void setDeviceDiscoveryListener(DeviceDiscoveryListener listener) {
         this.listener = listener;
-    }
-
-
-    /**
-     * 设置本机设备名称
-     *
-     * @param deviceName 设备名称
-     */
-    public void setLocalDeviceName(String deviceName) {
-        // 更新本地设备的名称
-        this.localDevice.setDeviceName(deviceName);
     }
 
     /**
@@ -324,25 +313,17 @@ public class DeviceDiscovery {
      * 启动广播线程
      */
     private void startBroadcastThread() {
-        scheduler = Executors.newScheduledThreadPool(2);
+        scheduler = Executors.newScheduledThreadPool(1);
 
-        // 每5秒发送一次发现请求
+        // 每3秒发送一次心跳广播
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                sendDiscoveryRequest();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }, 0, 5, TimeUnit.SECONDS);
-
-        // 每3秒发送一次发现响应
-        scheduler.scheduleAtFixedRate(() -> {
-            try {
-                sendDiscoveryResponse();
+                sendDeviceHeartBeatBroadcast();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }, 1, 3, TimeUnit.SECONDS);
+
     }
 
     /**
@@ -392,17 +373,9 @@ public class DeviceDiscovery {
             }
 
             switch (discoveryMessage.getType()) {
-                case DISCOVERY_REQUEST:
-                    // 收到发现请求，发送发现响应
-                    // 忽略来自本机的消息
-                    if (senderAddress.equals(localIpAddress)) {
-                        return;
-                    }
-                    sendDiscoveryResponse();
-                    break;
 
-                case DISCOVERY_RESPONSE:
-                    // 收到发现响应，更新设备信息
+                case DEVICE_HEARTBEAT:
+                    // 收到设备心跳
                     // 忽略来自本机的消息
                     if (senderAddress.equals(localIpAddress)) {
                         return;
@@ -424,7 +397,7 @@ public class DeviceDiscovery {
                     updateDeviceInfo(senderAddress, discoveryMessage);
                     break;
 
-                case SERVER_CLOSE:
+                case SERVER_STOP:
                     // 收到控制请求，显示授权对话框
                     handleServerClose();
                     break;
@@ -604,28 +577,12 @@ public class DeviceDiscovery {
         }
     }
 
-    /**
-     * 发送发现请求
-     */
-    private void sendDiscoveryRequest() throws IOException {
-        DiscoveryMessage message = new DiscoveryMessage(MessageType.DISCOVERY_REQUEST,
-                localDevice.getDeviceName(), // 使用设备名称
-                localDevice.getScreens(),
-                localDevice.getDeviceType(),
-                localDevice.getConnectionStatus()); // 使用本地设备的屏幕信息
-        String jsonMessage = gson.toJson(message);
-        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
-
-        InetAddress broadcastAddress = InetAddress.getByName(localBroadcastAddress);
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, DISCOVERY_PORT);
-        socket.send(packet);
-    }
 
     /**
-     * 发送发现响应
+     * 发送设备心跳
      */
-    private void sendDiscoveryResponse() throws IOException {
-        DiscoveryMessage message = new DiscoveryMessage(MessageType.DISCOVERY_RESPONSE,
+    private void sendDeviceHeartBeatBroadcast() throws IOException {
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.DEVICE_HEARTBEAT,
                 localDevice.getDeviceName(), // 使用设备名称
                 localDevice.getScreens(),
                 localDevice.getDeviceType(),
@@ -664,7 +621,7 @@ public class DeviceDiscovery {
      * @throws IOException
      */
     public void sendServerCloseBroadcast() throws IOException {
-        DiscoveryMessage message = new DiscoveryMessage(MessageType.SERVER_CLOSE,
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.SERVER_STOP,
                 localDevice.getDeviceName(), // 使用设备名称
                 localDevice.getScreens(),
                 localDevice.getDeviceType(),

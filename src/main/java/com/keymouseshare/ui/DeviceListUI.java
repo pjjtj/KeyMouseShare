@@ -144,10 +144,15 @@ public class DeviceListUI extends VBox {
                     startServerButton.setText("停止服务器");
                     deviceDiscovery.getLocalDevice().setDeviceType("S");
                     deviceDiscovery.getLocalDevice().setConnectionStatus("CONNECTED");
+                    deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
                 }else{
                     startServerButton.setText("启动服务器");
+                    try {
+                        deviceDiscovery.sendServerCloseBroadcast();
+                    }catch (Exception e){
+                        logger.severe("发送服务器关闭广播失败: " + e.getMessage());
+                    }
                 }
-
             }
         });
 

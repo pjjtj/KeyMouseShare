@@ -241,6 +241,11 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
     public void stop() throws Exception {
         // 应用程序关闭时停止设备发现服务
         if (deviceDiscovery != null) {
+            try {
+                deviceDiscovery.sendServerCloseBroadcast();
+            }catch (Exception e){
+                logger.severe("发送服务器关闭广播失败: " + e.getMessage());
+            }
             deviceDiscovery.stopDiscovery();
         }
         
@@ -254,7 +259,6 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
             controlRequestManager.disconnect();
             controlRequestManager.setServerMode(false); // 停止服务端
         }
-        
         System.out.println("应用程序已停止");
     }
 }
