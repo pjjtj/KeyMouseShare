@@ -97,7 +97,16 @@ public class ControlRequestManager {
      */
     public CompletableFuture<Boolean> sendControlRequest(String targetDeviceIp) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        
+
+        // 通过UDP发送控制请求消息
+//        try {
+//            deviceDiscovery.sendControlRequest(targetDeviceIp);
+//        } catch (IOException e) {
+//            logger.severe("发送控制请求失败: " + e.getMessage());
+//            future.completeExceptionally(e);
+//            return future;
+//        }
+
         // 更新目标设备状态为PENDING_AUTHORIZATION
         if (deviceDiscovery != null) {
             DeviceInfo targetDevice = deviceDiscovery.getDevice(targetDeviceIp);
@@ -108,14 +117,7 @@ public class ControlRequestManager {
             }
         }
         
-        // 通过UDP发送控制请求消息
-        try {
-//            deviceDiscovery.sendControlRequest(targetDeviceIp);
-        } catch (IOException e) {
-            logger.severe("发送控制请求失败: " + e.getMessage());
-            future.completeExceptionally(e);
-            return future;
-        }
+
         
         // 简化实现，直接完成future
         // 在实际应用中，应该等待目标设备的响应
