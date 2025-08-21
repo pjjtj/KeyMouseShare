@@ -466,7 +466,7 @@ public class DeviceDiscovery {
                 //
                 listener.onDeviceDiscovered(device);
                 System.out.println("发现新设备: " + ipAddress);
-            }else{
+            }else if(discoveryMessage.getType().equals(MessageType.DEVICE_UPDATE)){
                 listener.onDeviceUpdate(device);
                 System.out.println("更新设备信息: " + device);
             }
