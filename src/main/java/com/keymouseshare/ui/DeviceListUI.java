@@ -125,7 +125,7 @@ public class DeviceListUI extends VBox {
                         // 发起控制请求
                         if (controlRequestManager != null && deviceDiscovery != null) {
                             DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
-                            if (localDevice != null && !localDevice.getIpAddress().equals(ipAddress)) {
+                            if (localDevice != null && !localDevice.getIpAddress().equals(ipAddress) && localDevice.getDeviceType().equals("S")) {
                                 requestControl(ipAddress);
                             }
                         }

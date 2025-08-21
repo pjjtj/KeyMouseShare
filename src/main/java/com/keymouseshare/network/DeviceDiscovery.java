@@ -360,6 +360,8 @@ public class DeviceDiscovery {
                         currentTime - device.getLastSeen() > DEVICE_TIMEOUT) {
                     iterator.remove();
                     if (listener != null) {
+                        device.setDeviceType("C");
+                        device.setConnectionStatus("DISCONNECTED");
                         listener.onDeviceLost(device);
                     }
                     System.out.println("设备已离线: " + device.getIpAddress());
