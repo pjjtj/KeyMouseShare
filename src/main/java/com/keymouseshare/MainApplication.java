@@ -153,7 +153,14 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
         // 可以在这里更新UI，从设备列表中移除离线的设备
         updateDeviceList();
     }
-    
+
+    @Override
+    public void onDeviceUpdate(DeviceInfo device) {
+        System.out.println("设备更新: " + device.getIpAddress());
+        // 可以在这里更新UI，从设备列表中移除离线的设备
+        updateDeviceList();
+    }
+
     @Override
     public void onControlRequest(String requesterIpAddress, String requesterDeviceName) {
         // 显示控制请求对话框
@@ -222,7 +229,7 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
     }
     
     @Override
-    public void stop() {
+    public void stop() throws Exception {
         // 应用程序关闭时停止设备发现服务
         if (deviceDiscovery != null) {
             deviceDiscovery.stopDiscovery();

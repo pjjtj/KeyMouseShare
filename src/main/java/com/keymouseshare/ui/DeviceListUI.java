@@ -74,8 +74,8 @@ public class DeviceListUI extends VBox {
     }
     
     /**
-     * 鑾峰彇鎺у埗璇锋眰绠＄悊鍣
-     * @return 鎺у埗璇锋眰绠＄悊鍣
+     * 获取控制请求管理器
+     * @return controlRequestManager 控制请求管理器
      */
     public ControlRequestManager getControlRequestManager() {
         return controlRequestManager;
@@ -153,8 +153,9 @@ public class DeviceListUI extends VBox {
                 controlRequestManager.setServerMode(!isCurrentlyServer);
                 startServerButton.setText(isCurrentlyServer ? "启动服务器" : "停止服务器");
                 deviceDiscovery.getLocalDevice().setDeviceType("S");
-                deviceDiscovery.getLocalDevice().setConnectionStatus("CONNECT");
+                deviceDiscovery.getLocalDevice().setConnectionStatus("CONNECTED");
                 updateLocalDevice();
+                deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
             }
         });
         
@@ -252,12 +253,15 @@ public class DeviceListUI extends VBox {
         
         // 创建状态指示器
         Circle statusIndicator = new Circle(8);
-        if (connectStatus.equals("CONNECT")) {
+        if (connectStatus.equals("CONNECTED")) {
             statusIndicator.setFill(Color.GREEN);
         } else if(connectStatus.equals("DISCONNECTED")){
             statusIndicator.setFill(Color.GRAY);
         } else if(connectStatus.equals("PENDING_AUTHORIZATION")){
             statusIndicator.setFill(Color.ORANGE);
+        } else {
+            // 默认状态
+            statusIndicator.setFill(Color.GRAY);
         }
         
         // 添加角色标识
