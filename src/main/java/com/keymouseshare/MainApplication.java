@@ -161,6 +161,10 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
     @Override
     public void onDeviceUpdate(DeviceInfo device) {
         System.out.println("设备更新: " + device.getIpAddress());
+        if(device.getDeviceType().equals("S")){
+            deviceDiscovery.setServerDevice(device);
+            Platform.runLater(this::serverDeviceStart);
+        }
         // 可以在这里更新UI，从设备列表中移除离线的设备
         Platform.runLater(this::updateDeviceList);
     }
