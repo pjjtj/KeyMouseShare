@@ -162,12 +162,22 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
     }
 
     @Override
+    public void onServerStart(DeviceInfo serverDevice) {
+        System.out.println("设备启动为服务器: " + serverDevice);
+        deviceDiscovery.setServerDevice(serverDevice);
+        // 可以在这里更新UI，从设备列表中移除离线的设备
+        Platform.runLater(this::serverDeviceStart);
+    }
+
+    @Override
     public void onServerClose() {
         deviceDiscovery.getDiscoveredDevices().forEach(device -> {
           device.setDeviceType("C");
           device.setConnectionStatus("DISCONNECTED");
         });
+        deviceDiscovery.setServerDevice(null);
         Platform.runLater(this::updateDeviceList);
+        Platform.runLater(this::serverDeviceStop);
     }
 
     @Override
@@ -209,6 +219,24 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
         if (deviceDiscovery != null && deviceListUI != null) {
             List<DeviceInfo> devices = deviceDiscovery.getDiscoveredDevices();
             deviceListUI.updateDeviceList(devices);
+        }
+    }
+
+    /**
+     * 更新设备列表
+     */
+    private void serverDeviceStart() {
+        if (deviceDiscovery != null && deviceListUI != null) {
+            deviceListUI.serverDeviceStart();
+        }
+    }
+
+    /**
+     * 停止设备列表
+     */
+    private void serverDeviceStop() {
+        if (deviceDiscovery != null && deviceListUI != null) {
+            deviceListUI.serverDeviceStop();
         }
     }
     

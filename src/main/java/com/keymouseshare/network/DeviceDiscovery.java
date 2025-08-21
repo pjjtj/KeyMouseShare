@@ -41,6 +41,7 @@ public class DeviceDiscovery {
     private String localBroadcastAddress;
     private List<ScreenInfo> localScreens = new ArrayList<>();
     private DeviceInfo localDevice; // 本地设备信息
+    private DeviceInfo serverDevice; // 服务器设备信息
 
     /**
      * 消息类型枚举
@@ -127,6 +128,8 @@ public class DeviceDiscovery {
 
         void onDeviceUpdate(DeviceInfo device);
 
+        void onServerStart(DeviceInfo serverDevice);
+
         void onServerClose();
     }
 
@@ -159,6 +162,22 @@ public class DeviceDiscovery {
      */
     public DeviceInfo getLocalDevice() {
         return this.localDevice;
+    }
+
+    /**
+     * 获取服务器设备信息
+     *
+     * @return
+     */
+    public DeviceInfo getServerDevice() {
+        return this.serverDevice;
+    }
+
+    /**
+     * 设置服务器信息
+     */
+    public void setServerDevice(DeviceInfo serverDevice) {
+        this.serverDevice = serverDevice;
     }
 
     /**
@@ -355,7 +374,6 @@ public class DeviceDiscovery {
     }
 
 
-
     /**
      * 处理接收到的消息
      *
@@ -395,6 +413,11 @@ public class DeviceDiscovery {
                 case DEVICE_UPDATE:
                     // 收到设备更新消息，更新设备信息
                     updateDeviceInfo(senderAddress, discoveryMessage);
+                    break;
+
+                case SERVER_START:
+                    // 添加设备到列表
+                    handleServerStart(senderAddress, discoveryMessage);
                     break;
 
                 case SERVER_STOP:
@@ -439,6 +462,22 @@ public class DeviceDiscovery {
     }
 
     /**
+     * 处理服务器启动消息
+     */
+    private void handleServerStart(String ipAddress, DiscoveryMessage discoveryMessage) {
+        DeviceInfo deviceServer = discoveredDevices.get(ipAddress);
+        deviceServer.setDeviceType(discoveryMessage.getDeviceType());
+        deviceServer.setConnectionStatus(discoveryMessage.getConnectionStatus());
+        // 更新设备的最后_seen时间
+        deviceServer.setLastSeen(System.currentTimeMillis());
+        discoveredDevices.put(ipAddress, deviceServer);
+        if (listener != null) {
+            listener.onDeviceUpdate(deviceServer);
+            listener.onServerStart(deviceServer);
+        }
+    }
+
+    /**
      * 更新设备信息
      *
      * @param ipAddress        设备IP地址
@@ -450,7 +489,7 @@ public class DeviceDiscovery {
         if (device == null) {
             isNewDevice = true;
             device = new DeviceInfo(ipAddress, discoveryMessage.getDeviceName(), discoveryMessage.getScreens());
-        }else{
+        } else {
             device.setDeviceType(discoveryMessage.getDeviceType());
             device.setConnectionStatus(discoveryMessage.getConnectionStatus());
         }
@@ -459,7 +498,7 @@ public class DeviceDiscovery {
         discoveredDevices.put(ipAddress, device);
 
         // 如果是本地设备，直接返回（避免将本地设备添加到发现设备列表）
-        System.out.println(ipAddress+"-----------------"+localIpAddress);
+        System.out.println(ipAddress + "-----------------" + localIpAddress);
         if (ipAddress.equals(localIpAddress)) {
             listener.onDeviceUpdate(device);
             System.out.println("更新设备信息: " + device);
@@ -471,7 +510,7 @@ public class DeviceDiscovery {
                 //
                 listener.onDeviceDiscovered(device);
                 System.out.println("发现新设备: " + ipAddress);
-            }else if(discoveryMessage.getType().equals(MessageType.DEVICE_UPDATE)){
+            } else if (discoveryMessage.getType().equals(MessageType.DEVICE_UPDATE)) {
                 listener.onDeviceUpdate(device);
                 System.out.println("更新设备信息: " + device);
             }
@@ -612,6 +651,25 @@ public class DeviceDiscovery {
 
         InetAddress targetAddress = InetAddress.getByName(targetIpAddress);
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, DISCOVERY_PORT);
+        socket.send(packet);
+    }
+
+    /**
+     * 发送服务器关闭广播
+     *
+     * @throws IOException
+     */
+    public void sendServerStartBroadcast() throws IOException {
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.SERVER_START,
+                localDevice.getDeviceName(), // 使用设备名称
+                localDevice.getScreens(),
+                "S",
+                "CONNECTED"); // 使用本地设备的屏幕信息
+        String jsonMessage = gson.toJson(message);
+        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
+
+        InetAddress broadcastAddress = InetAddress.getByName(localBroadcastAddress);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, DISCOVERY_PORT);
         socket.send(packet);
     }
 
