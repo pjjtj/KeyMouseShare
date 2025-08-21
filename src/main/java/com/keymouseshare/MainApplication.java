@@ -143,6 +143,10 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
     @Override
     public void onDeviceDiscovered(DeviceInfo device) {
         System.out.println("发现设备: " + device.getIpAddress());
+        if(device.getDeviceType().equals("S")){
+            deviceDiscovery.setServerDevice(device);
+            Platform.runLater(this::serverDeviceStart);
+        }
         // 可以在这里更新UI，添加新发现的设备到设备列表
         Platform.runLater(this::updateDeviceList);
     }
