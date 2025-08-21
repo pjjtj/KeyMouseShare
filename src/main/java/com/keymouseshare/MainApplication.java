@@ -270,7 +270,9 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
         // 应用程序关闭时停止设备发现服务
         if (deviceDiscovery != null) {
             try {
-                deviceDiscovery.sendServerCloseBroadcast();
+                if(deviceDiscovery.getLocalDevice().getDeviceType().equals("S")){
+                    deviceDiscovery.sendServerCloseBroadcast();
+                }
             }catch (Exception e){
                 logger.severe("发送服务器关闭广播失败: " + e.getMessage());
             }
