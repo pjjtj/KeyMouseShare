@@ -133,7 +133,7 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
             }
             
             // 初始化设备列表
-            updateDeviceList();
+            Platform.runLater(this::updateDeviceList);
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -144,21 +144,21 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
     public void onDeviceDiscovered(DeviceInfo device) {
         System.out.println("发现设备: " + device.getIpAddress());
         // 可以在这里更新UI，添加新发现的设备到设备列表
-        updateDeviceList();
+        Platform.runLater(this::updateDeviceList);
     }
     
     @Override
     public void onDeviceLost(DeviceInfo device) {
         System.out.println("设备离线: " + device.getIpAddress());
         // 可以在这里更新UI，从设备列表中移除离线的设备
-        updateDeviceList();
+        Platform.runLater(this::updateDeviceList);
     }
 
     @Override
     public void onDeviceUpdate(DeviceInfo device) {
         System.out.println("设备更新: " + device.getIpAddress());
         // 可以在这里更新UI，从设备列表中移除离线的设备
-        updateDeviceList();
+        Platform.runLater(this::updateDeviceList);
     }
 
     @Override
