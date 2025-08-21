@@ -388,19 +388,25 @@ public class DeviceDiscovery {
                 return;
             }
 
-            // 忽略来自本机的消息
-            if (senderAddress.equals(localIpAddress)) {
-                return;
-            }
+
+
 
             switch (discoveryMessage.getType()) {
                 case DISCOVERY_REQUEST:
                     // 收到发现请求，发送发现响应
+                    // 忽略来自本机的消息
+                    if (senderAddress.equals(localIpAddress)) {
+                        return;
+                    }
                     sendDiscoveryResponse();
                     break;
 
                 case DISCOVERY_RESPONSE:
                     // 收到发现响应，更新设备信息
+                    // 忽略来自本机的消息
+                    if (senderAddress.equals(localIpAddress)) {
+                        return;
+                    }
                     updateDeviceInfo(senderAddress, discoveryMessage);
                     break;
 
@@ -411,6 +417,10 @@ public class DeviceDiscovery {
 
                 case CONTROL_REQUEST:
                     // 收到控制请求，显示授权对话框
+                    // 忽略来自本机的消息
+                    if (senderAddress.equals(localIpAddress)) {
+                        return;
+                    }
                     handleControlRequest(senderAddress, discoveryMessage);
                     break;
             }
@@ -448,11 +458,6 @@ public class DeviceDiscovery {
      * @param discoveryMessage 发现消息
      */
     private void updateDeviceInfo(String ipAddress, DiscoveryMessage discoveryMessage) {
-        // 如果是本地设备，直接返回（避免将本地设备添加到发现设备列表）
-        if (ipAddress.equals(localIpAddress)) {
-            return;
-        }
-
         DeviceInfo device = discoveredDevices.get(ipAddress);
         boolean isNewDevice = false;
         if (device == null) {
@@ -464,8 +469,15 @@ public class DeviceDiscovery {
         }
         // 更新设备的最后_seen时间
         device.setLastSeen(System.currentTimeMillis());
-
         discoveredDevices.put(ipAddress, device);
+
+        // 如果是本地设备，直接返回（避免将本地设备添加到发现设备列表）
+        System.out.println(ipAddress+"-----------------"+localIpAddress);
+        if (ipAddress.equals(localIpAddress)) {
+            listener.onDeviceUpdate(device);
+            System.out.println("更新设备信息: " + device);
+            return;
+        }
 
         if (listener != null) {
             if (isNewDevice) {
@@ -567,7 +579,6 @@ public class DeviceDiscovery {
     public void notifyDeviceUpdate(DeviceInfo device) {
         // 更新设备信息
         discoveredDevices.put(device.getIpAddress(), device);
-
         // 通过UDP广播发送设备更新消息给所有客户端
         try {
             // 如果是本地设备更新，则广播更新消息

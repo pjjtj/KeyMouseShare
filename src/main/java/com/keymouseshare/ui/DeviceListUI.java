@@ -149,7 +149,6 @@ public class DeviceListUI extends VBox {
                     deviceDiscovery.getLocalDevice().setDeviceType("C");
                     deviceDiscovery.getLocalDevice().setConnectionStatus("DISCONNECTED");
                 }
-                updateLocalDevice();
                 deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
             }
         });
@@ -194,9 +193,10 @@ public class DeviceListUI extends VBox {
      */
     public void updateDeviceList(List<DeviceInfo> devices) {
         // 清空除本地设备外的所有设备
+        DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
         if (!deviceListView.getItems().isEmpty()) {
             // 保留第一个项目（本地设备）
-            HBox localDeviceItem = deviceListView.getItems().get(0);
+            HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType(), localDevice.getConnectionStatus(), true);
             deviceListView.getItems().clear();
             deviceListView.getItems().add(localDeviceItem);
         } else {
@@ -205,7 +205,6 @@ public class DeviceListUI extends VBox {
 
         // 添加所有发现的设备（除了本地设备）
         if (deviceDiscovery != null) {
-            DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
             String localIpAddress = localDevice != null ? localDevice.getIpAddress() : null;
 
             for (DeviceInfo device : devices) {
@@ -265,41 +264,41 @@ public class DeviceListUI extends VBox {
         return item;
     }
 
-    /**
-     * 更新本地设备显示
-     */
-    public void updateLocalDevice() {
-        if (deviceDiscovery != null) {
-            DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
-            if (localDevice != null) {
-                // 更新本地设备项或创建新的本地设备项
-                HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType(), localDevice.getConnectionStatus(), true);
-
-                // 如果列表为空或第一个项目不是本地设备，则添加本地设备到顶部
-                if (deviceListView.getItems().isEmpty() ||
-                    deviceListView.getItems().size() == 0 ||
-                    !isLocalDeviceItem(deviceListView.getItems().get(0))) {
-                    deviceListView.getItems().add(0, localDeviceItem);
-                } else {
-                    // 替换现有的本地设备项
-                    deviceListView.getItems().set(0, localDeviceItem);
-                }
-
-                deviceInfoMap.put(localDevice.getIpAddress(), localDevice);
-            }
-        }
-    }
-
-    /**
-     * 检查HBox是否为本地设备项
-     */
-    private boolean isLocalDeviceItem(HBox item) {
-        if (item != null && !item.getChildren().isEmpty() && item.getChildren().size() > 1) {
-            if (item.getChildren().get(1) instanceof Label) {
-                Label label = (Label) item.getChildren().get(1);
-                return label.getText().contains(" (本地)");
-            }
-        }
-        return false;
-    }
+//    /**
+//     * 更新本地设备显示
+//     */
+//    public void updateLocalDevice() {
+//        if (deviceDiscovery != null) {
+//            DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
+//            if (localDevice != null) {
+//                // 更新本地设备项或创建新的本地设备项
+//                HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType(), localDevice.getConnectionStatus(), true);
+//
+//                // 如果列表为空或第一个项目不是本地设备，则添加本地设备到顶部
+//                if (deviceListView.getItems().isEmpty() ||
+//                    deviceListView.getItems().size() == 0 ||
+//                    !isLocalDeviceItem(deviceListView.getItems().get(0))) {
+//                    deviceListView.getItems().add(0, localDeviceItem);
+//                } else {
+//                    // 替换现有的本地设备项
+//                    deviceListView.getItems().set(0, localDeviceItem);
+//                }
+//
+//                deviceInfoMap.put(localDevice.getIpAddress(), localDevice);
+//            }
+//        }
+//    }
+//
+//    /**
+//     * 检查HBox是否为本地设备项
+//     */
+//    private boolean isLocalDeviceItem(HBox item) {
+//        if (item != null && !item.getChildren().isEmpty() && item.getChildren().size() > 1) {
+//            if (item.getChildren().get(1) instanceof Label) {
+//                Label label = (Label) item.getChildren().get(1);
+//                return label.getText().contains(" (本地)");
+//            }
+//        }
+//        return false;
+//    }
 }

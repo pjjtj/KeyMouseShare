@@ -163,7 +163,6 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
 
     @Override
     public void onControlRequest(String requesterIpAddress, String requesterDeviceName) {
-
         // 显示控制请求对话框
         if (controlRequestManager != null) {
             controlRequestManager.showPermissionDialog(requesterIpAddress)
