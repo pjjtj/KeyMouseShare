@@ -18,32 +18,34 @@ import java.util.logging.Logger;
  */
 public class ControlRequestManager {
     private static final Logger logger = Logger.getLogger(ControlRequestManager.class.getName());
-    
+
     private DeviceDiscovery deviceDiscovery;
     private ControlServer controlServer;
     private ControlClient controlClient;
     private boolean isServerMode = false;
     private Window parentWindow;
-    
+
     public ControlRequestManager(DeviceDiscovery deviceDiscovery) {
         this.deviceDiscovery = deviceDiscovery;
     }
-    
+
     /**
      * 设置父窗口，用于显示权限对话框
+     *
      * @param window 父窗口
      */
     public void setParentWindow(Window window) {
         this.parentWindow = window;
     }
-    
+
     /**
      * 设置服务器模式
+     *
      * @param isServer 是否为服务器模式
      */
     public void setServerMode(boolean isServer) {
         this.isServerMode = isServer;
-        
+
         if (isServer) {
             // 启动Netty服务端
             startServer();
@@ -52,7 +54,7 @@ public class ControlRequestManager {
             stopServer();
         }
     }
-    
+
     /**
      * 启动Netty服务端
      */
@@ -61,7 +63,7 @@ public class ControlRequestManager {
             if (controlServer == null) {
                 controlServer = new ControlServer();
             }
-            
+
             // 在新线程中启动服务端，避免阻塞UI线程
             new Thread(() -> {
                 try {
@@ -75,7 +77,7 @@ public class ControlRequestManager {
             logger.severe("创建控制服务端失败: " + e.getMessage());
         }
     }
-    
+
     /**
      * 停止Netty服务端
      */
@@ -89,13 +91,14 @@ public class ControlRequestManager {
             }
         }
     }
-    
+
     /**
      * 发送控制请求并等待响应
+     *
      * @param targetDeviceIp 目标设备IP
      * @return 是否获得控制权限
      */
-    public void sendControlRequest(String targetDeviceIp){
+    public void sendControlRequest(String targetDeviceIp) {
         if (deviceDiscovery != null) {
             DeviceInfo targetDevice = deviceDiscovery.getDevice(targetDeviceIp);
             if (targetDevice != null) {
@@ -103,27 +106,34 @@ public class ControlRequestManager {
 
                     // 通过UDP发送控制请求消息
                     deviceDiscovery.sendControlRequest(targetDeviceIp);
-                }catch (Exception e){
+                } catch (Exception e) {
                     logger.severe("发送控制请求失败: " + e.getMessage());
                 }
             }
         }
     }
-    
+
     /**
      * 显示权限对话框
+     *
      * @param requesterIp 请求方IP
      * @return 是否授权
      */
     public CompletableFuture<Boolean> showPermissionDialog(String requesterIp) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        
+
+        // 更新目标设备状态为PENDING_AUTHORIZATION
+        if (deviceDiscovery != null) {
+            deviceDiscovery.getLocalDevice().setConnectionStatus("PENDING_AUTHORIZATION");
+            deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
+        }
+
         // 创建权限对话框
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("控制请求");
         alert.setHeaderText("设备控制请求");
         alert.setContentText("设备 (" + requesterIp + ") 请求控制您的计算机，是否允许？");
-        
+
         // 设置对话框属性
         if (parentWindow != null) {
             Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
@@ -132,17 +142,18 @@ public class ControlRequestManager {
         } else {
             alert.initModality(Modality.APPLICATION_MODAL);
         }
-        
+
         // 显示对话框并等待用户响应
         alert.showAndWait();
-        
+
         // 返回用户选择结果
         future.complete(alert.getResult() == ButtonType.OK);
         return future;
     }
-    
+
     /**
      * 建立TCP连接
+     *
      * @param targetDeviceIp 目标设备IP
      * @throws Exception 连接异常
      */
@@ -150,22 +161,20 @@ public class ControlRequestManager {
         if (controlClient == null) {
             controlClient = new ControlClient();
         }
-        
+
         // 连接到目标设备的控制服务端
         controlClient.connect(targetDeviceIp, 8889);
         logger.info("已连接到设备: " + targetDeviceIp);
-        
+
         // 更新目标设备状态为CONNECTED
         if (deviceDiscovery != null) {
-            DeviceInfo targetDevice = deviceDiscovery.getDevice(targetDeviceIp);
-            if (targetDevice != null) {
-                targetDevice.setConnectionStatus("CONNECTED");
-                // 通知设备列表更新
-                deviceDiscovery.notifyDeviceUpdate(targetDevice);
-            }
+            DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
+            localDevice.setConnectionStatus("CONNECTED");
+            // 通知设备列表更新
+            deviceDiscovery.notifyDeviceUpdate(localDevice);
         }
     }
-    
+
     /**
      * 断开TCP连接
      */
@@ -179,9 +188,10 @@ public class ControlRequestManager {
             }
         }
     }
-    
+
     /**
      * 检查是否为服务器模式
+     *
      * @return 是否为服务器模式
      */
     public boolean isServerMode() {
