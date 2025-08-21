@@ -454,6 +454,11 @@ public class DeviceDiscovery {
                     updateDeviceInfo(senderAddress, discoveryMessage);
                     break;
 
+                case DEVICE_UPDATE:
+                    // 收到设备更新消息，更新设备信息
+                    updateDeviceInfo(senderAddress, discoveryMessage);
+                    break;
+
                 case CONTROL_REQUEST:
                     // 收到控制请求，显示授权对话框
                     handleControlRequest(senderAddress, discoveryMessage);
