@@ -162,6 +162,15 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
     }
 
     @Override
+    public void onServerClose() {
+        deviceDiscovery.getDiscoveredDevices().forEach(device -> {
+          device.setDeviceType("C");
+          device.setConnectionStatus("DISCONNECTED");
+        });
+        Platform.runLater(this::updateDeviceList);
+    }
+
+    @Override
     public void onControlRequest(String requesterIpAddress, String requesterDeviceName) {
         // 显示控制请求对话框
         if (controlRequestManager != null) {

@@ -49,9 +49,15 @@ public class ControlRequestManager {
         if (isServer) {
             // 启动Netty服务端
             startServer();
+            deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
         } else {
             // 停止Netty服务端
             stopServer();
+            try {
+                deviceDiscovery.sendServerCloseBroadcast();
+            }catch (Exception e){
+                logger.severe("发送服务器关闭广播失败: " + e.getMessage());
+            }
         }
     }
 
@@ -103,7 +109,6 @@ public class ControlRequestManager {
             DeviceInfo targetDevice = deviceDiscovery.getDevice(targetDeviceIp);
             if (targetDevice != null) {
                 try {
-
                     // 通过UDP发送控制请求消息
                     deviceDiscovery.sendControlRequest(targetDeviceIp);
                 } catch (Exception e) {

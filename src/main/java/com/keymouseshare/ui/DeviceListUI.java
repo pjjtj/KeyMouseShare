@@ -146,10 +146,8 @@ public class DeviceListUI extends VBox {
                     deviceDiscovery.getLocalDevice().setConnectionStatus("CONNECTED");
                 }else{
                     startServerButton.setText("启动服务器");
-                    deviceDiscovery.getLocalDevice().setDeviceType("C");
-                    deviceDiscovery.getLocalDevice().setConnectionStatus("DISCONNECTED");
                 }
-                deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
+
             }
         });
 

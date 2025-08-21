@@ -48,7 +48,8 @@ public class DeviceDiscovery {
     private enum MessageType {
         DISCOVERY_REQUEST,  // 发现请求
         DISCOVERY_RESPONSE,  // 发现请求
-        DEVICE_UPDATE, // 发现
+        DEVICE_UPDATE, // 设备更新
+        SERVER_CLOSE, // 服务器关闭
         CONTROL_REQUEST,    // 控制请求
         CONTROL_RESPONSE    // 控制响应
     }
@@ -125,6 +126,8 @@ public class DeviceDiscovery {
         void onDeviceLost(DeviceInfo device);
 
         void onDeviceUpdate(DeviceInfo device);
+
+        void onServerClose();
     }
 
     /**
@@ -388,9 +391,6 @@ public class DeviceDiscovery {
                 return;
             }
 
-
-
-
             switch (discoveryMessage.getType()) {
                 case DISCOVERY_REQUEST:
                     // 收到发现请求，发送发现响应
@@ -423,6 +423,11 @@ public class DeviceDiscovery {
                     }
                     handleControlRequest(senderAddress, discoveryMessage);
                     break;
+
+                case SERVER_CLOSE:
+                    // 收到控制请求，显示授权对话框
+                    handleServerClose();
+                    break;
             }
         } catch (Exception e) {
             System.err.println("处理发现消息时出错: " + e.getMessage());
@@ -444,6 +449,15 @@ public class DeviceDiscovery {
         });
     }
 
+    private void handleServerClose() {
+        // 在JavaFX线程中显示权限对话框
+        Platform.runLater(() -> {
+            if (listener instanceof ControlRequestListener) {
+                ((ControlRequestListener) listener).onServerClose();
+            }
+        });
+    }
+
     /**
      * 控制请求监听器接口
      */
@@ -458,37 +472,7 @@ public class DeviceDiscovery {
      * @param discoveryMessage 发现消息
      */
     private void updateDeviceInfo(String ipAddress, DiscoveryMessage discoveryMessage) {
-        DeviceInfo device = discoveredDevices.get(ipAddress);
-        boolean isNewDevice = false;
-        if (device == null) {
-            isNewDevice = true;
-            device = new DeviceInfo(ipAddress, discoveryMessage.getDeviceName(), discoveryMessage.getScreens());
-        }else{
-            device.setDeviceType(discoveryMessage.getDeviceType());
-            device.setConnectionStatus(discoveryMessage.getConnectionStatus());
-        }
-        // 更新设备的最后_seen时间
-        device.setLastSeen(System.currentTimeMillis());
-        discoveredDevices.put(ipAddress, device);
 
-        // 如果是本地设备，直接返回（避免将本地设备添加到发现设备列表）
-        System.out.println(ipAddress+"-----------------"+localIpAddress);
-        if (ipAddress.equals(localIpAddress)) {
-            listener.onDeviceUpdate(device);
-            System.out.println("更新设备信息: " + device);
-            return;
-        }
-
-        if (listener != null) {
-            if (isNewDevice) {
-                //
-                listener.onDeviceDiscovered(device);
-                System.out.println("发现新设备: " + ipAddress);
-            }else if(discoveryMessage.getType().equals(MessageType.DEVICE_UPDATE)){
-                listener.onDeviceUpdate(device);
-                System.out.println("更新设备信息: " + device);
-            }
-        }
     }
 
     /**
@@ -588,7 +572,6 @@ public class DeviceDiscovery {
         } catch (IOException e) {
             System.err.println("发送设备更新广播失败: " + e.getMessage());
         }
-
     }
 
     /**
@@ -644,6 +627,26 @@ public class DeviceDiscovery {
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, DISCOVERY_PORT);
         socket.send(packet);
     }
+
+    /**
+     * 发送服务器关闭广播
+     *
+     * @throws IOException
+     */
+    public void sendServerCloseBroadcast() throws IOException {
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.SERVER_CLOSE,
+                localDevice.getDeviceName(), // 使用设备名称
+                localDevice.getScreens(),
+                localDevice.getDeviceType(),
+                localDevice.getConnectionStatus()); // 使用本地设备的屏幕信息
+        String jsonMessage = gson.toJson(message);
+        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
+
+        InetAddress broadcastAddress = InetAddress.getByName(localBroadcastAddress);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, DISCOVERY_PORT);
+        socket.send(packet);
+    }
+
 
     /**
      * 发送设备更新广播
