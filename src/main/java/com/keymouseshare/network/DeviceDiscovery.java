@@ -368,59 +368,7 @@ public class DeviceDiscovery {
         }, 10, 10, TimeUnit.SECONDS);
     }
 
-    /**
-     * 发送发现请求
-     */
-    private void sendDiscoveryRequest() throws IOException {
-        DiscoveryMessage message = new DiscoveryMessage(MessageType.DISCOVERY_REQUEST,
-                localDevice.getDeviceName(), // 使用设备名称
-                localDevice.getScreens(),
-                localDevice.getDeviceType(),
-                localDevice.getConnectionStatus()); // 使用本地设备的屏幕信息
-        String jsonMessage = gson.toJson(message);
-        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
 
-        InetAddress broadcastAddress = InetAddress.getByName(localBroadcastAddress);
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, DISCOVERY_PORT);
-        socket.send(packet);
-    }
-
-    /**
-     * 发送发现响应
-     */
-    private void sendDiscoveryResponse() throws IOException {
-        DiscoveryMessage message = new DiscoveryMessage(MessageType.DISCOVERY_RESPONSE,
-                localDevice.getDeviceName(), // 使用设备名称
-                localDevice.getScreens(),
-                localDevice.getDeviceType(),
-                localDevice.getConnectionStatus()
-        ); // 使用本地设备的屏幕信息
-        String jsonMessage = gson.toJson(message);
-        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
-
-        InetAddress broadcastAddress = InetAddress.getByName(localBroadcastAddress);
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, DISCOVERY_PORT);
-        socket.send(packet);
-    }
-
-    /**
-     * 发送控制请求
-     *
-     * @param targetIpAddress 目标设备IP地址
-     */
-    public void sendControlRequest(String targetIpAddress) throws IOException {
-        DiscoveryMessage message = new DiscoveryMessage(MessageType.CONTROL_REQUEST,
-                localDevice.getDeviceName(),
-                localDevice.getScreens(),
-                localDevice.getDeviceType(),
-                localDevice.getConnectionStatus());
-        String jsonMessage = gson.toJson(message);
-        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
-
-        InetAddress targetAddress = InetAddress.getByName(targetIpAddress);
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, DISCOVERY_PORT);
-        socket.send(packet);
-    }
 
     /**
      * 处理接收到的消息
@@ -518,6 +466,9 @@ public class DeviceDiscovery {
                 //
                 listener.onDeviceDiscovered(device);
                 System.out.println("发现新设备: " + ipAddress);
+            }else{
+                listener.onDeviceUpdate(device);
+                System.out.println("更新设备信息: " + device);
             }
         }
     }
@@ -621,6 +572,60 @@ public class DeviceDiscovery {
             System.err.println("发送设备更新广播失败: " + e.getMessage());
         }
 
+    }
+
+    /**
+     * 发送发现请求
+     */
+    private void sendDiscoveryRequest() throws IOException {
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.DISCOVERY_REQUEST,
+                localDevice.getDeviceName(), // 使用设备名称
+                localDevice.getScreens(),
+                localDevice.getDeviceType(),
+                localDevice.getConnectionStatus()); // 使用本地设备的屏幕信息
+        String jsonMessage = gson.toJson(message);
+        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
+
+        InetAddress broadcastAddress = InetAddress.getByName(localBroadcastAddress);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, DISCOVERY_PORT);
+        socket.send(packet);
+    }
+
+    /**
+     * 发送发现响应
+     */
+    private void sendDiscoveryResponse() throws IOException {
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.DISCOVERY_RESPONSE,
+                localDevice.getDeviceName(), // 使用设备名称
+                localDevice.getScreens(),
+                localDevice.getDeviceType(),
+                localDevice.getConnectionStatus()
+        ); // 使用本地设备的屏幕信息
+        String jsonMessage = gson.toJson(message);
+        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
+
+        InetAddress broadcastAddress = InetAddress.getByName(localBroadcastAddress);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, DISCOVERY_PORT);
+        socket.send(packet);
+    }
+
+    /**
+     * 发送控制请求
+     *
+     * @param targetIpAddress 目标设备IP地址
+     */
+    public void sendControlRequest(String targetIpAddress) throws IOException {
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.CONTROL_REQUEST,
+                localDevice.getDeviceName(),
+                localDevice.getScreens(),
+                localDevice.getDeviceType(),
+                localDevice.getConnectionStatus());
+        String jsonMessage = gson.toJson(message);
+        byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
+
+        InetAddress targetAddress = InetAddress.getByName(targetIpAddress);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, DISCOVERY_PORT);
+        socket.send(packet);
     }
 
     /**
