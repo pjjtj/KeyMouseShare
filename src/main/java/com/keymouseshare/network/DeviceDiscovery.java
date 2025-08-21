@@ -629,7 +629,7 @@ public class DeviceDiscovery {
      * @param device 更新的设备信息
      */
     private void sendDeviceUpdateBroadcast(DeviceInfo device) throws IOException {
-        DiscoveryMessage message = new DiscoveryMessage(MessageType.DISCOVERY_RESPONSE,
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.DEVICE_UPDATE,
                 device.getDeviceName(),
                 device.getScreens(),
                 device.getDeviceType(),
