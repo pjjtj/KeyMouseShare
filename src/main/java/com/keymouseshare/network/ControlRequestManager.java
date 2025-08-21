@@ -95,35 +95,19 @@ public class ControlRequestManager {
      * @param targetDeviceIp 目标设备IP
      * @return 是否获得控制权限
      */
-    public CompletableFuture<Boolean> sendControlRequest(String targetDeviceIp) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-
-        // 通过UDP发送控制请求消息
-//        try {
-//            deviceDiscovery.sendControlRequest(targetDeviceIp);
-//        } catch (IOException e) {
-//            logger.severe("发送控制请求失败: " + e.getMessage());
-//            future.completeExceptionally(e);
-//            return future;
-//        }
-
-        // 更新目标设备状态为PENDING_AUTHORIZATION
+    public void sendControlRequest(String targetDeviceIp){
         if (deviceDiscovery != null) {
             DeviceInfo targetDevice = deviceDiscovery.getDevice(targetDeviceIp);
             if (targetDevice != null) {
-                targetDevice.setConnectionStatus("PENDING_AUTHORIZATION");
-                // 通知设备列表更新
-                deviceDiscovery.notifyDeviceUpdate(targetDevice);
+                try {
+
+                    // 通过UDP发送控制请求消息
+                    deviceDiscovery.sendControlRequest(targetDeviceIp);
+                }catch (Exception e){
+                    logger.severe("发送控制请求失败: " + e.getMessage());
+                }
             }
         }
-        
-
-        
-        // 简化实现，直接完成future
-        // 在实际应用中，应该等待目标设备的响应
-        future.complete(true);
-        
-        return future;
     }
     
     /**
@@ -134,15 +118,11 @@ public class ControlRequestManager {
     public CompletableFuture<Boolean> showPermissionDialog(String requesterIp) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         
-        // 获取请求方设备信息
-        DeviceInfo requesterDevice = deviceDiscovery.getDevice(requesterIp);
-        String deviceName = requesterDevice != null ? requesterDevice.getDeviceName() : requesterIp;
-        
         // 创建权限对话框
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("控制请求");
         alert.setHeaderText("设备控制请求");
-        alert.setContentText("设备 \"" + deviceName + "\" (" + requesterIp + ") 请求控制您的计算机，是否允许？");
+        alert.setContentText("设备 (" + requesterIp + ") 请求控制您的计算机，是否允许？");
         
         // 设置对话框属性
         if (parentWindow != null) {

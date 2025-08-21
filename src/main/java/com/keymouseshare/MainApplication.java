@@ -163,6 +163,9 @@ public class MainApplication extends Application implements DeviceDiscovery.Cont
 
     @Override
     public void onControlRequest(String requesterIpAddress, String requesterDeviceName) {
+        // 接收到请求变更设备状态
+        deviceDiscovery.getLocalDevice().setConnectionStatus("PENDING_AUTHORIZATION");
+        deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
         // 显示控制请求对话框
         if (controlRequestManager != null) {
             controlRequestManager.showPermissionDialog(requesterIpAddress)

@@ -25,28 +25,28 @@ import java.util.logging.Logger;
  */
 public class DeviceListUI extends VBox {
     private static final Logger logger = Logger.getLogger(DeviceListUI.class.getName());
-    
+
     private ListView<HBox> deviceListView;
     private DeviceDiscovery deviceDiscovery;
     private ControlRequestManager controlRequestManager;
     private Map<String, DeviceInfo> deviceInfoMap = new ConcurrentHashMap<>();
-    
+
     private Runnable onDeviceSelected; // 设备选中回调
     private java.util.function.Consumer<String> onDeviceSelectedWithIP; // 带IP参数的设备选中回调
 
     public void setOnDeviceSelected(Runnable callback) {
         this.onDeviceSelected = callback;
     }
-    
+
     public void setOnDeviceSelectedWithIP(java.util.function.Consumer<String> callback) {
         this.onDeviceSelectedWithIP = callback;
     }
-    
+
     public DeviceListUI() {
         // 初始化界面
         initializeUI();
     }
-    
+
     public DeviceListUI(DeviceDiscovery deviceDiscovery) {
         this.deviceDiscovery = deviceDiscovery;
         // 初始化界面
@@ -54,7 +54,7 @@ public class DeviceListUI extends VBox {
         // 初始化设备列表
         initializeDeviceList();
     }
-    
+
     /**
      * 设置设备发现服务
      * @param deviceDiscovery 设备发现服务
@@ -64,7 +64,7 @@ public class DeviceListUI extends VBox {
         // 初始化设备列表
         initializeDeviceList();
     }
-    
+
     /**
      * 设置控制请求管理器
      * @param controlRequestManager 控制请求管理器
@@ -72,7 +72,7 @@ public class DeviceListUI extends VBox {
     public void setControlRequestManager(ControlRequestManager controlRequestManager) {
         this.controlRequestManager = controlRequestManager;
     }
-    
+
     /**
      * 获取控制请求管理器
      * @return controlRequestManager 控制请求管理器
@@ -80,15 +80,15 @@ public class DeviceListUI extends VBox {
     public ControlRequestManager getControlRequestManager() {
         return controlRequestManager;
     }
-    
+
     private void initializeUI() {
         this.setPrefWidth(200);
         this.setPadding(new Insets(10));
         this.setSpacing(10);
-        
+
         Label titleLabel = new Label("设备列表");
         titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        
+
         deviceListView = new ListView<>();
         deviceListView.setPrefHeight(500);
 
@@ -109,17 +109,17 @@ public class DeviceListUI extends VBox {
                     Label ipLabel = (Label) selectedItem.getChildren().get(1);
                     String text = ipLabel.getText();
                     String ipAddress = text.contains(" (本地)") ? text.replace(" (本地)", "") : text; // 移除本地标识
-                    
+
                     // 触发设备选中回调
                     if (onDeviceSelected != null) {
                         onDeviceSelected.run();
                     }
-                    
+
                     // 触发带IP的设备选中回调
                     if (onDeviceSelectedWithIP != null) {
                         onDeviceSelectedWithIP.accept(ipAddress);
                     }
-                    
+
                     // 如果是鼠标右键点击，则发起控制请求
                     if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
                         // 发起控制请求
@@ -140,7 +140,7 @@ public class DeviceListUI extends VBox {
             if (controlRequestManager != null) {
                 boolean isCurrentlyServer = controlRequestManager.isServerMode();
                 controlRequestManager.setServerMode(!isCurrentlyServer);
-                if(isCurrentlyServer){
+                if(!isCurrentlyServer){
                     startServerButton.setText("停止服务器");
                     deviceDiscovery.getLocalDevice().setDeviceType("S");
                     deviceDiscovery.getLocalDevice().setConnectionStatus("CONNECTED");
@@ -153,15 +153,15 @@ public class DeviceListUI extends VBox {
                 deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
             }
         });
-        
+
         VBox bottomBox = new VBox();
         bottomBox.getChildren().add(startServerButton);
         bottomBox.setPadding(new Insets(10));
         bottomBox.setAlignment(Pos.BOTTOM_CENTER);
-        
+
         this.getChildren().addAll(titleLabel, deviceListView, bottomBox);
     }
-    
+
     /**
      * 发起控制请求
      * @param targetDeviceIp 目标设备IP
@@ -169,27 +169,10 @@ public class DeviceListUI extends VBox {
     private void requestControl(String targetDeviceIp) {
         if (controlRequestManager != null) {
             // 异步发送控制请求
-            controlRequestManager.sendControlRequest(targetDeviceIp)
-                .thenAccept(permissionGranted -> {
-                    if (permissionGranted) {
-                        // 权限已授予，建立TCP连接
-                        try {
-                            controlRequestManager.establishConnection(targetDeviceIp);
-                            logger.info("已成功连接到设备: " + targetDeviceIp);
-                        } catch (Exception e) {
-                            logger.severe("建立连接失败: " + e.getMessage());
-                        }
-                    } else {
-                        logger.info("控制请求被拒绝: " + targetDeviceIp);
-                    }
-                })
-                .exceptionally(throwable -> {
-                    logger.severe("发送控制请求时发生错误: " + throwable.getMessage());
-                    return null;
-                });
+            controlRequestManager.sendControlRequest(targetDeviceIp);
         }
     }
-    
+
     /**
      * 初始化设备列表
      */
@@ -204,7 +187,7 @@ public class DeviceListUI extends VBox {
             }
         }
     }
-    
+
     /**
      * 更新设备列表
      * @param devices 设备列表
@@ -219,19 +202,19 @@ public class DeviceListUI extends VBox {
         } else {
             deviceListView.getItems().clear();
         }
-        
+
         // 添加所有发现的设备（除了本地设备）
         if (deviceDiscovery != null) {
             DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
             String localIpAddress = localDevice != null ? localDevice.getIpAddress() : null;
-            
+
             for (DeviceInfo device : devices) {
                 String ipAddress = device.getIpAddress();
                 // 跳过本地设备，因为我们已经在列表顶部添加了它
                 if (localIpAddress != null && localIpAddress.equals(ipAddress)) {
                     continue;
                 }
-                
+
                 // 创建设备项并添加到列表
                 HBox deviceItem = createDeviceItem(ipAddress, device.getDeviceType(), device.getConnectionStatus(), false);
                 deviceListView.getItems().add(deviceItem);
@@ -239,13 +222,13 @@ public class DeviceListUI extends VBox {
             }
         }
     }
-    
+
     private HBox createDeviceItem(String ipAddress, String role, String connectStatus, boolean isLocal) {
         HBox item = new HBox();
         item.setSpacing(10);
         item.setPadding(new Insets(5));
         item.setAlignment(Pos.CENTER_LEFT);
-        
+
         // 创建状态指示器
         Circle statusIndicator = new Circle(8);
         if (connectStatus.equals("CONNECTED")) {
@@ -258,27 +241,27 @@ public class DeviceListUI extends VBox {
             // 默认状态
             statusIndicator.setFill(Color.GRAY);
         }
-        
+
         // 添加角色标识
         Label roleLabel = new Label(role);
         roleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 10px;");
         roleLabel.setTranslateY(-1);
         roleLabel.setTranslateX(-11);
-        
+
         // 创建状态指示器容器
         HBox indicatorContainer = new HBox();
         indicatorContainer.setAlignment(Pos.CENTER);
         indicatorContainer.getChildren().addAll(statusIndicator, roleLabel);
-        
+
         // 创建IP地址标签
         Label ipLabel = new Label(ipAddress + (isLocal ? " (本地)" : ""));
         ipLabel.setStyle("-fx-font-size: 12px;");
-        
+
         item.getChildren().addAll(indicatorContainer, ipLabel);
-        
+
         // 设置容器可扩展性
         HBox.setHgrow(ipLabel, Priority.ALWAYS);
-        
+
         return item;
     }
 
@@ -291,9 +274,9 @@ public class DeviceListUI extends VBox {
             if (localDevice != null) {
                 // 更新本地设备项或创建新的本地设备项
                 HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType(), localDevice.getConnectionStatus(), true);
-                
+
                 // 如果列表为空或第一个项目不是本地设备，则添加本地设备到顶部
-                if (deviceListView.getItems().isEmpty() || 
+                if (deviceListView.getItems().isEmpty() ||
                     deviceListView.getItems().size() == 0 ||
                     !isLocalDeviceItem(deviceListView.getItems().get(0))) {
                     deviceListView.getItems().add(0, localDeviceItem);
@@ -301,12 +284,12 @@ public class DeviceListUI extends VBox {
                     // 替换现有的本地设备项
                     deviceListView.getItems().set(0, localDeviceItem);
                 }
-                
+
                 deviceInfoMap.put(localDevice.getIpAddress(), localDevice);
             }
         }
     }
-    
+
     /**
      * 检查HBox是否为本地设备项
      */
