@@ -410,11 +410,6 @@ public class DeviceDiscovery {
                     updateDeviceInfo(senderAddress, discoveryMessage);
                     break;
 
-                case DEVICE_UPDATE:
-                    // 收到设备更新消息，更新设备信息
-                    updateDeviceInfo(senderAddress, discoveryMessage);
-                    break;
-
                 case CONTROL_REQUEST:
                     // 收到控制请求，显示授权对话框
                     // 忽略来自本机的消息
@@ -422,6 +417,11 @@ public class DeviceDiscovery {
                         return;
                     }
                     handleControlRequest(senderAddress, discoveryMessage);
+                    break;
+
+                case DEVICE_UPDATE:
+                    // 收到设备更新消息，更新设备信息
+                    updateDeviceInfo(senderAddress, discoveryMessage);
                     break;
 
                 case SERVER_CLOSE:
@@ -472,7 +472,37 @@ public class DeviceDiscovery {
      * @param discoveryMessage 发现消息
      */
     private void updateDeviceInfo(String ipAddress, DiscoveryMessage discoveryMessage) {
+        DeviceInfo device = discoveredDevices.get(ipAddress);
+        boolean isNewDevice = false;
+        if (device == null) {
+            isNewDevice = true;
+            device = new DeviceInfo(ipAddress, discoveryMessage.getDeviceName(), discoveryMessage.getScreens());
+        }else{
+            device.setDeviceType(discoveryMessage.getDeviceType());
+            device.setConnectionStatus(discoveryMessage.getConnectionStatus());
+        }
+        // 更新设备的最后_seen时间
+        device.setLastSeen(System.currentTimeMillis());
+        discoveredDevices.put(ipAddress, device);
 
+        // 如果是本地设备，直接返回（避免将本地设备添加到发现设备列表）
+        System.out.println(ipAddress+"-----------------"+localIpAddress);
+        if (ipAddress.equals(localIpAddress)) {
+            listener.onDeviceUpdate(device);
+            System.out.println("更新设备信息: " + device);
+            return;
+        }
+
+        if (listener != null) {
+            if (isNewDevice) {
+                //
+                listener.onDeviceDiscovered(device);
+                System.out.println("发现新设备: " + ipAddress);
+            }else if(discoveryMessage.getType().equals(MessageType.DEVICE_UPDATE)){
+                listener.onDeviceUpdate(device);
+                System.out.println("更新设备信息: " + device);
+            }
+        }
     }
 
     /**
