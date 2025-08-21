@@ -452,13 +452,14 @@ public class DeviceDiscovery {
         }
 
         DeviceInfo device = discoveredDevices.get(ipAddress);
+        boolean isNewDevice = false;
         if (device == null) {
+            isNewDevice = true;
             device = new DeviceInfo(ipAddress, discoveryMessage.getDeviceName(), discoveryMessage.getScreens());
         }
         // 更新设备的最后_seen时间
         device.setLastSeen(System.currentTimeMillis());
 
-        boolean isNewDevice = !discoveredDevices.containsKey(ipAddress);
         discoveredDevices.put(ipAddress, device);
 
         if (listener != null) {
