@@ -110,7 +110,7 @@ public class ControlRequestManager {
         
         // 通过UDP发送控制请求消息
         try {
-            deviceDiscovery.sendControlRequest(targetDeviceIp);
+//            deviceDiscovery.sendControlRequest(targetDeviceIp);
         } catch (IOException e) {
             logger.severe("发送控制请求失败: " + e.getMessage());
             future.completeExceptionally(e);

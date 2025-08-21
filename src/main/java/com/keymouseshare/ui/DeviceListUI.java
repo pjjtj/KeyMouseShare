@@ -130,17 +130,6 @@ public class DeviceListUI extends VBox {
                             }
                         }
                     }
-                    // 如果是鼠标左键点击，则选中设备（原有逻辑）
-                    else if (event.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
-                        // 如果选中的不是本地设备，则尝试发起控制请求
-                        if (controlRequestManager != null && deviceDiscovery != null) {
-                            DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
-                            if (localDevice != null && !localDevice.getIpAddress().equals(ipAddress)) {
-                                // 发起控制请求
-                                requestControl(ipAddress);
-                            }
-                        }
-                    }
                 }
             }
         });
