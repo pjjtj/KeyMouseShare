@@ -218,7 +218,7 @@ public class MainApplication extends Application implements DeviceListener {
      * 更新设备列表
      */
     private void serverDeviceStart() {
-        if (deviceDiscovery != null && deviceListUI != null) {
+        if (deviceDiscovery != null && deviceListUI != null && screenPreviewUI != null) {
             deviceListUI.serverDeviceStart();
             screenPreviewUI.serverDeviceStart();
         }
@@ -228,8 +228,9 @@ public class MainApplication extends Application implements DeviceListener {
      * 停止设备列表
      */
     private void serverDeviceStop() {
-        if (deviceDiscovery != null && deviceListUI != null) {
+        if (deviceDiscovery != null && deviceListUI != null && screenPreviewUI != null) {
             deviceListUI.serverDeviceStop();
+            screenPreviewUI.serverDeviceStop();
         }
     }
 

@@ -33,7 +33,7 @@ public class ScreenPreviewUI extends VBox {
     private double mouseXOffset = 0;
     private double mouseYOffset = 0;
     private DeviceDiscovery deviceDiscovery;
-    private Button saveVirtualDesktopButton = new Button("应用");
+    private Button saveVirtualDesktopButton = new Button("应用设置");
 
     // 吸附阈值
     private static final double REAL_TIME_SNAP_THRESHOLD = 20.0;
@@ -66,10 +66,12 @@ public class ScreenPreviewUI extends VBox {
 
         VBox bottomBox = new VBox();
         bottomBox.getChildren().add(saveVirtualDesktopButton);
+        saveVirtualDesktopButton.setVisible(false);
         bottomBox.setPadding(new Insets(10));
         bottomBox.setAlignment(Pos.BOTTOM_CENTER);
 
         this.getChildren().addAll(titleLabel, screenGrid, bottomBox);
+
     }
 
     private void loadMockData() {
@@ -362,12 +364,19 @@ public class ScreenPreviewUI extends VBox {
     public void serverDeviceStart() {
         // 如果当前设备是服务器则，启动服务器按钮变为停止服务器。如果不是则禁用该按钮
         if(NetUtil.getLocalIpAddress().equals(deviceDiscovery.getDeviceStorage().getSeverDevice().getIpAddress())){
+            // 隐藏保存虚拟桌面按钮
+            saveVirtualDesktopButton.setVisible(true);
             saveVirtualDesktopButton.setText("应用设置");
             saveVirtualDesktopButton.setDisable(false);
         }else{
             saveVirtualDesktopButton.setText("请在控制端设置屏幕");
             saveVirtualDesktopButton.setDisable(true);
         }
+    }
+
+    public void serverDeviceStop() {
+        // 隐藏保存虚拟桌面按钮
+        saveVirtualDesktopButton.setVisible(false);
     }
 
 
