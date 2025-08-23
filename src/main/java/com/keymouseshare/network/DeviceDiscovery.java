@@ -238,8 +238,6 @@ public class DeviceDiscovery {
      */
     private void handleServerStart(DiscoveryMessage discoveryMessage) {
         DeviceInfo deviceServer = discoveryMessage.getDeviceInfo();
-        // 更新设备的最后_seen时间
-        deviceServer.setLastSeen(System.currentTimeMillis());
         deviceStorage.setDiscoveryDevice(deviceServer);
         if (listener != null) {
             listener.onServerStart();
