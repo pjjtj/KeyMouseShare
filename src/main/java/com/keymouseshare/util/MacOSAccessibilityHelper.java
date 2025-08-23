@@ -4,6 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
@@ -20,25 +23,82 @@ public class MacOSAccessibilityHelper {
      * @return 如果已授权返回true，否则返回false
      */
     public static boolean isAccessibilityEnabled() {
-        try {
-            // 使用AppleScript检查辅助功能权限
-            String[] cmd = {
-                "osascript", "-e",
-                "tell application \"System Events\" to authorization status of bundle identifier \"" +
-                System.getProperty("user.dir") + "\""
-            };
-            
-            Process process = Runtime.getRuntime().exec(cmd);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String result = reader.readLine();
-            
-            // 如果返回"authorized"表示已授权
-            return "authorized".equals(result);
-        } catch (Exception e) {
-            // 发生异常时，默认认为未授权
-            logger.log(Level.WARNING, "检查辅助功能权限时发生异常", e);
-            return false;
+        if (!isMacOS()) {
+            return true; // 非macOS系统默认返回true
         }
+        
+        try {
+            // 尝试使用JNA方式检查权限
+            return checkAccessibilityWithJNA();
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "使用JNA检查辅助功能权限时发生异常，尝试使用AppleScript方式", e);
+            try {
+                // 回退到AppleScript方式
+                return checkAccessibilityWithAppleScript();
+            } catch (Exception ex) {
+                logger.log(Level.SEVERE, "检查辅助功能权限时发生异常", ex);
+                return false;
+            }
+        }
+    }
+    
+    /**
+     * 使用JNA检查辅助功能权限
+     * @return 如果已授权返回true，否则返回false
+     * @throws Exception 检查过程中可能发生的异常
+     */
+    private static boolean checkAccessibilityWithJNA() throws Exception {
+        // 使用反射加载JNA相关类，避免直接依赖
+        Class<?> axuicoreClass = Class.forName("com.sun.jna.platform.mac.AXUIElement");
+        Class<?> coreFoundationClass = Class.forName("com.sun.jna.platform.mac.CoreFoundation");
+        Class<?> cfDictionaryClass = Class.forName("com.sun.jna.platform.mac.CoreFoundation$CFDictionaryRef");
+        Class<?> cfTypeClass = Class.forName("com.sun.jna.platform.mac.CoreFoundation$CFTypeRef");
+        Class<?> cfStringClass = Class.forName("com.sun.jna.platform.mac.CoreFoundation$CFStringRef");
+        
+        // 获取相关方法
+        Method axIsProcessTrustedWithOptions = axuicoreClass.getMethod("AXIsProcessTrustedWithOptions", cfDictionaryClass);
+        Method cfStringCreateWithCString = coreFoundationClass.getMethod("CFStringCreateWithCString", 
+            Class.forName("com.sun.jna.Pointer"), String.class, int.class);
+        Method cfDictionaryCreate = coreFoundationClass.getMethod("CFDictionaryCreate",
+            Class.forName("com.sun.jna.Pointer"),
+            Class.forName("com.sun.jna.PointerByReference"),
+            Class.forName("com.sun.jna.PointerByReference"),
+            int.class,
+            Class.forName("com.sun.jna.platform.mac.CoreFoundation$CFDictionaryKeyCallBacks"),
+            Class.forName("com.sun.jna.platform.mac.CoreFoundation$CFDictionaryValueCallBacks"));
+        
+        // 创建参数
+        Object kAXTrustedCheckOptionPrompt = cfStringCreateWithCString.invoke(null, null, "AXTrustedCheckOptionPrompt", 0x08000100);
+        Object kCFBooleanTrue = coreFoundationClass.getField("kCFBooleanTrue").get(null);
+        
+        // 创建字典
+        Map<String, Object> options = new HashMap<>();
+        options.put("AXTrustedCheckOptionPrompt", kCFBooleanTrue);
+        
+        // 调用检查方法
+        Object result = axIsProcessTrustedWithOptions.invoke(null, options);
+        return (Boolean) result;
+    }
+    
+    /**
+     * 使用AppleScript检查辅助功能权限
+     * @return 如果已授权返回true，否则返回false
+     * @throws Exception 执行命令时可能发生的异常
+     */
+    private static boolean checkAccessibilityWithAppleScript() throws Exception {
+        // 使用AppleScript检查辅助功能权限
+        String[] cmd = {
+            "osascript", "-e",
+            "tell application \"System Events\" to authorization status of bundle identifier \"" +
+            System.getProperty("user.dir") + "\""
+        };
+        
+        Process process = Runtime.getRuntime().exec(cmd);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String result = reader.readLine();
+        
+        // 如果返回"authorized"表示已授权
+        return "authorized".equals(result);
     }
     
     /**
@@ -96,8 +156,10 @@ public class MacOSAccessibilityHelper {
         logger.info("检测到运行在macOS系统上，检查辅助功能权限...");
         System.out.println("检测到运行在macOS系统上，检查辅助功能权限...");
         
-        // 简化实现：总是显示提示，因为实际的权限检查在Java中比较复杂
-        showAccessibilityPromptWithGuide();
+        // 实际检查权限
+        if (!isAccessibilityEnabled()) {
+            showAccessibilityPromptWithGuide();
+        }
     }
     
     /**

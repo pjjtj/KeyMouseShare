@@ -181,7 +181,8 @@ public class DeviceDiscovery {
      * @param senderAddress 发送方地址
      */
     private void handleMessage(String message, String senderAddress) {
-        Type messageType = new TypeToken<DiscoveryMessage>() {}.getType();
+        Type messageType = new TypeToken<DiscoveryMessage>() {
+        }.getType();
         DiscoveryMessage discoveryMessage = gson.fromJson(message, messageType);
         try {
             if (discoveryMessage == null) {
@@ -230,7 +231,6 @@ public class DeviceDiscovery {
         device.setLastSeen(System.currentTimeMillis());
         deviceStorage.setDiscoveryDevice(device);
         listener.onDeviceUpdate(device);
-
     }
 
     /**
@@ -256,9 +256,7 @@ public class DeviceDiscovery {
             });
         }
         // 在JavaFX线程中显示权限对话框
-        Platform.runLater(() -> {
-            listener.onServerClose();
-        });
+        listener.onServerClose();
     }
 
     /**
