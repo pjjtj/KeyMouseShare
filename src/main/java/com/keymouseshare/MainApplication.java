@@ -62,7 +62,7 @@ public class MainApplication extends Application implements DeviceListener {
         root.setLeft(deviceListUI);
 
         // 创建屏幕预览UI（中心）
-        screenPreviewUI = new ScreenPreviewUI();
+        screenPreviewUI = new ScreenPreviewUI(deviceDiscovery);
         root.setCenter(screenPreviewUI);
 
         // 创建鼠标位置显示器（底部）
@@ -131,6 +131,11 @@ public class MainApplication extends Application implements DeviceListener {
             // 设置DeviceListUI的设备发现服务
             if (deviceListUI != null) {
                 deviceListUI.setDeviceDiscovery(deviceDiscovery);
+            }
+
+            // 设置ScreenPreviewUI的设备发现服务
+            if (screenPreviewUI != null) {
+                screenPreviewUI.setDeviceDiscovery(deviceDiscovery);
             }
 
             // 初始化设备列表
@@ -215,6 +220,7 @@ public class MainApplication extends Application implements DeviceListener {
     private void serverDeviceStart() {
         if (deviceDiscovery != null && deviceListUI != null) {
             deviceListUI.serverDeviceStart();
+            screenPreviewUI.serverDeviceStart();
         }
     }
 

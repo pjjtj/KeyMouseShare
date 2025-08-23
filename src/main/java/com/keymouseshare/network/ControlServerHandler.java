@@ -15,6 +15,10 @@ public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEve
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         logger.info("控制服务端连接已激活");
+        // TODO: 添加客户端通道到管理器
+
+
+
     }
 
     @Override

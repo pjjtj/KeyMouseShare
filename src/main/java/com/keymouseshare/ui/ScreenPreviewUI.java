@@ -1,5 +1,8 @@
 package com.keymouseshare.ui;
 
+import com.keymouseshare.network.DeviceDiscovery;
+import com.keymouseshare.util.NetUtil;
+import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.StackPane;
@@ -29,16 +32,22 @@ public class ScreenPreviewUI extends VBox {
     private StackPane draggedScreen = null;
     private double mouseXOffset = 0;
     private double mouseYOffset = 0;
+    private DeviceDiscovery deviceDiscovery;
+    private Button saveVirtualDesktopButton = new Button("应用");
 
     // 吸附阈值
     private static final double REAL_TIME_SNAP_THRESHOLD = 20.0;
 
-    public ScreenPreviewUI() {
+    public ScreenPreviewUI(DeviceDiscovery deviceDiscovery) {
+        this.deviceDiscovery = deviceDiscovery;
         // 初始化界面
         initializeUI();
-
         // 加载模拟数据
         loadMockData();
+    }
+
+    public void setDeviceDiscovery(DeviceDiscovery deviceDiscovery) {
+        this.deviceDiscovery = deviceDiscovery;
     }
 
     private void initializeUI() {
@@ -53,8 +62,14 @@ public class ScreenPreviewUI extends VBox {
         screenGrid = new GridPane();
         screenGrid.setHgap(10);
         screenGrid.setVgap(10);
+        screenGrid.setPrefHeight(500);
 
-        this.getChildren().addAll(titleLabel, screenGrid);
+        VBox bottomBox = new VBox();
+        bottomBox.getChildren().add(saveVirtualDesktopButton);
+        bottomBox.setPadding(new Insets(10));
+        bottomBox.setAlignment(Pos.BOTTOM_CENTER);
+
+        this.getChildren().addAll(titleLabel, screenGrid, bottomBox);
     }
 
     private void loadMockData() {
@@ -343,4 +358,17 @@ public class ScreenPreviewUI extends VBox {
         }
 
     }
+
+    public void serverDeviceStart() {
+        // 如果当前设备是服务器则，启动服务器按钮变为停止服务器。如果不是则禁用该按钮
+        if(NetUtil.getLocalIpAddress().equals(deviceDiscovery.getDeviceStorage().getSeverDevice().getIpAddress())){
+            saveVirtualDesktopButton.setText("应用设置");
+            saveVirtualDesktopButton.setDisable(false);
+        }else{
+            saveVirtualDesktopButton.setText("请在控制端设置屏幕");
+            saveVirtualDesktopButton.setDisable(true);
+        }
+    }
+
+
 }

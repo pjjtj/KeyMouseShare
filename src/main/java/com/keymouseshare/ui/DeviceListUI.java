@@ -272,7 +272,7 @@ public class DeviceListUI extends VBox {
     public void serverDeviceStart() {
         // 如果当前设备是服务器则，启动服务器按钮变为停止服务器。如果不是则禁用该按钮
         if(NetUtil.getLocalIpAddress().equals(deviceDiscovery.getDeviceStorage().getSeverDevice().getIpAddress())){
-            startServerButton.setText("停止服务器");
+            startServerButton.setText("关闭");
         }else{
             startServerButton.setDisable(true);
         }
@@ -280,6 +280,6 @@ public class DeviceListUI extends VBox {
 
     public void serverDeviceStop() {
         startServerButton.setDisable(false);
-        startServerButton.setText("启动服务器");
+        startServerButton.setText("启动配置中心");
     }
 }
