@@ -18,7 +18,7 @@ public class DeviceTools {
     public static List<ScreenInfo> getLocalScreens() {
         List<ScreenInfo> screens = new ArrayList<>();
 
-        // 如果JavaFX不可用，则尝试使用AWT GraphicsEnvironment获取屏幕信息
+        // 使用AWT GraphicsEnvironment获取屏幕信息
         try {
             GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
             GraphicsDevice[] gds = ge.getScreenDevices();
@@ -33,19 +33,29 @@ public class DeviceTools {
                     int width = bounds.width;
                     int height = bounds.height;
                     
-                    // 尝试获取真实的像素尺寸（不受缩放影响）
                     try {
-                        // 使用Toolkit获取真实的屏幕分辨率
-                        Toolkit toolkit = Toolkit.getDefaultToolkit();
-                        Dimension screenSize = toolkit.getScreenSize();
+                        // 使用DisplayMode获取准确的屏幕分辨率
+                        DisplayMode dm = gd.getDisplayMode();
+                        if (dm != null) {
+                            width = dm.getWidth();
+                            height = dm.getHeight();
+                        }
                         
-                        // 如果Toolkit返回的尺寸与GraphicsDevice不同，可能是由于缩放
-                        if (screenSize.width >= width && screenSize.height >= height) {
-                            width = screenSize.width;
-                            height = screenSize.height;
+                        // 对于Mac系统，额外检查Toolkit获取的屏幕尺寸
+                        if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+                            Toolkit toolkit = Toolkit.getDefaultToolkit();
+                            Dimension screenSize = toolkit.getScreenSize();
+                            
+                            // 如果Toolkit返回的尺寸是GraphicsDevice的整数倍，可能是正确的实际分辨率
+                            if (screenSize.width > width && screenSize.width % width == 0) {
+                                width = screenSize.width;
+                            }
+                            if (screenSize.height > height && screenSize.height % height == 0) {
+                                height = screenSize.height;
+                            }
                         }
                     } catch (Exception e) {
-                        logger.warning("Failed to get screen size using Toolkit: " + e.getMessage());
+                        logger.warning("Failed to get screen size using DisplayMode: " + e.getMessage());
                     }
                     
                     ScreenInfo screenInfo = new ScreenInfo(NetUtil.getLocalIpAddress(), screenName, width, height, bounds.x, bounds.y);
