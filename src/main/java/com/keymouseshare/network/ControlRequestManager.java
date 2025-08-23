@@ -153,6 +153,13 @@ public class ControlRequestManager {
         }
     }
 
+    public void rejectConnection(String requesterIpAddress) {
+        if (deviceDiscovery != null) {
+            deviceDiscovery.getDeviceStorage().getLocalDevice().setConnectionStatus(ConnectType.DISCONNECTED.name());
+            // TODO 是否要即刻通知
+        }
+    }
+
     /**
      * 断开TCP连接
      */
@@ -175,4 +182,6 @@ public class ControlRequestManager {
     public boolean isServerMode() {
         return isServerMode;
     }
+
+
 }

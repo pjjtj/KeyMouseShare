@@ -185,7 +185,7 @@ public class MainApplication extends Application implements DeviceListener {
                         } else {
                             System.out.println("用户拒绝控制请求: " + requesterIpAddress);
                             // TODO 处理拒绝逻辑
-
+                            controlRequestManager.rejectConnection(requesterIpAddress);
                         }
                     });
         }
