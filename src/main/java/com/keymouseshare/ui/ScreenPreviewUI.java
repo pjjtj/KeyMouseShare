@@ -43,7 +43,7 @@ public class ScreenPreviewUI extends VBox {
         // 初始化界面
         initializeUI();
         // 加载模拟数据
-        loadMockData();
+//        loadMockData();
     }
 
     public void setDeviceDiscovery(DeviceDiscovery deviceDiscovery) {

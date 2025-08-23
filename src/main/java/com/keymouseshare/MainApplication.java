@@ -155,7 +155,6 @@ public class MainApplication extends Application implements DeviceListener {
 
     @Override
     public void onDeviceUpdate(DeviceInfo device) {
-        System.out.println("设备更新: " + device.getIpAddress());
         Platform.runLater(this::updateDeviceList);
     }
 
@@ -267,7 +266,8 @@ public class MainApplication extends Application implements DeviceListener {
                 if(deviceDiscovery.getDeviceStorage().getSeverDevice().getIpAddress().equals(NetUtil.getLocalIpAddress())){
                     deviceDiscovery.sendServerCloseBroadcast();
                 }else{
-                    deviceDiscovery.sendControlRequest(deviceDiscovery.getDeviceStorage().getSeverDevice().getIpAddress());
+                    // TODO 是否即刻发送下线广播
+
                 }
             } catch (Exception e) {
                 logger.severe("发送服务器关闭广播失败: " + e.getMessage());
