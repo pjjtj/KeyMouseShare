@@ -29,7 +29,7 @@ public class DeviceTools {
 
             if (screenSize.width > 0 && screenSize.height > 0) {
                 // 只有一个屏幕的情况
-                screens.add(new ScreenInfo("ScreenA", screenSize.width, screenSize.height));
+                screens.add(new ScreenInfo(NetUtil.getLocalIpAddress(),"ScreenA", screenSize.width, screenSize.height));
                 return screens;
             }
         } catch (Exception e) {
@@ -48,7 +48,7 @@ public class DeviceTools {
 
                 String screenName = "Screen" + (char) ('A' + i);
                 // 使用完整边界来获取实际的屏幕尺寸（包括系统UI区域）
-                screens.add(new ScreenInfo(screenName, (int) bounds.getWidth(), (int) bounds.getHeight()));
+                screens.add(new ScreenInfo(NetUtil.getLocalIpAddress(),screenName, (int) bounds.getWidth(), (int) bounds.getHeight()));
             }
         } catch (Exception e) {
             logger.warning("Failed to get screen info using JavaFX: " + e.getMessage());
@@ -56,7 +56,7 @@ public class DeviceTools {
 
         // 如果上述方法都失败了，使用默认值
         if (screens.isEmpty()) {
-            screens.add(new ScreenInfo("ScreenA", 1920, 1080)); // 默认1080p屏幕
+            screens.add(new ScreenInfo(NetUtil.getLocalIpAddress(),"ScreenA", 1920, 1080)); // 默认1080p屏幕
         }
 
         return screens;

@@ -67,4 +67,10 @@ public class NetUtil {
         }
         return "255.255.255.255"; // 默认广播地址
     }
+
+    public static String dealRemoteAddress(String remoteAddress) {
+        int s = remoteAddress.indexOf("/");
+        int e = remoteAddress.indexOf(":");
+        return remoteAddress.substring(s + 1, e);
+    }
 }

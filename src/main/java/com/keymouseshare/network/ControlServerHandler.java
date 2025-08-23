@@ -1,9 +1,11 @@
 package com.keymouseshare.network;
 
-import com.keymouseshare.bean.ControlEvent;
+import com.keymouseshare.bean.*;
+import com.keymouseshare.util.NetUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -11,14 +13,16 @@ import java.util.logging.Logger;
  */
 public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEvent> {
     private static final Logger logger = Logger.getLogger(ControlServerHandler.class.getName());
+    
+    // 虚拟桌面实例
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         logger.info("控制服务端连接已激活");
-        // TODO: 添加客户端通道到管理器
-
-
-
+        List<ScreenInfo> screenInfo = DeviceStorage.getInstance().getDeviceScreens(NetUtil.dealRemoteAddress(ctx.channel().remoteAddress().toString()));
+        // 添加屏幕到虚拟桌面
+        VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+        screenInfo.forEach(virtualDesktopStorage::addScreen);
     }
 
     @Override
@@ -36,5 +40,12 @@ public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEve
         logger.severe("控制服务端发生异常: " + cause.getMessage());
         ctx.close();
     }
-
+    
+    /**
+     * 设置虚拟桌面实例
+     * @param virtualDesktop 虚拟桌面实例
+     */
+    public void setVirtualDesktop(VirtualDesktopStorage virtualDesktop) {
+        // 这里可以添加设置虚拟桌面实例的逻辑
+    }
 }

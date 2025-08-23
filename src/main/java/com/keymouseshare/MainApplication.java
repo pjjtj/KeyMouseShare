@@ -1,6 +1,7 @@
 package com.keymouseshare;
 
 import com.keymouseshare.bean.DeviceInfo;
+import com.keymouseshare.bean.DeviceStorage;
 import com.keymouseshare.input.EventInjector;
 import com.keymouseshare.input.JNativeHookInputMonitor;
 import com.keymouseshare.listener.DeviceListener;
@@ -220,6 +221,7 @@ public class MainApplication extends Application implements DeviceListener {
         if (deviceDiscovery != null && deviceListUI != null && screenPreviewUI != null) {
             deviceListUI.serverDeviceStart();
             screenPreviewUI.serverDeviceStart();
+            screenPreviewUI.refreshScreens();
         }
     }
 
@@ -261,19 +263,17 @@ public class MainApplication extends Application implements DeviceListener {
     @Override
     public void stop() throws Exception {
         // 应用程序关闭时停止设备发现服务
-        if (deviceDiscovery != null) {
-            try {
-                if(deviceDiscovery.getDeviceStorage().getSeverDevice().getIpAddress().equals(NetUtil.getLocalIpAddress())){
-                    deviceDiscovery.sendServerCloseBroadcast();
-                }else{
-                    // TODO 是否即刻发送下线广播
+        try {
+            if(DeviceStorage.getInstance().getSeverDevice().getIpAddress().equals(NetUtil.getLocalIpAddress())){
+                deviceDiscovery.sendServerCloseBroadcast();
+            }else{
+                // TODO 是否即刻发送下线广播
 
-                }
-            } catch (Exception e) {
-                logger.severe("发送服务器关闭广播失败: " + e.getMessage());
             }
-            deviceDiscovery.stopDiscovery();
+        } catch (Exception e) {
+            logger.severe("发送服务器关闭广播失败: " + e.getMessage());
         }
+        deviceDiscovery.stopDiscovery();
 
         // 停止JNativeHook输入监听
         if (jNativeHookInputMonitor != null) {

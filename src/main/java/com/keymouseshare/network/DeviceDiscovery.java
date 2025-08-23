@@ -35,7 +35,6 @@ public class DeviceDiscovery {
     private ScheduledExecutorService scheduler;
     private DeviceListener listener;
     private Gson gson = new Gson();
-    private DeviceStorage deviceStorage;
     private String localBroadcastAddress;
     private String localIpAddress;
 
@@ -47,12 +46,7 @@ public class DeviceDiscovery {
         this.socket.setBroadcast(true);
         this.localIpAddress = NetUtil.getLocalIpAddress();
         this.localBroadcastAddress = NetUtil.getLocalBroadcastAddress();
-        this.deviceStorage = new DeviceStorage();
-        this.deviceStorage.setDiscoveryDevice(new DeviceInfo(this.localIpAddress, "LOCAL_DEVICE", DeviceTools.getLocalScreens(), DeviceType.CLIENT.name(), ConnectType.DISCONNECTED.name()));
-    }
-
-    public DeviceStorage getDeviceStorage() {
-        return deviceStorage;
+        DeviceStorage.getInstance().setDiscoveryDevice(new DeviceInfo(this.localIpAddress, "LOCAL_DEVICE", DeviceTools.getLocalScreens(), DeviceType.CLIENT.name(), ConnectType.DISCONNECTED.name()));
     }
 
     /**
@@ -79,7 +73,7 @@ public class DeviceDiscovery {
 
         System.out.println("设备发现服务已启动，本地IP: " + localIpAddress + "，广播地址: " + localBroadcastAddress);
         // 打印本机信息
-        deviceStorage.printLocalDevices();
+        DeviceStorage.getInstance().printLocalDevices();
     }
 
     /**
@@ -142,7 +136,7 @@ public class DeviceDiscovery {
      * 发送设备心跳
      */
     private void sendDeviceHeartBeatBroadcast() throws IOException {
-        DiscoveryMessage message = new DiscoveryMessage(MessageType.DEVICE_HEARTBEAT, deviceStorage.getLocalDevice()); // 使用本地设备的屏幕信息
+        DiscoveryMessage message = new DiscoveryMessage(MessageType.DEVICE_HEARTBEAT, DeviceStorage.getInstance().getLocalDevice()); // 使用本地设备的屏幕信息
         String jsonMessage = gson.toJson(message);
         byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);
 
@@ -158,7 +152,7 @@ public class DeviceDiscovery {
     private void startDeviceCleanupThread() {
         scheduler.scheduleAtFixedRate(() -> {
             long currentTime = System.currentTimeMillis();
-            Iterator<Map.Entry<String, DeviceInfo>> iterator = deviceStorage.getDiscoveredDevices().entrySet().iterator();
+            Iterator<Map.Entry<String, DeviceInfo>> iterator = DeviceStorage.getInstance().getDiscoveredDevices().entrySet().iterator();
 
             while (iterator.hasNext()) {
                 Map.Entry<String, DeviceInfo> entry = iterator.next();
@@ -167,7 +161,7 @@ public class DeviceDiscovery {
                 // 如果设备超过30秒没有响应，则认为设备已离线
                 // 但不要清理本地设备
                 if (!device.getIpAddress().equals(localIpAddress) && currentTime - device.getLastSeen() > DEVICE_TIMEOUT) {
-                    deviceStorage.removeDiscoveryDevice(device.getIpAddress());
+                    DeviceStorage.getInstance().removeDiscoveryDevice(device.getIpAddress());
                     listener.onDeviceLost(device);
                 }
             }
@@ -229,7 +223,7 @@ public class DeviceDiscovery {
         DeviceInfo device = discoveryMessage.getDeviceInfo();
         // 更新设备的最后_seen时间
         device.setLastSeen(System.currentTimeMillis());
-        deviceStorage.setDiscoveryDevice(device);
+        DeviceStorage.getInstance().setDiscoveryDevice(device);
         listener.onDeviceUpdate(device);
     }
 
@@ -238,7 +232,7 @@ public class DeviceDiscovery {
      */
     private void handleServerStart(DiscoveryMessage discoveryMessage) {
         DeviceInfo deviceServer = discoveryMessage.getDeviceInfo();
-        deviceStorage.setDiscoveryDevice(deviceServer);
+        DeviceStorage.getInstance().setDiscoveryDevice(deviceServer);
         if (listener != null) {
             listener.onServerStart();
         }
@@ -246,9 +240,9 @@ public class DeviceDiscovery {
 
 
     private void handleServerClose(String senderAddress) {
-        DeviceInfo serviceDevice = deviceStorage.getSeverDevice();
+        DeviceInfo serviceDevice = DeviceStorage.getInstance().getSeverDevice();
         if (serviceDevice != null && serviceDevice.getIpAddress().equals(senderAddress)) {
-            deviceStorage.getDiscoveredDevices().values().forEach(device -> {
+            DeviceStorage.getInstance().getDiscoveredDevices().values().forEach(device -> {
                 device.setDeviceType(DeviceType.CLIENT.name());
                 device.setConnectionStatus(ConnectType.DISCONNECTED.name());
             });
@@ -290,10 +284,10 @@ public class DeviceDiscovery {
      * @throws IOException
      */
     public void sendServerStartBroadcast() throws IOException {
-        DeviceInfo localDevice = deviceStorage.getLocalDevice();
+        DeviceInfo localDevice = DeviceStorage.getInstance().getLocalDevice();
         localDevice.setDeviceType(DeviceType.SERVER.name());
         localDevice.setConnectionStatus(ConnectType.CONNECTED.name());
-        deviceStorage.setDiscoveryDevice(localDevice);
+        DeviceStorage.getInstance().setDiscoveryDevice(localDevice);
         DiscoveryMessage message = new DiscoveryMessage(MessageType.SERVER_START, localDevice); // 使用本地设备的屏幕信息
         String jsonMessage = gson.toJson(message);
         byte[] buffer = jsonMessage.getBytes(StandardCharsets.UTF_8);

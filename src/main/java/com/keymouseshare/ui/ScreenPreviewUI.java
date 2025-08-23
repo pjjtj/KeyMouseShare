@@ -1,5 +1,9 @@
 package com.keymouseshare.ui;
 
+import com.keymouseshare.bean.DeviceStorage;
+import com.keymouseshare.bean.ScreenInfo;
+import com.keymouseshare.bean.VirtualDesktopStorage;
+import com.keymouseshare.bean.VirtualDesktopStorageListener;
 import com.keymouseshare.network.DeviceDiscovery;
 import com.keymouseshare.util.NetUtil;
 import javafx.scene.control.Button;
@@ -23,7 +27,7 @@ import java.util.logging.Level;
 /**
  * 屏幕预览UI组件
  */
-public class ScreenPreviewUI extends VBox {
+public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListener {
 
     private static final Logger logger = Logger.getLogger(ScreenPreviewUI.class.getName());
 
@@ -34,16 +38,19 @@ public class ScreenPreviewUI extends VBox {
     private double mouseYOffset = 0;
     private DeviceDiscovery deviceDiscovery;
     private Button saveVirtualDesktopButton = new Button("应用设置");
+    private VirtualDesktopStorage virtualDesktopStorage;
 
     // 吸附阈值
     private static final double REAL_TIME_SNAP_THRESHOLD = 20.0;
 
     public ScreenPreviewUI(DeviceDiscovery deviceDiscovery) {
         this.deviceDiscovery = deviceDiscovery;
+        // 初始化虚拟桌面存储引用
+        this.virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+        // 添加监听器
+        this.virtualDesktopStorage.addListener(this);
         // 初始化界面
         initializeUI();
-        // 加载模拟数据
-//        loadMockData();
     }
 
     public void setDeviceDiscovery(DeviceDiscovery deviceDiscovery) {
@@ -72,31 +79,59 @@ public class ScreenPreviewUI extends VBox {
 
         this.getChildren().addAll(titleLabel, screenGrid, bottomBox);
 
+        // 加载虚拟桌面中的屏幕信息
+        loadVirtualDesktopScreens();
     }
 
-    private void loadMockData() {
-        // 添加模拟屏幕项
-        addScreenItem("IPAddr1:ScreenA", 0, 0, false);  // 选中状态
-        addScreenItem("IPAddr1:ScreenB", 1, 0, false);  // 选中状态
-        addScreenItem("IPAddr2:ScreenA", 0, 1, false);
-        addScreenItem("IPAddr3:ScreenA", 0, 2, false);
-        addScreenItem("IPAddr3:ScreenB", 1, 2, false);
+    /**
+     * 从虚拟桌面加载屏幕信息
+     */
+    private void loadVirtualDesktopScreens() {
+        // 清空现有屏幕
+        screenGrid.getChildren().clear();
+        screenMap.clear();
+        
+        // 从虚拟桌面获取所有屏幕
+        Map<String, ScreenInfo> screens = virtualDesktopStorage.getScreens();
+        
+        if (screens != null) {
+            int col = 0;
+            int row = 0;
+            for (Map.Entry<String, ScreenInfo> entry : screens.entrySet()) {
+                ScreenInfo screenInfo = entry.getValue();
+                String screenName = screenInfo.getDeviceIp() + ":" + screenInfo.getScreenName();
+                
+                // 添加屏幕项到网格中
+                addScreenItem(screenName, screenInfo, col, row, false);
+                
+                col++;
+                if (col > 2) { // 每行最多3个屏幕
+                    col = 0;
+                    row++;
+                }
+            }
+        }
     }
 
-
-    private void addScreenItem(String screenName, int col, int row, boolean isSelected) {
-        // 创建屏幕预览框
-        Rectangle screenRect = new Rectangle(150, 100);
+    private void addScreenItem(String screenName, ScreenInfo screenInfo, int col, int row, boolean isSelected) {
+        // 创建屏幕预览框，根据实际屏幕尺寸设置大小
+        double screenWidth = Math.max(screenInfo.getWidth() / 15.0, 100); // 缩放比例，最小100像素
+        double screenHeight = Math.max(screenInfo.getHeight() / 15.0, 80); // 缩放比例，最小80像素
+        Rectangle screenRect = new Rectangle(screenWidth, screenHeight);
         screenRect.setArcWidth(10);
         screenRect.setArcHeight(10);
 
-        // 设置屏幕颜色（模拟不同设备的颜色）
-        if (screenName.startsWith("IPAddr1")) {
-            screenRect.setFill(Color.LIGHTBLUE);
-        } else if (screenName.startsWith("IPAddr2")) {
-            screenRect.setFill(Color.LIGHTGREEN);
-        } else if (screenName.startsWith("IPAddr3")) {
-            screenRect.setFill(Color.LIGHTCORAL);
+        // 设置屏幕颜色（根据设备IP设置不同颜色）
+        String deviceIp = screenInfo.getDeviceIp();
+        if (deviceIp != null) {
+            int hash = deviceIp.hashCode();
+            Color color = Color.rgb(
+                Math.abs(hash) % 256,
+                Math.abs(hash >> 8) % 256,
+                Math.abs(hash >> 16) % 256,
+                0.7
+            );
+            screenRect.setFill(color);
         } else {
             screenRect.setFill(Color.LIGHTGRAY);
         }
@@ -116,15 +151,14 @@ public class ScreenPreviewUI extends VBox {
         centerLabel.setVisible(false); // 默认不显示坐标
 
         // 创建屏幕标签
-        Label screenLabel = new Label(screenName);
+        Label screenLabel = new Label(screenName + "\n" + screenInfo.getWidth() + "x" + screenInfo.getHeight());
         screenLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: white; -fx-font-weight: bold;");
 
         // 创建包含容器，使标签悬浮在屏幕上
         StackPane screenContainer = new StackPane();
         screenContainer.getChildren().addAll(screenRect, centerPoint, centerLabel, screenLabel);
-        StackPane.setAlignment(screenLabel, Pos.BOTTOM_LEFT);
-        StackPane.setMargin(screenLabel, new Insets(0, 0, 5, 5)); // 设置标签边距
         StackPane.setAlignment(centerPoint, Pos.CENTER); // 中心点居中
+        StackPane.setAlignment(screenLabel, Pos.CENTER);
         StackPane.setAlignment(centerLabel, Pos.TOP_CENTER); // 坐标标签在顶部居中
         StackPane.setMargin(centerLabel, new Insets(5, 0, 0, 0)); // 设置坐标标签边距
 
@@ -363,7 +397,7 @@ public class ScreenPreviewUI extends VBox {
 
     public void serverDeviceStart() {
         // 如果当前设备是服务器则，启动服务器按钮变为停止服务器。如果不是则禁用该按钮
-        if(NetUtil.getLocalIpAddress().equals(deviceDiscovery.getDeviceStorage().getSeverDevice().getIpAddress())){
+        if(NetUtil.getLocalIpAddress().equals(DeviceStorage.getInstance().getSeverDevice().getIpAddress())){
             // 隐藏保存虚拟桌面按钮
             saveVirtualDesktopButton.setVisible(true);
             saveVirtualDesktopButton.setText("应用设置");
@@ -379,5 +413,19 @@ public class ScreenPreviewUI extends VBox {
         saveVirtualDesktopButton.setVisible(false);
     }
 
-
+    /**
+     * 刷新屏幕预览，从虚拟桌面重新加载屏幕信息
+     */
+    public void refreshScreens() {
+        loadVirtualDesktopScreens();
+    }
+    
+    /**
+     * 当虚拟桌面发生变化时调用此方法
+     */
+    @Override
+    public void onVirtualDesktopChanged() {
+        // 在JavaFX应用程序线程中刷新屏幕预览
+        javafx.application.Platform.runLater(this::refreshScreens);
+    }
 }

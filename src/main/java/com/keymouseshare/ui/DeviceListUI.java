@@ -1,6 +1,7 @@
 package com.keymouseshare.ui;
 
 import com.keymouseshare.bean.DeviceInfo;
+import com.keymouseshare.bean.DeviceStorage;
 import com.keymouseshare.bean.DeviceType;
 import com.keymouseshare.network.ControlRequestManager;
 import com.keymouseshare.network.DeviceDiscovery;
@@ -122,8 +123,8 @@ public class DeviceListUI extends VBox {
                     // 如果是鼠标右键点击，则发起控制请求
                     if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
                         // 发起控制请求
-                        if (controlRequestManager != null && deviceDiscovery != null) {
-                            DeviceInfo localDevice = deviceDiscovery.getDeviceStorage().getLocalDevice();
+                        if (controlRequestManager != null ) {
+                            DeviceInfo localDevice = DeviceStorage.getInstance().getLocalDevice();;
                             if (localDevice != null && !localDevice.getIpAddress().equals(ipAddress) && localDevice.getDeviceType().equals(DeviceType.SERVER.name())) {
                                 requestControl(ipAddress);
                             }
@@ -180,12 +181,10 @@ public class DeviceListUI extends VBox {
      */
     private void initializeDeviceList() {
         // 添加本地设备到列表顶部
-        if (deviceDiscovery != null) {
-            DeviceInfo localDevice = deviceDiscovery.getDeviceStorage().getLocalDevice();
-            if (localDevice != null) {
-                HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType(), localDevice.getConnectionStatus(), true);
-                deviceListView.getItems().add(0, localDeviceItem); // 添加到列表顶部
-            }
+        DeviceInfo localDevice = DeviceStorage.getInstance().getLocalDevice();
+        if (localDevice != null) {
+            HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType(), localDevice.getConnectionStatus(), true);
+            deviceListView.getItems().add(0, localDeviceItem); // 添加到列表顶部
         }
     }
 
@@ -195,7 +194,7 @@ public class DeviceListUI extends VBox {
     public void updateDeviceList() {
         try {
             // 清空除本地设备外的所有设备
-            DeviceInfo localDevice = deviceDiscovery.getDeviceStorage().getLocalDevice();
+            DeviceInfo localDevice = DeviceStorage.getInstance().getLocalDevice();
             if (!deviceListView.getItems().isEmpty()) {
                 // 保留第一个项目（本地设备）
                 HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType().substring(0,1), localDevice.getConnectionStatus(), true);
@@ -206,20 +205,18 @@ public class DeviceListUI extends VBox {
             }
 
             // 添加所有发现的设备（除了本地设备）
-            if (deviceDiscovery != null) {
-                String localIpAddress = localDevice != null ? localDevice.getIpAddress() : null;
+            String localIpAddress = localDevice != null ? localDevice.getIpAddress() : null;
 
-                for (DeviceInfo device : deviceDiscovery.getDeviceStorage().getDiscoveredDevices().values()){
-                    String ipAddress = device.getIpAddress();
-                    // 跳过本地设备，因为我们已经在列表顶部添加了它
-                    if (localIpAddress != null && localIpAddress.equals(ipAddress)) {
-                        continue;
-                    }
-
-                    // 创建设备项并添加到列表
-                    HBox deviceItem = createDeviceItem(ipAddress, device.getDeviceType().substring(0,1), device.getConnectionStatus(), false);
-                    deviceListView.getItems().add(deviceItem);
+            for (DeviceInfo device : DeviceStorage.getInstance().getDiscoveredDevices().values()){
+                String ipAddress = device.getIpAddress();
+                // 跳过本地设备，因为我们已经在列表顶部添加了它
+                if (localIpAddress != null && localIpAddress.equals(ipAddress)) {
+                    continue;
                 }
+
+                // 创建设备项并添加到列表
+                HBox deviceItem = createDeviceItem(ipAddress, device.getDeviceType().substring(0,1), device.getConnectionStatus(), false);
+                deviceListView.getItems().add(deviceItem);
             }
         }catch (Exception e){
             logger.log(Level.FINE,"Error adding device to list: " + e.getMessage());
@@ -271,7 +268,7 @@ public class DeviceListUI extends VBox {
 
     public void serverDeviceStart() {
         // 如果当前设备是服务器则，启动服务器按钮变为停止服务器。如果不是则禁用该按钮
-        if(NetUtil.getLocalIpAddress().equals(deviceDiscovery.getDeviceStorage().getSeverDevice().getIpAddress())){
+        if(NetUtil.getLocalIpAddress().equals(DeviceStorage.getInstance().getSeverDevice().getIpAddress())){
             startServerButton.setText("关闭");
         }else{
             startServerButton.setDisable(true);

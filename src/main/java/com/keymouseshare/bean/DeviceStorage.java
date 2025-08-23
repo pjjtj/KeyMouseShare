@@ -2,6 +2,8 @@ package com.keymouseshare.bean;
 
 import com.keymouseshare.util.NetUtil;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -11,6 +13,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DeviceStorage {
 
     private final Map<String, DeviceInfo> discoveredDevices = new ConcurrentHashMap<>();
+
+    private static final DeviceStorage INSTANCE = new DeviceStorage();
+
+    public static DeviceStorage getInstance() {
+        return INSTANCE;
+    }
 
     public DeviceInfo getLocalDevice() {
         return discoveredDevices.get(NetUtil.getLocalIpAddress());
@@ -28,11 +36,31 @@ public class DeviceStorage {
 
 
     public Map<String, DeviceInfo> getDiscoveredDevices() {
+        // 返回不可修改的Map视图，防止外部直接修改内部数据结构
         return discoveredDevices;
     }
 
     public void setDiscoveryDevice(DeviceInfo device) {
         discoveredDevices.put(device.getIpAddress(), device);
+    }
+
+    /**
+     * 根据设备IP地址获取设备的屏幕信息列表
+     * @param deviceIpAddress 设备IP地址
+     * @return 设备的屏幕信息列表，如果设备不存在则返回null
+     */
+    public List<ScreenInfo> getDeviceScreens(String deviceIpAddress) {
+        DeviceInfo device = discoveredDevices.get(deviceIpAddress);
+        return device != null ? device.getScreens() : null;
+    }
+
+    /**
+     * 根据设备IP地址获取特定设备信息
+     * @param deviceIpAddress 设备IP地址
+     * @return 设备信息，如果设备不存在则返回null
+     */
+    public DeviceInfo getDevice(String deviceIpAddress) {
+        return discoveredDevices.get(deviceIpAddress);
     }
 
     public void removeDiscoveryDevice(String ipAddress) {
@@ -53,4 +81,3 @@ public class DeviceStorage {
         }
     }
 }
-

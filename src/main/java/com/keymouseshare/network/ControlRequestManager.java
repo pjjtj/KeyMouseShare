@@ -2,6 +2,8 @@ package com.keymouseshare.network;
 
 import com.keymouseshare.bean.ConnectType;
 import com.keymouseshare.bean.DeviceInfo;
+import com.keymouseshare.bean.DeviceStorage;
+import com.keymouseshare.bean.VirtualDesktopStorage;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -74,6 +76,12 @@ public class ControlRequestManager {
                     logger.severe("启动控制服务端失败: " + e.getMessage());
                 }
             }).start();
+
+            VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+            DeviceStorage.getInstance().getLocalDevice().getScreens().forEach(virtualDesktopStorage::addScreen);
+
+
+
         } catch (Exception e) {
             logger.severe("创建控制服务端失败: " + e.getMessage());
         }
@@ -103,10 +111,8 @@ public class ControlRequestManager {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
 
         // 更新目标设备状态为PENDING_AUTHORIZATION
-        if (deviceDiscovery != null) {
-            deviceDiscovery.getDeviceStorage().getLocalDevice().setConnectionStatus(ConnectType.PENDING_AUTHORIZATION.name());
-            // TODO 是否要即刻通知
-        }
+        DeviceStorage.getInstance().getLocalDevice().setConnectionStatus(ConnectType.PENDING_AUTHORIZATION.name());
+        // TODO 是否要即刻通知
 
         // 创建权限对话框
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -148,17 +154,14 @@ public class ControlRequestManager {
         logger.info("已连接到设备: " + targetDeviceIp);
 
         // 更新目标设备状态为CONNECTED
-        if (deviceDiscovery != null) {
-            deviceDiscovery.getDeviceStorage().getLocalDevice().setConnectionStatus(ConnectType.CONNECTED.name());
-            // TODO 是否要即刻通知
-        }
+        DeviceStorage.getInstance().getLocalDevice().setConnectionStatus(ConnectType.CONNECTED.name());
+        // TODO 是否要即刻通知
+
     }
 
     public void rejectConnection(String requesterIpAddress) {
-        if (deviceDiscovery != null) {
-            deviceDiscovery.getDeviceStorage().getLocalDevice().setConnectionStatus(ConnectType.DISCONNECTED.name());
-            // TODO 是否要即刻通知
-        }
+        DeviceStorage.getInstance().getLocalDevice().setConnectionStatus(ConnectType.DISCONNECTED.name());
+        // TODO 是否要即刻通知
     }
 
     /**
