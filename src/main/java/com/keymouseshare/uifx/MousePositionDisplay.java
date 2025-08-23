@@ -1,4 +1,4 @@
-package com.keymouseshare.ui;
+package com.keymouseshare.uifx;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

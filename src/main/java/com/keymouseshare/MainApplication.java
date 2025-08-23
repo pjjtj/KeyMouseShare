@@ -7,9 +7,9 @@ import com.keymouseshare.input.JNativeHookInputMonitor;
 import com.keymouseshare.listener.DeviceListener;
 import com.keymouseshare.network.ControlRequestManager;
 import com.keymouseshare.network.DeviceDiscovery;
-import com.keymouseshare.ui.DeviceListUI;
-import com.keymouseshare.ui.MousePositionDisplay;
-import com.keymouseshare.ui.ScreenPreviewUI;
+import com.keymouseshare.uifx.DeviceListUI;
+import com.keymouseshare.uifx.MousePositionDisplay;
+import com.keymouseshare.uifx.ScreenPreviewUI;
 import com.keymouseshare.util.MacOSAccessibilityHelper;
 import com.keymouseshare.util.NetUtil;
 import javafx.application.Application;
@@ -18,9 +18,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
-import java.util.List;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 /**
  * 主应用程序类
@@ -92,7 +90,7 @@ public class MainApplication extends Application implements DeviceListener {
         initEventInjector();
 
         // 创建场景并显示主窗口
-        Scene scene = new Scene(root, 800, 600);
+        Scene scene = new Scene(root, 900, 600);
         primaryStage.setTitle("KeyMouseShare - 键盘鼠标共享工具");
         primaryStage.setScene(scene);
         primaryStage.show();

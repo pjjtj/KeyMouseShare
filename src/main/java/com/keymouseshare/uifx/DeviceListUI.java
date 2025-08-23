@@ -1,4 +1,4 @@
-package com.keymouseshare.ui;
+package com.keymouseshare.uifx;
 
 import com.keymouseshare.bean.DeviceInfo;
 import com.keymouseshare.bean.DeviceStorage;
@@ -17,9 +17,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

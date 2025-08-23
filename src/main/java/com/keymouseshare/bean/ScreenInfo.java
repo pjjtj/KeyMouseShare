@@ -8,14 +8,27 @@ package com.keymouseshare.bean;
 public class ScreenInfo {
     private String deviceIp;
     private String screenName;
-    private int width;
-    private int height;
-    private int x;
-    private int y;
+    private double width;
+    private double height;
+    private double dx; // 本地屏幕坐标
+    private double dy; // 本地屏幕坐标
+    private double vx; // 虚拟桌面屏幕坐标
+    private double vy; // 虚拟桌面屏幕坐标
 
     public ScreenInfo() {}
 
-    public ScreenInfo(String deviceIp, String screenName, int width, int height) {
+
+    public ScreenInfo(String deviceIp, String screenName, double width, double height, double dx, double dy) {
+        this.deviceIp = deviceIp;
+        this.screenName = screenName;
+        this.width = width;
+        this.height = height;
+        this.dx = dx;
+        this.dy = dy;
+    }
+
+
+    public ScreenInfo(String deviceIp, String screenName, double width, double height) {
         this.deviceIp = deviceIp;
         this.screenName = screenName;
         this.width = width;
@@ -27,32 +40,32 @@ public class ScreenInfo {
     public String getScreenName() { return screenName; }
     public void setScreenName(String screenName) { this.screenName = screenName; }
 
-    public int getWidth() { return width; }
+    public double getWidth() { return width; }
     public void setWidth(int width) { this.width = width; }
 
-    public int getHeight() { return height; }
+    public double getHeight() { return height; }
     public void setHeight(int height) { this.height = height; }
 
     public String getDeviceIp() { return deviceIp; }
     public void setDeviceIp(String deviceIp) { this.deviceIp = deviceIp; }
 
-    public int getX(){
-        return x;
-    }
+    public double getDx() { return dx; }
 
-    public void setX(int x){
-        this.x = x;
-    }
+    public void setDx(double dx) { this.dx = dx; }
 
-    public int getY(){
-        return y;
-    }
+    public double getDy() { return dy; }
 
-    public void setY(int y){
-        this.y = y;
-    }
+    public void setDy(double dy) { this.dy = dy; }
 
-    public boolean contains(int globalX, int globalY) {
-        return globalX >= x && globalX < x + width && globalY >= y && globalY < y + height;
+    public double getVx() { return vx; }
+
+    public void setVx(double vx) { this.vx = vx; }
+
+    public double getVy() { return vy; }
+
+    public void setVy(double vy) { this.vy = vy; }
+
+    public boolean contains(double globalX, double globalY) {
+        return globalX >= vx && globalX < vx + width && globalY >= vy && globalY < vy + height;
     }
 }

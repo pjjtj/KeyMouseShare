@@ -99,7 +99,7 @@ KeyMouseShare/
 
 ## 开发指南
 
-1. UI界面组件位于 [src/main/java/com/keymouseshare/ui](src/main/java/com/keymouseshare/ui) 目录下
+1. UI界面组件位于 [src/main/java/com/keymouseshare/ui](src/main/java/com/keymouseshare/uifx) 目录下
 2. 网络通信相关代码位于 [src/main/java/com/keymouseshare/network](src/main/java/com/keymouseshare/network) 目录下
 3. 输入捕获相关代码位于 [src/main/java/com/keymouseshare/input](src/main/java/com/keymouseshare/input) 目录下
 

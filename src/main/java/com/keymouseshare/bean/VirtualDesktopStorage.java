@@ -1,5 +1,7 @@
 package com.keymouseshare.bean;
 
+import javafx.geometry.Rectangle2D;
+
 import java.awt.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -16,7 +18,7 @@ public class VirtualDesktopStorage {
     }
 
     private ConcurrentMap<String, ScreenInfo> screens = new ConcurrentHashMap<>();
-    private Rectangle virtualBounds;
+    private Rectangle2D virtualBounds;
     private Set<VirtualDesktopStorageListener> listeners = new HashSet<>();
 
     // 动态添加物理屏幕
@@ -27,31 +29,31 @@ public class VirtualDesktopStorage {
     }
 
     // 坐标转换服务
-    public ScreenCoordinate translate(int globalX, int globalY) {
+    public ScreenCoordinate translate(double globalX, double globalY) {
         return screens.values().parallelStream()
                 .filter(s -> s.contains(globalX, globalY))
                 .findFirst()
                 .map(s -> new ScreenCoordinate(
                         s.getDeviceIp(),
                         s.getScreenName(),
-                        globalX - s.getX(),
-                        globalY - s.getY()
+                        globalX - s.getVx(),
+                        globalY - s.getVy()
                 )).orElse(null);
     }
 
     private void recalculateBounds() {
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
+        double minX = Integer.MAX_VALUE;
+        double minY = Integer.MAX_VALUE;
+        double maxX = Integer.MIN_VALUE;
+        double maxY = Integer.MIN_VALUE;
 
         for (ScreenInfo screen : screens.values()) {
-            minX = Math.min(minX, screen.getX());
-            minY = Math.min(minY, screen.getY());
-            maxX = Math.max(maxX, screen.getX() + screen.getWidth());
-            maxY = Math.max(maxY, screen.getY() + screen.getHeight());
+            minX = Math.min(minX, screen.getVx());
+            minY = Math.min(minY, screen.getVy());
+            maxX = Math.max(maxX, screen.getVx() + screen.getWidth());
+            maxY = Math.max(maxY, screen.getVy() + screen.getHeight());
         }
-        virtualBounds = new Rectangle(minX, minY, maxX - minX, maxY - minY);
+        virtualBounds = new Rectangle2D(minX, minY, maxX - minX, maxY - minY);
     }
     
     /**

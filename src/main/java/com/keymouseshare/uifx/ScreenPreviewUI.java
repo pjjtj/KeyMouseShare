@@ -1,4 +1,4 @@
-package com.keymouseshare.ui;
+package com.keymouseshare.uifx;
 
 import com.keymouseshare.bean.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
@@ -31,6 +31,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
     private static final Logger logger = Logger.getLogger(ScreenPreviewUI.class.getName());
 
+    private int scale = 15;
     private GridPane screenGrid;
     private Map<StackPane, String> screenMap = new HashMap<>();
     private StackPane draggedScreen = null;
@@ -81,6 +82,11 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
         // 加载虚拟桌面中的屏幕信息
         loadVirtualDesktopScreens();
+
+        saveVirtualDesktopButton.setOnAction(event -> {
+            // 更新虚拟桌面 vx、 vy
+
+        });
     }
 
     /**
@@ -115,8 +121,8 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
     private void addScreenItem(String screenName, ScreenInfo screenInfo, int col, int row, boolean isSelected) {
         // 创建屏幕预览框，根据实际屏幕尺寸设置大小
-        double screenWidth = Math.max(screenInfo.getWidth() / 15.0, 100); // 缩放比例，最小100像素
-        double screenHeight = Math.max(screenInfo.getHeight() / 15.0, 80); // 缩放比例，最小80像素
+        double screenWidth = (double) screenInfo.getWidth() / scale; // 缩放比例，最小100像素
+        double screenHeight = (double) screenInfo.getHeight() / scale; // 缩放比例，最小80像素
         Rectangle screenRect = new Rectangle(screenWidth, screenHeight);
         screenRect.setArcWidth(10);
         screenRect.setArcHeight(10);
