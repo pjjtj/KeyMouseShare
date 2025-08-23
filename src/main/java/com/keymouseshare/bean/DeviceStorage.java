@@ -13,17 +13,17 @@ public class DeviceStorage {
     private final Map<String, DeviceInfo> discoveredDevices = new ConcurrentHashMap<>();
 
     public DeviceInfo getLocalDevice() {
+        return discoveredDevices.get(NetUtil.getLocalIpAddress());
+    }
+
+    public DeviceInfo getSeverDevice() {
         // 便利discoveredDevices，找到第一个类型为SERVER的设备
         for (DeviceInfo device : discoveredDevices.values()) {
-            if (device.getIpAddress().equals(NetUtil.getLocalIpAddress())) {
+            if (device.getDeviceType().equals(DeviceType.SERVER.name())) {
                 return device;
             }
         }
         return null;
-    }
-
-    public DeviceInfo getSeverDevice() {
-        return discoveredDevices.get(NetUtil.getLocalIpAddress());
     }
 
 
