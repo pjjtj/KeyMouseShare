@@ -128,6 +128,7 @@ public class ControlRequestManager {
 
         // 返回用户选择结果
         future.complete(alert.getResult() == ButtonType.OK);
+        alert.close();
         return future;
     }
 
