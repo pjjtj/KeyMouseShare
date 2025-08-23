@@ -1,12 +1,12 @@
 package com.keymouseshare.ui;
 
-import com.keymouseshare.util.JNAMousePosition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.text.Font;
+
 import java.awt.*;
 import java.util.List;
 

@@ -1,5 +1,6 @@
 package com.keymouseshare.network;
 
+import com.keymouseshare.bean.ConnectType;
 import com.keymouseshare.bean.DeviceInfo;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
@@ -93,26 +94,6 @@ public class ControlRequestManager {
     }
 
     /**
-     * 发送控制请求并等待响应
-     *
-     * @param targetDeviceIp 目标设备IP
-     * @return 是否获得控制权限
-     */
-    public void sendControlRequest(String targetDeviceIp) {
-        if (deviceDiscovery != null) {
-            DeviceInfo targetDevice = deviceDiscovery.getDevice(targetDeviceIp);
-            if (targetDevice != null) {
-                try {
-                    // 通过UDP发送控制请求消息
-                    deviceDiscovery.sendControlRequest(targetDeviceIp);
-                } catch (Exception e) {
-                    logger.severe("发送控制请求失败: " + e.getMessage());
-                }
-            }
-        }
-    }
-
-    /**
      * 显示权限对话框
      *
      * @param requesterIp 请求方IP
@@ -123,8 +104,8 @@ public class ControlRequestManager {
 
         // 更新目标设备状态为PENDING_AUTHORIZATION
         if (deviceDiscovery != null) {
-            deviceDiscovery.getLocalDevice().setConnectionStatus("PENDING_AUTHORIZATION");
-            deviceDiscovery.notifyDeviceUpdate(deviceDiscovery.getLocalDevice());
+            deviceDiscovery.getDeviceStorage().getLocalDevice().setConnectionStatus(ConnectType.PENDING_AUTHORIZATION.name());
+            // TODO 是否要即刻通知
         }
 
         // 创建权限对话框
@@ -167,10 +148,8 @@ public class ControlRequestManager {
 
         // 更新目标设备状态为CONNECTED
         if (deviceDiscovery != null) {
-            DeviceInfo localDevice = deviceDiscovery.getLocalDevice();
-            localDevice.setConnectionStatus("CONNECTED");
-            // 通知设备列表更新
-            deviceDiscovery.notifyDeviceUpdate(localDevice);
+            deviceDiscovery.getDeviceStorage().getLocalDevice().setConnectionStatus(ConnectType.CONNECTED.name());
+            // TODO 是否要即刻通知
         }
     }
 

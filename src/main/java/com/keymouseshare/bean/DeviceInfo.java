@@ -13,7 +13,7 @@ public class DeviceInfo {
     private long lastSeen;
     private List<ScreenInfo> screens;
     private String deviceName;
-    private String deviceType; // 设备类型：SERVER:S 或 CLIENT:C
+    private String deviceType; // 设备类型：SERVER 或 CLIENT
     private String connectionStatus; // 连接状态：CONNECTED, DISCONNECTED, PENDING_AUTHORIZATION
 
     public DeviceInfo() {
@@ -21,13 +21,13 @@ public class DeviceInfo {
         this.connectionStatus = "DISCONNECTED"; // 默认连接状态为未连接
     }
 
-    public DeviceInfo(String ipAddress, String deviceName, List<ScreenInfo> screens) {
+    public DeviceInfo(String ipAddress, String deviceName, List<ScreenInfo> screens,String deviceType, String connectionStatus) {
         this.ipAddress = ipAddress;
         this.deviceName = deviceName;
         this.screens = screens;
         this.lastSeen = System.currentTimeMillis();
-        this.deviceType = "C"; // 默认设备类型为客户端
-        this.connectionStatus = "DISCONNECTED"; // 默认连接状态为未连接
+        this.deviceType = deviceType; // 默认设备类型为客户端
+        this.connectionStatus = connectionStatus; // 默认连接状态为未连接
     }
 
     // Getters and setters
