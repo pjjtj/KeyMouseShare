@@ -23,7 +23,7 @@ public class VirtualDesktopStorage {
 
     // 动态添加物理屏幕
     public void addScreen(ScreenInfo screen) {
-        screens.put(screen.getDeviceIp()+":"+screen.getScreenName(), screen);
+        screens.put(screen.getDeviceIp()+screen.getScreenName(), screen);
         recalculateBounds();
         notifyListeners();
     }
@@ -31,7 +31,7 @@ public class VirtualDesktopStorage {
     // 坐标转换服务
     public ScreenCoordinate translate(double globalX, double globalY) {
         return screens.values().parallelStream()
-                .filter(s -> s.contains(globalX, globalY))
+                .filter(s -> s.virtualContains(globalX, globalY))
                 .findFirst()
                 .map(s -> new ScreenCoordinate(
                         s.getDeviceIp(),

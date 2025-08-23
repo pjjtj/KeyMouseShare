@@ -14,6 +14,8 @@ public class ScreenInfo {
     private double dy; // 本地屏幕坐标
     private double vx; // 虚拟桌面屏幕坐标
     private double vy; // 虚拟桌面屏幕坐标
+    private double mx; // 屏幕配置坐标
+    private double my; // 屏幕配置坐标
 
     public ScreenInfo() {}
 
@@ -65,7 +67,26 @@ public class ScreenInfo {
 
     public void setVy(double vy) { this.vy = vy; }
 
-    public boolean contains(double globalX, double globalY) {
+    public void setMx(double mx) {
+        this.mx = mx;
+    }
+
+    public double getMx() {
+        return mx;
+    }
+
+    public void setMy(double my) {
+        this.my = my;
+    }
+
+    public double getMy() {
+        return my;
+    }
+
+    public boolean localContains(double globalX, double globalY) {
+        return globalX >= dx && globalX < dx + width && globalY >= dy && globalY < dy + height;
+    }
+    public boolean virtualContains(double globalX, double globalY) {
         return globalX >= vx && globalX < vx + width && globalY >= vy && globalY < vy + height;
     }
 }

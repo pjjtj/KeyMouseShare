@@ -7,6 +7,8 @@ import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 import com.github.kwhat.jnativehook.mouse.NativeMouseEvent;
 import com.github.kwhat.jnativehook.mouse.NativeMouseListener;
 import com.github.kwhat.jnativehook.mouse.NativeMouseMotionListener;
+import com.keymouseshare.bean.DeviceStorage;
+import com.keymouseshare.bean.ScreenCoordinate;
 import com.keymouseshare.bean.VirtualDesktopStorage;
 
 import java.util.function.BiConsumer;
@@ -151,17 +153,25 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         if (!isMonitoring) return;
         
         // 暂停鼠标事件日志打印
-         logger.info("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
-         System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
+//         logger.info("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
+//         System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
         
         // 通知鼠标位置监听器
         if (mousePositionListener != null) {
             mousePositionListener.accept(e.getX(), e.getY());
         }
 
-
-        // 转换鼠标位置
-        VirtualDesktopStorage.getInstance().translate(e.getX(), e.getY());
+        if(DeviceStorage.getInstance().getLocalDevice()!=null&&DeviceStorage.getInstance().getLocalDevice().getScreens()!=null){
+            DeviceStorage.getInstance().getLocalDevice().getScreens().parallelStream()
+                    .filter(s -> s.localContains(e.getX(), e.getY()))
+                    .findFirst()
+                    .map(s -> new ScreenCoordinate(
+                            s.getDeviceIp(),
+                            s.getScreenName(),
+                            e.getX() - s.getDx(),
+                            e.getY() - s.getDy()
+                    )).orElse(null);
+        }
     }
     
     @Override

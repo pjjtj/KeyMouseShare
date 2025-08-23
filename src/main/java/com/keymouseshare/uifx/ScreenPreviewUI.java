@@ -84,8 +84,14 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         loadVirtualDesktopScreens();
 
         saveVirtualDesktopButton.setOnAction(event -> {
-            // 更新虚拟桌面 vx、 vy
-
+            screenMap.keySet().forEach(screen -> {
+                ScreenInfo screenInfo = VirtualDesktopStorage.getInstance().getScreens().get(screenMap.get(screen));
+                // screenInfo 获取屏幕坐标
+                screenInfo.setMx(screen.getBoundsInParent().getMinX());
+                screenInfo.setMy(screen.getBoundsInParent().getMinY());
+                System.out.println(screenInfo.getMx()+"-----"+screenInfo.getMy());
+                VirtualDesktopStorage.getInstance().addScreen(screenInfo);
+            });
         });
     }
 
@@ -108,7 +114,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
                 String screenName = screenInfo.getDeviceIp() + ":" + screenInfo.getScreenName();
                 
                 // 添加屏幕项到网格中
-                addScreenItem(screenName, screenInfo, col, row, false);
+                addScreenItem(screenInfo, col, row, false);
                 
                 col++;
                 if (col > 2) { // 每行最多3个屏幕
@@ -119,7 +125,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         }
     }
 
-    private void addScreenItem(String screenName, ScreenInfo screenInfo, int col, int row, boolean isSelected) {
+    private void addScreenItem(ScreenInfo screenInfo, int col, int row, boolean isSelected) {
         // 创建屏幕预览框，根据实际屏幕尺寸设置大小
         double screenWidth = (double) screenInfo.getWidth() / scale; // 缩放比例，最小100像素
         double screenHeight = (double) screenInfo.getHeight() / scale; // 缩放比例，最小80像素
@@ -157,7 +163,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         centerLabel.setVisible(false); // 默认不显示坐标
 
         // 创建屏幕标签
-        Label screenLabel = new Label(screenName + "\n" + screenInfo.getWidth() + "x" + screenInfo.getHeight());
+        Label screenLabel = new Label(screenInfo.getDeviceIp()+"\n"+screenInfo.getScreenName()+ "\n" + screenInfo.getWidth() + "x" + screenInfo.getHeight());
         screenLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: white; -fx-font-weight: bold;");
 
         // 创建包含容器，使标签悬浮在屏幕上
@@ -184,11 +190,19 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         screenContainer.setOnMouseExited(e -> centerLabel.setVisible(false));
 
         // 添加拖拽支持
-        addDragSupport(screenContainer, screenName);
+        addDragSupport(screenContainer, screenInfo.getDeviceIp()+screenInfo.getScreenName());
+
+        // 使用mx, my作为起点位置
+        if (screenInfo.getMx() != 0 || screenInfo.getMy() != 0) {
+            // 如果mx和my已经设置，则使用它们作为起始位置
+            screenContainer.setTranslateX(screenInfo.getMx());
+            screenContainer.setTranslateY(screenInfo.getMy());
+        }
 
         // 添加到网格和映射中
         screenGrid.add(screenContainer, col, row);
-        screenMap.put(screenContainer, screenName);
+
+        screenMap.put(screenContainer, screenInfo.getDeviceIp()+screenInfo.getScreenName());
     }
 
     /**
@@ -228,7 +242,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         }
     }
 
-    private void addDragSupport(StackPane screenContainer, String screenName) {
+    private void addDragSupport(StackPane screenContainer,String screenId) {
         screenContainer.setOnMousePressed((MouseEvent event) -> {
             // 记录被拖拽的屏幕和鼠标位置
             draggedScreen = screenContainer;
