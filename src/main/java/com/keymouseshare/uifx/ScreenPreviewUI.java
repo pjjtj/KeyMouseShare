@@ -3,7 +3,7 @@ package com.keymouseshare.uifx;
 import com.keymouseshare.bean.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.bean.VirtualDesktopStorage;
-import com.keymouseshare.bean.VirtualDesktopStorageListener;
+import com.keymouseshare.listener.VirtualDesktopStorageListener;
 import com.keymouseshare.network.DeviceDiscovery;
 import com.keymouseshare.util.NetUtil;
 import javafx.scene.control.Button;

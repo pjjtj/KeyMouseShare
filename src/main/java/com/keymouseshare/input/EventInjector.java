@@ -334,7 +334,163 @@ public class EventInjector {
             robot.mouseRelease(buttonMask);
         }
     }
-    
+
+    /**
+     * 鼠标点击
+     * @param x 鼠标X坐标
+     * @param y 鼠标Y坐标
+     */
+    public void mouseClick(int x, int y) {
+        if (robot != null) {
+            // 尝试使用JNA在Windows上注入事件
+            if (Platform.isWindows()) {
+                try {
+                    // 先移动鼠标到指定位置
+                    User32.INSTANCE.mouse_event(0x0001, x, y, 0, 0);
+                    // 模拟鼠标左键点击（按下然后释放）
+                    User32.INSTANCE.mouse_event(0x0002, 0, 0, 0, 0); // 左键按下
+                    User32.INSTANCE.mouse_event(0x0004, 0, 0, 0, 0); // 左键释放
+                    return;
+                } catch (UnsatisfiedLinkError e) {
+                    logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                }
+            }
+
+            // 尝试使用JNA在macOS上注入事件
+            if (Platform.isMac()) {
+                try {
+                    CGPoint point = new CGPoint(x, y);
+                    // 创建并注入鼠标左键按下事件
+                    Pointer mouseDownEvent = CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, 1, point, 0); // kCGEventLeftMouseDown
+                    CoreGraphics.INSTANCE.CGEventPost(0, mouseDownEvent); // kCGHIDEventTap
+                    
+                    // 创建并注入鼠标左键释放事件
+                    Pointer mouseUpEvent = CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, 2, point, 0); // kCGEventLeftMouseUp
+                    CoreGraphics.INSTANCE.CGEventPost(0, mouseUpEvent); // kCGHIDEventTap
+                    
+                    // 释放事件
+                    CoreGraphics.INSTANCE.CFRelease(mouseDownEvent);
+                    CoreGraphics.INSTANCE.CFRelease(mouseUpEvent);
+                    return;
+                } catch (UnsatisfiedLinkError e) {
+                    logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                }
+            }
+
+            // 尝试使用JNA在Linux上注入事件
+            if (Platform.isLinux()) {
+                try {
+                    Pointer display = X11.INSTANCE.XOpenDisplay(null);
+                    if (display != null) {
+                        // 移动鼠标到指定位置
+                        X11.INSTANCE.XWarpPointer(display, null, null, 0, 0, 0, 0, x, y);
+                        // 模拟鼠标左键点击（按下然后释放）
+                        X11.INSTANCE.XTestFakeButtonEvent(display, 1, true, 0);  // 左键按下
+                        X11.INSTANCE.XTestFakeButtonEvent(display, 1, false, 0); // 左键释放
+                        X11.INSTANCE.XFlush(display);
+                        X11.INSTANCE.XCloseDisplay(display);
+                        return;
+                    }
+                } catch (UnsatisfiedLinkError e) {
+                    logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                }
+            }
+
+            // 回退到Robot
+            robot.mouseMove(x, y);
+            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        }
+    }
+
+
+    /**
+     * 鼠标拖拽
+     * @param fromX 起始X坐标
+     * @param fromY 起始Y坐标
+     * @param toX 目标X坐标
+     * @param toY 目标Y坐标
+     * @param button 按钮编号 (1=左键, 2=中键, 3=右键)
+     */
+    public void mouseDragged(int fromX, int fromY, int toX, int toY, int button) {
+        if (robot != null) {
+            // 尝试使用JNA在Windows上注入事件
+            if (Platform.isWindows()) {
+                try {
+                    // 移动到起始位置
+                    User32.INSTANCE.mouse_event(0x0001, fromX, fromY, 0, 0);
+                    // 按下鼠标按钮
+                    int pressFlags = getMouseEventFlags(button, true);
+                    User32.INSTANCE.mouse_event(pressFlags, 0, 0, 0, 0);
+                    // 移动到目标位置（拖拽）
+                    User32.INSTANCE.mouse_event(0x0001, toX, toY, 0, 0);
+                    // 释放鼠标按钮
+                    int releaseFlags = getMouseEventFlags(button, false);
+                    User32.INSTANCE.mouse_event(releaseFlags, 0, 0, 0, 0);
+                    return;
+                } catch (UnsatisfiedLinkError e) {
+                    logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                }
+            }
+
+            // 尝试使用JNA在macOS上注入事件
+            if (Platform.isMac()) {
+                try {
+                    // 移动到起始位置并按下鼠标按钮
+                    CGPoint startPoint = new CGPoint(fromX, fromY);
+                    int pressEventType = getMacMouseEventType(button, true);
+                    Pointer pressEvent = CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, pressEventType, startPoint, getMacMouseButton(button));
+                    CoreGraphics.INSTANCE.CGEventPost(0, pressEvent); // kCGHIDEventTap
+
+                    // 移动到目标位置（拖拽）
+                    CGPoint endPoint = new CGPoint(toX, toY);
+                    CoreGraphics.INSTANCE.CGEventSetLocation(pressEvent, endPoint);
+                    CoreGraphics.INSTANCE.CGEventPost(0, pressEvent);
+
+                    // 释放鼠标按钮
+                    int releaseEventType = getMacMouseEventType(button, false);
+                    Pointer releaseEvent = CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, releaseEventType, endPoint, getMacMouseButton(button));
+                    CoreGraphics.INSTANCE.CGEventPost(0, releaseEvent); // kCGHIDEventTap
+
+                    // 释放事件
+                    CoreGraphics.INSTANCE.CFRelease(pressEvent);
+                    CoreGraphics.INSTANCE.CFRelease(releaseEvent);
+                    return;
+                } catch (UnsatisfiedLinkError e) {
+                    logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                }
+            }
+
+            // 尝试使用JNA在Linux上注入事件
+            if (Platform.isLinux()) {
+                try {
+                    Pointer display = X11.INSTANCE.XOpenDisplay(null);
+                    if (display != null) {
+                        // 移动到起始位置
+                        X11.INSTANCE.XWarpPointer(display, null, null, 0, 0, 0, 0, fromX, fromY);
+                        // 按下鼠标按钮
+                        X11.INSTANCE.XTestFakeButtonEvent(display, button, true, 0);
+                        // 移动到目标位置（拖拽）
+                        X11.INSTANCE.XWarpPointer(display, null, null, 0, 0, 0, 0, toX, toY);
+                        // 释放鼠标按钮
+                        X11.INSTANCE.XTestFakeButtonEvent(display, button, false, 0);
+                        X11.INSTANCE.XFlush(display);
+                        X11.INSTANCE.XCloseDisplay(display);
+                        return;
+                    }
+                } catch (UnsatisfiedLinkError e) {
+                    logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                }
+            }
+
+            // 回退到Robot
+            robot.mouseMove(fromX, fromY);
+            robot.mousePress(getButtonMask(button));
+            robot.mouseMove(toX, toY);
+            robot.mouseRelease(getButtonMask(button));
+        }
+    }
+
     /**
      * 键盘按键按下
      * @param keyCode 虚拟键码
@@ -436,7 +592,7 @@ public class EventInjector {
             robot.keyRelease(keyCode);
         }
     }
-    
+
     /**
      * 获取鼠标按钮对应的掩码
      * @param button 按钮编号

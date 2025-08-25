@@ -160,18 +160,6 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         if (mousePositionListener != null) {
             mousePositionListener.accept(e.getX(), e.getY());
         }
-
-        if(DeviceStorage.getInstance().getLocalDevice()!=null&&DeviceStorage.getInstance().getLocalDevice().getScreens()!=null){
-            DeviceStorage.getInstance().getLocalDevice().getScreens().parallelStream()
-                    .filter(s -> s.localContains(e.getX(), e.getY()))
-                    .findFirst()
-                    .map(s -> new ScreenCoordinate(
-                            s.getDeviceIp(),
-                            s.getScreenName(),
-                            e.getX() - s.getDx(),
-                            e.getY() - s.getDy()
-                    )).orElse(null);
-        }
     }
     
     @Override

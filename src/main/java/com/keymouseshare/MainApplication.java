@@ -2,6 +2,7 @@ package com.keymouseshare;
 
 import com.keymouseshare.bean.DeviceInfo;
 import com.keymouseshare.bean.DeviceStorage;
+import com.keymouseshare.bean.ScreenCoordinate;
 import com.keymouseshare.input.EventInjector;
 import com.keymouseshare.input.JNativeHookInputMonitor;
 import com.keymouseshare.listener.DeviceListener;
@@ -245,6 +246,17 @@ public class MainApplication extends Application implements DeviceListener {
                     mousePositionDisplay.updateMousePosition(x, y);
                 }
             });
+            if(DeviceStorage.getInstance().getLocalDevice()!=null&&DeviceStorage.getInstance().getLocalDevice().getScreens()!=null){
+                DeviceStorage.getInstance().getLocalDevice().getScreens().parallelStream()
+                        .filter(s -> s.localContains(x, y))
+                        .findFirst()
+                        .map(s -> new ScreenCoordinate(
+                                s.getDeviceIp(),
+                                s.getScreenName(),
+                                x - s.getDx(),
+                                y - s.getDy()
+                        )).orElse(null);
+            }
         });
         jNativeHookInputMonitor.startMonitoring();
         System.out.println("JNativeHook输入监听已启动");

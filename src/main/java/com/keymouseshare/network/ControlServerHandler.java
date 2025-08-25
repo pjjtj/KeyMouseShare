@@ -41,11 +41,4 @@ public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEve
         ctx.close();
     }
     
-    /**
-     * 设置虚拟桌面实例
-     * @param virtualDesktop 虚拟桌面实例
-     */
-    public void setVirtualDesktop(VirtualDesktopStorage virtualDesktop) {
-        // 这里可以添加设置虚拟桌面实例的逻辑
-    }
 }

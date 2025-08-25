@@ -1,4 +1,4 @@
-package com.keymouseshare.bean;
+package com.keymouseshare.listener;
 
 /**
  * 虚拟桌面存储监听器接口

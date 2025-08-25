@@ -1,9 +1,6 @@
 package com.keymouseshare.network;
 
-import com.keymouseshare.bean.ConnectType;
-import com.keymouseshare.bean.DeviceInfo;
-import com.keymouseshare.bean.DeviceStorage;
-import com.keymouseshare.bean.VirtualDesktopStorage;
+import com.keymouseshare.bean.*;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -159,9 +156,30 @@ public class ControlRequestManager {
 
     }
 
+    /**
+     * 拒绝来自指定IP地址的控制连接请求
+     * 
+     * @param requesterIpAddress 请求控制连接的设备IP地址
+     */
     public void rejectConnection(String requesterIpAddress) {
         DeviceStorage.getInstance().getLocalDevice().setConnectionStatus(ConnectType.DISCONNECTED.name());
         // TODO 是否要即刻通知
+    }
+
+    /**
+     * netty 客户端发送消息给服务器
+     *
+     *
+     */
+    public void sendControlRequest(String targetIpAddress) {
+        if (controlClient != null) {
+            try {
+                controlClient.sendControlEvent(new ControlEvent());
+                logger.info("已发送控制请求给设备: " + targetIpAddress);
+            } catch (Exception e) {
+                logger.severe("发送控制请求失败: " + e.getMessage());
+            }
+        }
     }
 
     /**
