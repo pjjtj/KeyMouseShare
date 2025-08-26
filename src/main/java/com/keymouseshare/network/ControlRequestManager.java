@@ -1,14 +1,12 @@
 package com.keymouseshare.network;
 
 import com.keymouseshare.bean.*;
-import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -167,18 +165,28 @@ public class ControlRequestManager {
     }
 
     /**
-     * netty 客户端发送消息给服务器
+     * netty 服务器发送消息给客户端
      *
+     * @param targetIpAddress 目标客户端IP地址
+     * @param event 控制事件
+     */
+    public void sendControlRequest(String targetIpAddress, ControlEvent event) {
+        if (controlServer != null) {
+            controlServer.sendControlEvent(targetIpAddress, event);
+            logger.info("已发送控制请求到客户端: " + targetIpAddress + ", 事件类型: " + event.getType());
+        } else {
+            logger.warning("控制服务器未启动，无法发送控制请求到客户端: " + targetIpAddress);
+        }
+    }
+
+    /**
+     * 客户端发送消息给服务器
      *
      */
-    public void sendControlRequest(String targetIpAddress) {
-        if (controlClient != null) {
-            try {
-                controlClient.sendControlEvent(new ControlEvent());
-                logger.info("已发送控制请求给设备: " + targetIpAddress);
-            } catch (Exception e) {
-                logger.severe("发送控制请求失败: " + e.getMessage());
-            }
+    public void sendMouseEdgeCheckEvent(ControlEvent event){
+        if(controlClient !=  null){
+            controlClient.sendMouseEdgeCheckEvent(event);
+            logger.info("已发送鼠标边缘检测到控制中心: " + event);
         }
     }
 

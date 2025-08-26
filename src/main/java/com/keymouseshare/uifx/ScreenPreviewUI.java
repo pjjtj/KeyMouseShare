@@ -7,18 +7,21 @@ import com.keymouseshare.listener.VirtualDesktopStorageListener;
 import com.keymouseshare.network.DeviceDiscovery;
 import com.keymouseshare.util.NetUtil;
 import javafx.scene.control.Button;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
+import javafx.scene.transform.Scale;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -31,8 +34,8 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
     private static final Logger logger = Logger.getLogger(ScreenPreviewUI.class.getName());
 
-    private int scale = 15;
-    private GridPane screenGrid;
+    private int scale = 10;
+    private Pane screenPane;
     private Map<StackPane, String> screenMap = new HashMap<>();
     private StackPane draggedScreen = null;
     private double mouseXOffset = 0;
@@ -40,6 +43,14 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
     private DeviceDiscovery deviceDiscovery;
     private Button saveVirtualDesktopButton = new Button("应用设置");
     private VirtualDesktopStorage virtualDesktopStorage;
+    
+    // 缩放相关属性
+    private ScrollPane scrollPane;
+    private Scale scaleTransform;
+    private double currentScale = 1.0;
+    private static final double SCALE_DELTA = 0.1;
+    private static final double MIN_SCALE = 0.5;
+    private static final double MAX_SCALE = 2.0;
 
     // 吸附阈值
     private static final double REAL_TIME_SNAP_THRESHOLD = 20.0;
@@ -67,10 +78,23 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         Label titleLabel = new Label("屏幕预览");
         titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-        screenGrid = new GridPane();
-        screenGrid.setHgap(10);
-        screenGrid.setVgap(10);
-        screenGrid.setPrefHeight(500);
+        screenPane = new Pane();
+        screenPane.setPrefSize(800, 600); // 设置默认大小
+        
+        // 创建缩放变换
+        scaleTransform = new Scale(currentScale, currentScale, 0, 0);
+        screenPane.getTransforms().add(scaleTransform);
+        
+        // 创建滚动窗格以支持缩放和滚动
+//        scrollPane = new ScrollPane();
+//        scrollPane.setContent(screenPane);
+//        scrollPane.setPrefHeight(800);
+//        scrollPane.setFitToWidth(false);
+//        scrollPane.setFitToHeight(false);
+//        scrollPane.setPannable(true); // 允许通过鼠标拖拽滚动
+
+        // 添加鼠标滚轮缩放支持
+        screenPane.addEventFilter(ScrollEvent.ANY, this::handleScroll);
 
         VBox bottomBox = new VBox();
         bottomBox.getChildren().add(saveVirtualDesktopButton);
@@ -78,7 +102,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         bottomBox.setPadding(new Insets(10));
         bottomBox.setAlignment(Pos.BOTTOM_CENTER);
 
-        this.getChildren().addAll(titleLabel, screenGrid, bottomBox);
+        this.getChildren().addAll(titleLabel, screenPane, bottomBox);
 
         // 加载虚拟桌面中的屏幕信息
         loadVirtualDesktopScreens();
@@ -86,13 +110,41 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         saveVirtualDesktopButton.setOnAction(event -> {
             screenMap.keySet().forEach(screen -> {
                 ScreenInfo screenInfo = VirtualDesktopStorage.getInstance().getScreens().get(screenMap.get(screen));
-                // screenInfo 获取屏幕坐标
                 screenInfo.setMx(screen.getBoundsInParent().getMinX());
                 screenInfo.setMy(screen.getBoundsInParent().getMinY());
+                screenInfo.setVx(screen.getBoundsInParent().getMinX()* scale);
+                screenInfo.setVy(screen.getBoundsInParent().getMinY() * scale);
                 System.out.println(screenInfo.getMx()+"-----"+screenInfo.getMy());
-                VirtualDesktopStorage.getInstance().addScreen(screenInfo);
+                VirtualDesktopStorage.getInstance().applyScreen(screenInfo);
             });
         });
+    }
+    
+    /**
+     * 处理鼠标滚轮事件实现缩放功能
+     * @param event 滚轮事件
+     */
+    private void handleScroll(ScrollEvent event) {
+        // 检查是否是Ctrl键配合滚轮操作（常见缩放快捷键）
+        if (event.isControlDown()) {
+            event.consume(); // 消费事件，防止滚动窗格滚动
+            
+            // 计算新的缩放比例
+            if (event.getDeltaY() > 0) {
+                // 向上滚动，放大
+                currentScale += SCALE_DELTA;
+            } else {
+                // 向下滚动，缩小
+                currentScale -= SCALE_DELTA;
+            }
+            
+            // 限制缩放范围
+            currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, currentScale));
+            
+            // 应用缩放变换
+            scaleTransform.setX(currentScale);
+            scaleTransform.setY(currentScale);
+        }
     }
 
     /**
@@ -100,38 +152,30 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
      */
     private void loadVirtualDesktopScreens() {
         // 清空现有屏幕
-        screenGrid.getChildren().clear();
+        screenPane.getChildren().clear();
         screenMap.clear();
         
         // 从虚拟桌面获取所有屏幕
         Map<String, ScreenInfo> screens = virtualDesktopStorage.getScreens();
         
         if (screens != null) {
-            int col = 0;
-            int row = 0;
             for (Map.Entry<String, ScreenInfo> entry : screens.entrySet()) {
                 ScreenInfo screenInfo = entry.getValue();
                 String screenName = screenInfo.getDeviceIp() + ":" + screenInfo.getScreenName();
                 
-                // 添加屏幕项到网格中
-                addScreenItem(screenInfo, col, row, false);
-                
-                col++;
-                if (col > 2) { // 每行最多3个屏幕
-                    col = 0;
-                    row++;
-                }
+                // 添加屏幕项到面板中
+                addScreenItem(screenInfo, false);
             }
         }
     }
 
-    private void addScreenItem(ScreenInfo screenInfo, int col, int row, boolean isSelected) {
+    private void addScreenItem(ScreenInfo screenInfo, boolean isSelected) {
         // 创建屏幕预览框，根据实际屏幕尺寸设置大小
         double screenWidth = (double) screenInfo.getWidth() / scale; // 缩放比例，最小100像素
         double screenHeight = (double) screenInfo.getHeight() / scale; // 缩放比例，最小80像素
         Rectangle screenRect = new Rectangle(screenWidth, screenHeight);
-        screenRect.setArcWidth(10);
-        screenRect.setArcHeight(10);
+//        screenRect.setArcWidth(10);
+//        screenRect.setArcHeight(10);
 
         // 设置屏幕颜色（根据设备IP设置不同颜色）
         String deviceIp = screenInfo.getDeviceIp();
@@ -151,7 +195,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         // 如果是选中设备，添加边框
         if (isSelected) {
             screenRect.setStroke(Color.BLUE);
-            screenRect.setStrokeWidth(2);
+            screenRect.setStrokeWidth(1);
         }
 
         // 创建中心点标记
@@ -168,11 +212,13 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
         // 创建包含容器，使标签悬浮在屏幕上
         StackPane screenContainer = new StackPane();
+        screenContainer.setStyle("-fx-background-color: grey;");
+        screenContainer.setPrefSize(screenWidth, screenHeight);
         screenContainer.getChildren().addAll(screenRect, centerPoint, centerLabel, screenLabel);
+        StackPane.setAlignment(screenRect, Pos.TOP_LEFT);
         StackPane.setAlignment(centerPoint, Pos.CENTER); // 中心点居中
         StackPane.setAlignment(screenLabel, Pos.CENTER);
         StackPane.setAlignment(centerLabel, Pos.TOP_CENTER); // 坐标标签在顶部居中
-        StackPane.setMargin(centerLabel, new Insets(5, 0, 0, 0)); // 设置坐标标签边距
 
         // 添加鼠标悬停事件来显示/隐藏中心点坐标
         screenContainer.setOnMouseEntered(e -> {
@@ -180,11 +226,11 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
             // 获取屏幕容器的中心点坐标
             Bounds bounds = screenContainer.getBoundsInParent();
-            double centerX = bounds.getMinX() + bounds.getWidth() / 2;
-            double centerY = bounds.getMinY() + bounds.getHeight() / 2;
+//            double centerX = bounds.getMinX() + bounds.getWidth() / 2;
+//            double centerY = bounds.getMinY() + bounds.getHeight() / 2;
 
             // 更新坐标标签文本
-            centerLabel.setText(String.format("(%.0f, %.0f)", centerX, centerY));
+            centerLabel.setText(String.format("(%.0f, %.0f)", bounds.getMinX(),  bounds.getMinY()));
         });
 
         screenContainer.setOnMouseExited(e -> centerLabel.setVisible(false));
@@ -195,14 +241,55 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         // 使用mx, my作为起点位置
         if (screenInfo.getMx() != 0 || screenInfo.getMy() != 0) {
             // 如果mx和my已经设置，则使用它们作为起始位置
-            screenContainer.setTranslateX(screenInfo.getMx());
-            screenContainer.setTranslateY(screenInfo.getMy());
+            screenContainer.setLayoutX(screenInfo.getMx());
+            screenContainer.setLayoutY(screenInfo.getMy());
+        } else {
+            // 默认位置
+            screenContainer.setLayoutX(50);
+            screenContainer.setLayoutY(50);
         }
 
-        // 添加到网格和映射中
-        screenGrid.add(screenContainer, col, row);
+        // 添加到面板和映射中
+        screenPane.getChildren().add(screenContainer);
 
         screenMap.put(screenContainer, screenInfo.getDeviceIp()+screenInfo.getScreenName());
+    }
+    
+    /**
+     * 调整屏幕位置以避免重叠
+     * @param screenContainer 屏幕容器
+     */
+    private void adjustPositionToAvoidOverlap(StackPane screenContainer) {
+        // 获取当前屏幕的边界
+        Bounds currentBounds = screenContainer.getBoundsInParent();
+        double currentX = currentBounds.getMinX();
+        double currentY = currentBounds.getMinY();
+        double currentWidth = currentBounds.getWidth();
+        double currentHeight = currentBounds.getHeight();
+        
+        boolean hasOverlap;
+        do {
+            hasOverlap = false;
+            // 检查与所有已存在的屏幕是否有重叠
+            for (Map.Entry<StackPane, String> entry : screenMap.entrySet()) {
+                StackPane otherScreen = entry.getKey();
+                Bounds otherBounds = otherScreen.getBoundsInParent();
+                
+                // 检查是否重叠
+                if (currentX < otherBounds.getMaxX() && 
+                    currentX + currentWidth > otherBounds.getMinX() &&
+                    currentY < otherBounds.getMaxY() && 
+                    currentY + currentHeight > otherBounds.getMinY()) {
+                    
+                    // 发现重叠，调整位置
+                    currentX += currentWidth + 10; // 在X轴上移动，留出10像素间隔
+                    screenContainer.setLayoutX(currentX);
+                    currentBounds = screenContainer.getBoundsInParent();
+                    hasOverlap = true;
+                    break; // 重新开始检查
+                }
+            }
+        } while (hasOverlap);
     }
 
     /**
@@ -246,8 +333,8 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         screenContainer.setOnMousePressed((MouseEvent event) -> {
             // 记录被拖拽的屏幕和鼠标位置
             draggedScreen = screenContainer;
-            mouseXOffset = event.getSceneX() - screenContainer.getTranslateX();
-            mouseYOffset = event.getSceneY() - screenContainer.getTranslateY();
+            mouseXOffset = event.getSceneX() - screenContainer.getLayoutX();
+            mouseYOffset = event.getSceneY() - screenContainer.getLayoutY();
             event.consume();
         });
 
@@ -260,8 +347,8 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
                 logger.log(Level.FINE, "Mouse dragged to (" + event.getSceneX() + ", " + event.getSceneY() +
                         "), calculating new position (" + newX + ", " + newY + ")");
 
-                draggedScreen.setTranslateX(newX);
-                draggedScreen.setTranslateY(newY);
+                draggedScreen.setLayoutX(newX);
+                draggedScreen.setLayoutY(newY);
 
                 // 实时边缘吸附预览效果
                 performRealTimeSnapping(draggedScreen,newX,newY);
@@ -303,7 +390,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         String targetScreenName = "";
         double minCenterDistance = Double.MAX_VALUE;
 
-        for (Node node : screenGrid.getChildren()) {
+        for (Node node : screenPane.getChildren()) {
             if (node instanceof StackPane && node != screen) {
                 StackPane otherScreen = (StackPane) node;
                 String otherScreenName = screenMap.get(otherScreen);
@@ -345,64 +432,48 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
             }
         }
 
-        // 如果找到了最近的不重叠目标，则进行后续处理
+        // 如果找到了最佳目标，则计算边缘距离并进行实时吸附
         if (bestTarget != null) {
-            logger.log(Level.INFO, "Found nearest non-overlapping target: source screen '" + sourceScreenName +
-                    "' to target screen '" + targetScreenName + "', center distance: " + minCenterDistance);
-
-            // 第二步：计算源矩形的四条边与目标矩形四条边的对应距离
             Bounds targetBounds = bestTarget.getBoundsInParent();
-            double targetActualWidth = targetBounds.getWidth();
-            double targetActualHeight = targetBounds.getHeight();
-            double targetContainerX = targetBounds.getMinX();
-            double targetContainerY = targetBounds.getMinY();
+            double targetLeft = targetBounds.getMinX();
+            double targetRight = targetBounds.getMaxX();
+            double targetTop = targetBounds.getMinY();
+            double targetBottom = targetBounds.getMaxY();
 
-            // 计算目标屏幕的四条边
-            double targetLeft = targetContainerX;
-            double targetRight = targetContainerX + targetActualWidth;
-            double targetTop = targetContainerY;
-            double targetBottom = targetContainerY + targetActualHeight;
+            // 计算边缘距离
+            int distanceLeftToRight = (int) Math.abs(screenLeft - targetRight);
+            int distanceRightToLeft = (int) Math.abs(screenRight - targetLeft);
+            int distanceTopToBottom = (int) Math.abs(screenTop - targetBottom);
+            int distanceBottomToTop = (int) Math.abs(screenBottom - targetTop);
 
-            // 计算源矩形的四条边与目标矩形四条边的对应距离
-            // 源矩形的左边与目标矩形的右边
-            double distanceLeftToRight = Math.abs(screenLeft - targetRight);
-
-            // 源矩形的右边与目标矩形的左边
-            double distanceRightToLeft = Math.abs(screenRight - targetLeft);
-
-            // 源矩形的上边与目标矩形的下边
-            double distanceTopToBottom = Math.abs(screenTop - targetBottom);
-
-            // 源矩形的下边与目标矩形的上边
-            double distanceBottomToTop = Math.abs(screenBottom - targetTop);
-
-
-            // 获取最小距离
-            double minEdgeDistance = Math.min(
+            // 找到最小边缘距离
+            int minEdgeDistance = Math.min(
                     Math.min(distanceLeftToRight, distanceRightToLeft),
                     Math.min(distanceTopToBottom, distanceBottomToTop)
             );
 
-            // 判断是否满足吸附阈值
+            // 如果最小边缘距离小于阈值，则进行实时吸附
             if (minEdgeDistance < REAL_TIME_SNAP_THRESHOLD) {
-                logger.log(Level.INFO, "Real-time snapping triggered: source screen '" + sourceScreenName +
+                logger.log(Level.INFO, "Real-time snapping: source screen '" + sourceScreenName +
                         "' to target screen '" + targetScreenName + "', min edge distance: " + minEdgeDistance +
                         ", threshold: " + REAL_TIME_SNAP_THRESHOLD);
-                // 垂直有重叠
-                boolean b = (screenTop > targetBottom  || screenBottom < targetTop);
-                if(minEdgeDistance == distanceLeftToRight && !b){
-                    screen.setTranslateX(newX-minEdgeDistance);
+
+                // 根据最小边缘距离调整位置
+                if (minEdgeDistance == distanceLeftToRight) {
+                    logger.log(Level.INFO, "Left to right");
+                    screen.setLayoutX(targetRight);
                 }
-                if(minEdgeDistance == distanceRightToLeft && !b){
-                    screen.setTranslateX(newX+minEdgeDistance);
+                if (minEdgeDistance == distanceRightToLeft) {
+                    logger.log(Level.INFO, "Right to left");
+                    screen.setLayoutX(targetLeft-screen.getWidth());
                 }
-                // 水平有重叠
-                boolean c = (screenLeft > targetRight  || screenRight < targetLeft);
-                if(minEdgeDistance ==  distanceTopToBottom && !c){
-                    screen.setTranslateY(newY-minEdgeDistance);
+                if (minEdgeDistance == distanceTopToBottom) {
+                    logger.log(Level.INFO, "Top to bottom");
+                    screen.setLayoutY(targetBottom);
                 }
-                if(minEdgeDistance == distanceBottomToTop && !c){
-                    screen.setTranslateY(newY+minEdgeDistance);
+                if (minEdgeDistance == distanceBottomToTop) {
+                    logger.log(Level.INFO, "Bottom to top");
+                    screen.setLayoutY(targetTop-screen.getHeight());
                 }
             } else {
                 logger.log(Level.INFO, "No real-time snapping: source screen '" + sourceScreenName +

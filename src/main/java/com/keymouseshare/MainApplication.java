@@ -1,8 +1,6 @@
 package com.keymouseshare;
 
-import com.keymouseshare.bean.DeviceInfo;
-import com.keymouseshare.bean.DeviceStorage;
-import com.keymouseshare.bean.ScreenCoordinate;
+import com.keymouseshare.bean.*;
 import com.keymouseshare.input.EventInjector;
 import com.keymouseshare.input.JNativeHookInputMonitor;
 import com.keymouseshare.listener.DeviceListener;
@@ -12,6 +10,7 @@ import com.keymouseshare.uifx.DeviceListUI;
 import com.keymouseshare.uifx.MousePositionDisplay;
 import com.keymouseshare.uifx.ScreenPreviewUI;
 import com.keymouseshare.util.MacOSAccessibilityHelper;
+import com.keymouseshare.util.MouseEdgeDetector;
 import com.keymouseshare.util.NetUtil;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -246,8 +245,10 @@ public class MainApplication extends Application implements DeviceListener {
                     mousePositionDisplay.updateMousePosition(x, y);
                 }
             });
+            ScreenCoordinate deviceScreenCoordinate=null;
+            // 获取本地设备屏幕坐标系中的鼠标相对位置
             if(DeviceStorage.getInstance().getLocalDevice()!=null&&DeviceStorage.getInstance().getLocalDevice().getScreens()!=null){
-                DeviceStorage.getInstance().getLocalDevice().getScreens().parallelStream()
+                deviceScreenCoordinate = DeviceStorage.getInstance().getLocalDevice().getScreens().parallelStream()
                         .filter(s -> s.localContains(x, y))
                         .findFirst()
                         .map(s -> new ScreenCoordinate(
@@ -256,6 +257,23 @@ public class MainApplication extends Application implements DeviceListener {
                                 x - s.getDx(),
                                 y - s.getDy()
                         )).orElse(null);
+            }
+
+            if(DeviceStorage.getInstance().getLocalDevice()!=null&&deviceScreenCoordinate!=null){
+                // 获取虚拟屏幕
+                ScreenInfo vScreenInfo = VirtualDesktopStorage.getInstance().getScreens().get(deviceScreenCoordinate.ip+deviceScreenCoordinate.screenName);
+                // 如果本地设备是控制服务器直接本地调用进行边缘检测
+                if(DeviceStorage.getInstance().getLocalDevice().getDeviceType().equals(DeviceType.SERVER.name())){
+                   // 转换虚拟屏幕坐标
+                    if(vScreenInfo != null){
+                        ScreenCoordinate screenCoordinate=VirtualDesktopStorage.getInstance().translate(vScreenInfo.getVx()+x, vScreenInfo.getVy()+y);
+                        ScreenInfo screenInfo = MouseEdgeDetector.isAtScreenEdge(vScreenInfo.getVx()+x, vScreenInfo.getVy()+y);
+                        if(screenInfo!=null){
+                            System.out.println("鼠标即将进入"+screenInfo.getDeviceIp()+"-"+screenInfo.getScreenName()+"唤醒鼠标位置：("+screenInfo.getX()+","+ screenInfo.getY()+")");
+                            controlRequestManager.sendControlRequest(screenInfo.getDeviceIp(), new ControlEvent(ControlEventType.MouseMoved.name(), screenInfo.getX(), screenInfo.getY()));
+                        }
+                    }
+                }
             }
         });
         jNativeHookInputMonitor.startMonitoring();

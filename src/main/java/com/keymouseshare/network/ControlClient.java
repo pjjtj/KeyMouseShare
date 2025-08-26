@@ -34,7 +34,7 @@ public class ControlClient {
         channel = bootstrap.connect(host, port).sync().channel();
     }
     
-    public void sendControlEvent(ControlEvent event) {
+    public void sendMouseEdgeCheckEvent(ControlEvent event) {
         channel.writeAndFlush(event);
     }
     

@@ -4,9 +4,11 @@ package com.keymouseshare.bean;
  * 控制事件类
  */
 public class ControlEvent {
+    private String deviceIp;
+    private String screenName;
     private String type;
-    private int x;
-    private int y;
+    private double x;
+    private double y;
     private int button;
     private int keyCode;
     private String data;
@@ -14,7 +16,7 @@ public class ControlEvent {
     public ControlEvent() {
     }
 
-    public ControlEvent(String type, int x, int y) {
+    public ControlEvent(String type, double x, double y) {
         this.type = type;
         this.x = x;
         this.y = y;
@@ -40,19 +42,19 @@ public class ControlEvent {
         this.type = type;
     }
 
-    public int getX() {
+    public double getX() {
         return x;
     }
 
-    public void setX(int x) {
+    public void setX(double x) {
         this.x = x;
     }
 
-    public int getY() {
+    public double getY() {
         return y;
     }
 
-    public void setY(int y) {
+    public void setY(double y) {
         this.y = y;
     }
 

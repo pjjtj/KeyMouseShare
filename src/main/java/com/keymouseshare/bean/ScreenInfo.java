@@ -16,6 +16,8 @@ public class ScreenInfo {
     private double vy; // 虚拟桌面屏幕坐标
     private double mx; // 屏幕配置坐标
     private double my; // 屏幕配置坐标
+    private double x; // 鼠标在屏幕上的位置X
+    private double y; // 鼠标在屏幕上的位置Y
 
     public ScreenInfo() {}
 
@@ -81,6 +83,22 @@ public class ScreenInfo {
 
     public double getMy() {
         return my;
+    }
+
+    public void setX(double x) {
+        this.x = x;
+    }
+
+    public double getX() {
+        return x;
+    }
+
+    public void setY(double y) {
+        this.y = y;
+    }
+
+    public double getY() {
+        return y;
     }
 
     public boolean localContains(double globalX, double globalY) {

@@ -21,6 +21,11 @@ public class VirtualDesktopStorage {
     private Rectangle2D virtualBounds;
     private Set<VirtualDesktopStorageListener> listeners = new HashSet<>();
 
+    public void applyScreen(ScreenInfo screen){
+        screens.put(screen.getDeviceIp()+screen.getScreenName(), screen);
+        recalculateBounds();
+    }
+
     // 动态添加物理屏幕
     public void addScreen(ScreenInfo screen) {
         screens.put(screen.getDeviceIp()+screen.getScreenName(), screen);
@@ -55,7 +60,8 @@ public class VirtualDesktopStorage {
         }
         virtualBounds = new Rectangle2D(minX, minY, maxX - minX, maxY - minY);
     }
-    
+
+
     /**
      * 获取所有屏幕信息
      * @return 屏幕信息映射
@@ -83,7 +89,7 @@ public class VirtualDesktopStorage {
     /**
      * 通知所有监听器
      */
-    private void notifyListeners() {
+    public void notifyListeners() {
         for (VirtualDesktopStorageListener listener : listeners) {
             listener.onVirtualDesktopChanged();
         }
