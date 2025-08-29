@@ -16,6 +16,12 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
 
     private static final Logger logger = Logger.getLogger(MacMouseKeyBoard.class.getName());
 
+    private static final MacMouseKeyBoard INSTANCE = new MacMouseKeyBoard();
+
+    public static MacMouseKeyBoard getInstance() {
+        return INSTANCE;
+    }
+
     private Robot robot;
 
     // macOS CoreGraphics API接口
@@ -243,14 +249,24 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         }
     }
 
+
     @Override
-    public void startIntercept() {
+    public void initVirtualMouseLocation() {
 
     }
 
     @Override
-    public void stopIntercept() {
+    public void startMouseKeyController() {
 
     }
 
+    @Override
+    public void stopMouseKeyController() {
+
+    }
+
+    @Override
+    public void stopEdgeDetection() {
+
+    }
 }

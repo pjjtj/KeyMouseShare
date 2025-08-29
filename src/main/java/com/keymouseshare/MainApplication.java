@@ -1,29 +1,32 @@
 package com.keymouseshare;
 
 import com.keymouseshare.bean.*;
-import com.keymouseshare.input.EventInjector;
 import com.keymouseshare.input.JNativeHookInputMonitor;
+import com.keymouseshare.keyboard.MouseKeyBoard;
+import com.keymouseshare.keyboard.MouseKeyBoardFactory;
 import com.keymouseshare.listener.DeviceListener;
+import com.keymouseshare.listener.VirtualDesktopStorageListener;
 import com.keymouseshare.network.ControlRequestManager;
 import com.keymouseshare.network.DeviceDiscovery;
 import com.keymouseshare.uifx.DeviceListUI;
 import com.keymouseshare.uifx.MousePositionDisplay;
 import com.keymouseshare.uifx.ScreenPreviewUI;
 import com.keymouseshare.util.MacOSAccessibilityHelper;
-import com.keymouseshare.util.MouseEdgeDetector;
 import com.keymouseshare.util.NetUtil;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
  * 主应用程序类
  */
-public class MainApplication extends Application implements DeviceListener {
+public class MainApplication extends Application implements DeviceListener, VirtualDesktopStorageListener {
 
     private static final Logger logger = Logger.getLogger(MainApplication.class.getName());
 
@@ -32,8 +35,11 @@ public class MainApplication extends Application implements DeviceListener {
     private ScreenPreviewUI screenPreviewUI;
     private JNativeHookInputMonitor jNativeHookInputMonitor;
     private MousePositionDisplay mousePositionDisplay;
-    private EventInjector eventInjector;
     private ControlRequestManager controlRequestManager;
+    private MouseKeyBoard mouseKeyBoard;
+    private DeviceStorage deviceStorage  = DeviceStorage.getInstance();
+    private VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+
 
     public static void main(String[] args) {
         // 设置高DPI相关的系统属性，以获取真实的屏幕尺寸
@@ -47,6 +53,7 @@ public class MainApplication extends Application implements DeviceListener {
 
         // 启动JavaFX应用程序
         launch(args);
+
     }
 
     @Override
@@ -61,7 +68,7 @@ public class MainApplication extends Application implements DeviceListener {
         root.setLeft(deviceListUI);
 
         // 创建屏幕预览UI（中心）
-        screenPreviewUI = new ScreenPreviewUI(deviceDiscovery);
+        screenPreviewUI = new ScreenPreviewUI(virtualDesktopStorage);
         root.setCenter(screenPreviewUI);
 
         // 创建鼠标位置显示器（底部）
@@ -86,8 +93,8 @@ public class MainApplication extends Application implements DeviceListener {
         // 初始化JNativeHook输入监听
         initJNativeHookInputMonitoring();
 
-        // 初始化事件注入器
-        initEventInjector();
+        // 初始化Windows鼠标键盘钩子
+        initMouseKeyBoard();
 
         // 创建场景并显示主窗口
         Scene scene = new Scene(root, 900, 600);
@@ -104,6 +111,8 @@ public class MainApplication extends Application implements DeviceListener {
         if (deviceListUI != null && controlRequestManager != null) {
             deviceListUI.setControlRequestManager(controlRequestManager);
         }
+
+        virtualDesktopStorage.addListener(this);
     }
 
     /**
@@ -130,11 +139,6 @@ public class MainApplication extends Application implements DeviceListener {
             // 设置DeviceListUI的设备发现服务
             if (deviceListUI != null) {
                 deviceListUI.setDeviceDiscovery(deviceDiscovery);
-            }
-
-            // 设置ScreenPreviewUI的设备发现服务
-            if (screenPreviewUI != null) {
-                screenPreviewUI.setDeviceDiscovery(deviceDiscovery);
             }
 
             // 初始化设备列表
@@ -238,6 +242,9 @@ public class MainApplication extends Application implements DeviceListener {
      */
     private void initJNativeHookInputMonitoring() {
         jNativeHookInputMonitor = new JNativeHookInputMonitor();
+        // 设置主应用程序引用
+        jNativeHookInputMonitor.setMainApplication(this);
+
         // 设置鼠标位置监听器
         jNativeHookInputMonitor.setMousePositionListener((x, y) -> {
             Platform.runLater(() -> {
@@ -245,54 +252,30 @@ public class MainApplication extends Application implements DeviceListener {
                     mousePositionDisplay.updateMousePosition(x, y);
                 }
             });
-            ScreenCoordinate deviceScreenCoordinate=null;
-            // 获取本地设备屏幕坐标系中的鼠标相对位置
-            if(DeviceStorage.getInstance().getLocalDevice()!=null&&DeviceStorage.getInstance().getLocalDevice().getScreens()!=null){
-                deviceScreenCoordinate = DeviceStorage.getInstance().getLocalDevice().getScreens().parallelStream()
-                        .filter(s -> s.localContains(x, y))
-                        .findFirst()
-                        .map(s -> new ScreenCoordinate(
-                                s.getDeviceIp(),
-                                s.getScreenName(),
-                                x - s.getDx(),
-                                y - s.getDy()
-                        )).orElse(null);
-            }
-
-            if(DeviceStorage.getInstance().getLocalDevice()!=null&&deviceScreenCoordinate!=null){
-                // 获取虚拟屏幕
-                ScreenInfo vScreenInfo = VirtualDesktopStorage.getInstance().getScreens().get(deviceScreenCoordinate.ip+deviceScreenCoordinate.screenName);
-                // 如果本地设备是控制服务器直接本地调用进行边缘检测
-                if(DeviceStorage.getInstance().getLocalDevice().getDeviceType().equals(DeviceType.SERVER.name())){
-                   // 转换虚拟屏幕坐标
-                    if(vScreenInfo != null){
-                        ScreenCoordinate screenCoordinate=VirtualDesktopStorage.getInstance().translate(vScreenInfo.getVx()+x, vScreenInfo.getVy()+y);
-                        ScreenInfo screenInfo = MouseEdgeDetector.isAtScreenEdge(vScreenInfo.getVx()+x, vScreenInfo.getVy()+y);
-                        if(screenInfo!=null){
-                            System.out.println("鼠标即将进入"+screenInfo.getDeviceIp()+"-"+screenInfo.getScreenName()+"唤醒鼠标位置：("+screenInfo.getX()+","+ screenInfo.getY()+")");
-                            controlRequestManager.sendControlRequest(screenInfo.getDeviceIp(), new ControlEvent(ControlEventType.MouseMoved.name(), screenInfo.getX(), screenInfo.getY()));
-                        }
-                    }
-                }
+            // TODO 且是控制器屏幕激活时才更新鼠标位置
+            if(virtualDesktopStorage.isApplyVirtualDesktopScreen()){
+                ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
+                //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
+                virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx()+ x-vScreenInfo.getDx(),vScreenInfo.getVy()+y-vScreenInfo.getDy());
             }
         });
         jNativeHookInputMonitor.startMonitoring();
-        System.out.println("JNativeHook输入监听已启动");
     }
 
     /**
-     * 初始化事件注入器
+     * 初始化Windows鼠标键盘钩子
      */
-    private void initEventInjector() {
-        eventInjector = new EventInjector();
-        System.out.println("事件注入器已初始化");
+    private void initMouseKeyBoard() {
+        mouseKeyBoard = MouseKeyBoardFactory.getFactory();
+        System.out.println("鼠标键盘已初始化");
     }
+
 
     @Override
     public void stop() throws Exception {
         // 应用程序关闭时停止设备发现服务
         try {
-            if(DeviceStorage.getInstance().getSeverDevice().getIpAddress().equals(NetUtil.getLocalIpAddress())){
+            if(deviceStorage.getSeverDevice().getIpAddress().equals(NetUtil.getLocalIpAddress())){
                 deviceDiscovery.sendServerCloseBroadcast();
             }else{
                 // TODO 是否即刻发送下线广播
@@ -314,6 +297,38 @@ public class MainApplication extends Application implements DeviceListener {
             controlRequestManager.setServerMode(false); // 停止服务端
         }
 
+        virtualDesktopStorage.setApplyVirtualDesktopScreen(false);
+        mouseKeyBoard.stopMouseKeyController();
+
         System.out.println("应用程序已停止");
+    }
+
+    @Override
+    public void onVirtualDesktopChanged() {
+        if (virtualDesktopStorage != null && screenPreviewUI != null) {
+            Platform.runLater(()->screenPreviewUI.refreshScreens()); ;
+        }
+    }
+
+    @Override
+    public void onApplyVirtualDesktopScreen(Map<StackPane, String> screenMap, double scale) {
+        screenMap.keySet().forEach(screen -> {
+            ScreenInfo screenInfo = virtualDesktopStorage.getScreens().get(screenMap.get(screen));
+            // 更新屏幕在画布中的位置
+            screenInfo.setMx(screen.getBoundsInParent().getMinX());
+            screenInfo.setMy(screen.getBoundsInParent().getMinY());
+            // 更新屏幕在虚拟桌面中的位置
+            screenInfo.setVx(screen.getBoundsInParent().getMinX()*scale);
+            screenInfo.setVy(screen.getBoundsInParent().getMinY()*scale);
+            System.out.println(screenInfo.getVx()+"-----"+screenInfo.getVy());
+            virtualDesktopStorage.applyScreen(screenInfo);
+        });
+        virtualDesktopStorage.setApplyVirtualDesktopScreen(true);
+
+        // 初始化鼠标在虚拟桌面中的位置、更新当前激活的虚拟屏幕
+        mouseKeyBoard.initVirtualMouseLocation();
+
+        // 开启鼠标位置检测控制
+        mouseKeyBoard.startMouseKeyController();
     }
 }

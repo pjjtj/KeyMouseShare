@@ -7,6 +7,7 @@ import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 import com.github.kwhat.jnativehook.mouse.NativeMouseEvent;
 import com.github.kwhat.jnativehook.mouse.NativeMouseListener;
 import com.github.kwhat.jnativehook.mouse.NativeMouseMotionListener;
+import com.keymouseshare.MainApplication;
 import com.keymouseshare.bean.DeviceStorage;
 import com.keymouseshare.bean.ScreenCoordinate;
 import com.keymouseshare.bean.VirtualDesktopStorage;
@@ -24,9 +25,18 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     
     private boolean isMonitoring = false;
     private BiConsumer<Integer, Integer> mousePositionListener;
-    
+    private MainApplication mainApplication;
+
     public JNativeHookInputMonitor() {
         logger.info("JNativeHookInputMonitor实例已创建");
+    }
+    
+    /**
+     * 设置主应用程序引用，用于调用相关方法
+     * @param mainApplication 主应用程序实例
+     */
+    public void setMainApplication(MainApplication mainApplication) {
+        this.mainApplication = mainApplication;
     }
     
     /**
@@ -175,7 +185,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
 //            mousePositionListener.accept(e.getX(), e.getY());
 //        }
     }
-    
+
     /**
      * 检查监听器是否正在运行
      * @return 是否正在监听

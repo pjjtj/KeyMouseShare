@@ -6,11 +6,11 @@ public interface MouseKeyBoardFactory {
 
     static MouseKeyBoard getFactory() {
         if (Platform.isWindows()) {
-            return new WindowMouseKeyBoard();
+            return WindowMouseKeyBoard.getInstance();
         } else if (Platform.isMac()) {
-            return new MacMouseKeyBoard();
+            return MacMouseKeyBoard.getInstance();
         } else if (Platform.isLinux()) {
-            return new LinuxMouseKeyBoard();
+            return LinuxMouseKeyBoard.getInstance();
         }
         throw new UnsupportedOperationException("Unsupported platform");
     }

@@ -22,6 +22,8 @@ public class ControlRequestManager {
     private ControlClient controlClient;
     private boolean isServerMode = false;
     private Window parentWindow;
+    private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+    private final DeviceStorage deviceStorage = DeviceStorage.getInstance();
 
     public ControlRequestManager(DeviceDiscovery deviceDiscovery) {
         this.deviceDiscovery = deviceDiscovery;
@@ -72,10 +74,7 @@ public class ControlRequestManager {
                 }
             }).start();
 
-            VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
-            DeviceStorage.getInstance().getLocalDevice().getScreens().forEach(virtualDesktopStorage::addScreen);
-
-
+            deviceStorage.getLocalDevice().getScreens().forEach(virtualDesktopStorage::addScreen);
 
         } catch (Exception e) {
             logger.severe("创建控制服务端失败: " + e.getMessage());

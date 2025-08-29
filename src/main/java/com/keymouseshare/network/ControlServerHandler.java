@@ -14,6 +14,8 @@ import java.util.logging.Logger;
  */
 public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEvent> {
     private static final Logger logger = Logger.getLogger(ControlServerHandler.class.getName());
+
+    private final  VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     
     // 客户端连接映射
     private Map<String, ChannelHandlerContext> clientChannels;
@@ -34,7 +36,6 @@ public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEve
         
         List<ScreenInfo> screenInfo = DeviceStorage.getInstance().getDeviceScreens(clientIp);
         // 添加屏幕到虚拟桌面
-        VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
         if (screenInfo != null) {
             screenInfo.forEach(virtualDesktopStorage::addScreen);
         }
@@ -53,8 +54,7 @@ public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEve
         // 移除该设备的所有屏幕信息
         virtualDesktopStorage.getScreens().entrySet().removeIf(entry -> 
             entry.getValue().getDeviceIp().equals(clientIp));
-        virtualDesktopStorage.notifyListeners();
-        virtualDesktopStorage.notifyListeners();
+        virtualDesktopStorage.virtualDesktopChanged();
     }
 
     @Override

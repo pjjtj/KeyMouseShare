@@ -15,6 +15,12 @@ import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
 public class LinuxMouseKeyBoard implements MouseKeyBoard {
     private static final Logger logger = Logger.getLogger(LinuxMouseKeyBoard.class.getName());
 
+    private static final LinuxMouseKeyBoard INSTANCE = new LinuxMouseKeyBoard();
+
+    public static LinuxMouseKeyBoard getInstance() {
+        return INSTANCE;
+    }
+
     private Robot robot;
 
     // Linux X11 API接口
@@ -239,14 +245,25 @@ public class LinuxMouseKeyBoard implements MouseKeyBoard {
         }
     }
 
+
+
     @Override
-    public void startIntercept() {
+    public void initVirtualMouseLocation() {
 
     }
 
     @Override
-    public void stopIntercept() {
+    public void startMouseKeyController() {
 
     }
 
+    @Override
+    public void stopMouseKeyController() {
+
+    }
+
+    @Override
+    public void stopEdgeDetection() {
+
+    }
 }

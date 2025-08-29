@@ -2,6 +2,7 @@ package com.keymouseshare.bean;
 
 import com.keymouseshare.listener.VirtualDesktopStorageListener;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.layout.StackPane;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -17,49 +18,90 @@ public class VirtualDesktopStorage {
         return INSTANCE;
     }
 
+    private boolean isApplyVirtualDesktopScreen = false;
+
+    /**
+     * 激活屏幕
+     */
+    private ScreenInfo activeScreen;
+    /**
+     * 鼠标位置[x,y]
+     */
+    private double[] mouseLocation = new double[2];
+
+    public void setActiveScreen(ScreenInfo activeScreen) {
+        this.activeScreen = activeScreen;
+    }
+
+    public ScreenInfo getActiveScreen() {
+        return activeScreen;
+    }
+
+    public synchronized void moveMouseLocation(double dx, double dy) {
+        this.mouseLocation[0] += dx;
+        this.mouseLocation[1] += dy;
+        this.mouseLocation =  new double[]{this.mouseLocation[0], this.mouseLocation[1]};
+    }
+
+    public void setMouseLocation(double dx, double dy) {
+        this.mouseLocation[0] = dx;
+        this.mouseLocation[1] = dy;
+    }
+
+    public double[] getMouseLocation() {
+        return mouseLocation;
+    }
+
+    public void setApplyVirtualDesktopScreen(boolean applyVirtualDesktopScreen) {
+        isApplyVirtualDesktopScreen = applyVirtualDesktopScreen;
+    }
+
+    public boolean isApplyVirtualDesktopScreen() {
+        return isApplyVirtualDesktopScreen;
+    }
+
     private ConcurrentMap<String, ScreenInfo> screens = new ConcurrentHashMap<>();
     private Rectangle2D virtualBounds;
     private Set<VirtualDesktopStorageListener> listeners = new HashSet<>();
 
     public void applyScreen(ScreenInfo screen){
         screens.put(screen.getDeviceIp()+screen.getScreenName(), screen);
-        recalculateBounds();
     }
 
     // 动态添加物理屏幕
     public void addScreen(ScreenInfo screen) {
         screens.put(screen.getDeviceIp()+screen.getScreenName(), screen);
-        recalculateBounds();
-        notifyListeners();
+//        recalculateBounds();
+        this.virtualDesktopChanged();
     }
 
     // 坐标转换服务
-    public ScreenCoordinate translate(double globalX, double globalY) {
-        return screens.values().parallelStream()
-                .filter(s -> s.virtualContains(globalX, globalY))
-                .findFirst()
-                .map(s -> new ScreenCoordinate(
-                        s.getDeviceIp(),
-                        s.getScreenName(),
-                        globalX - s.getVx(),
-                        globalY - s.getVy()
-                )).orElse(null);
-    }
+//    public ScreenCoordinate translate(double globalX, double globalY) {
+//        return screens.values().parallelStream()
+//                .filter(s -> s.virtualContains(globalX, globalY))
+//                .findFirst()
+//                .map(s -> new ScreenCoordinate(
+//                        s.getDeviceIp(),
+//                        s.getScreenName(),
+//                        globalX - s.getVx(),
+//                        globalY - s.getVy()
+//                )).orElse(null);
+//    }
 
-    private void recalculateBounds() {
-        double minX = Integer.MAX_VALUE;
-        double minY = Integer.MAX_VALUE;
-        double maxX = Integer.MIN_VALUE;
-        double maxY = Integer.MIN_VALUE;
-
-        for (ScreenInfo screen : screens.values()) {
-            minX = Math.min(minX, screen.getVx());
-            minY = Math.min(minY, screen.getVy());
-            maxX = Math.max(maxX, screen.getVx() + screen.getWidth());
-            maxY = Math.max(maxY, screen.getVy() + screen.getHeight());
-        }
-        virtualBounds = new Rectangle2D(minX, minY, maxX - minX, maxY - minY);
-    }
+//    private void recalculateBounds() {
+//        double minX = Integer.MAX_VALUE;
+//        double minY = Integer.MAX_VALUE;
+//        double maxX = Integer.MIN_VALUE;
+//        double maxY = Integer.MIN_VALUE;
+//
+//        for (ScreenInfo screen : screens.values()) {
+//            minX = Math.min(minX, screen.getVx());
+//            minY = Math.min(minY, screen.getVy());
+//            maxX = Math.max(maxX, screen.getVx() + screen.getWidth());
+//            maxY = Math.max(maxY, screen.getVy() + screen.getHeight());
+//        }
+//        virtualBounds = new Rectangle2D(minX, minY, maxX - minX, maxY - minY);
+//    }
 
 
     /**
@@ -89,9 +131,15 @@ public class VirtualDesktopStorage {
     /**
      * 通知所有监听器
      */
-    public void notifyListeners() {
+    public void virtualDesktopChanged() {
         for (VirtualDesktopStorageListener listener : listeners) {
             listener.onVirtualDesktopChanged();
+        }
+    }
+
+    public void applyVirtualDesktopScreen(Map<StackPane, String> screenMap, double scale) {
+        for (VirtualDesktopStorageListener listener : listeners) {
+            listener.onApplyVirtualDesktopScreen(screenMap, scale);
         }
     }
 }

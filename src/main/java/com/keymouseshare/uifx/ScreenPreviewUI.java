@@ -3,34 +3,33 @@ package com.keymouseshare.uifx;
 import com.keymouseshare.bean.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.bean.VirtualDesktopStorage;
-import com.keymouseshare.listener.VirtualDesktopStorageListener;
-import com.keymouseshare.network.DeviceDiscovery;
 import com.keymouseshare.util.NetUtil;
-import javafx.scene.control.Button;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.shape.Circle;
-import javafx.scene.paint.Color;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
-import javafx.geometry.Bounds;
-import javafx.scene.Node;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Scale;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 屏幕预览UI组件
  */
-public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListener {
+public class ScreenPreviewUI extends VBox {
 
     private static final Logger logger = Logger.getLogger(ScreenPreviewUI.class.getName());
 
@@ -40,10 +39,9 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
     private StackPane draggedScreen = null;
     private double mouseXOffset = 0;
     private double mouseYOffset = 0;
-    private DeviceDiscovery deviceDiscovery;
     private Button saveVirtualDesktopButton = new Button("应用设置");
     private VirtualDesktopStorage virtualDesktopStorage;
-    
+
     // 缩放相关属性
     private ScrollPane scrollPane;
     private Scale scaleTransform;
@@ -55,18 +53,11 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
     // 吸附阈值
     private static final double REAL_TIME_SNAP_THRESHOLD = 20.0;
 
-    public ScreenPreviewUI(DeviceDiscovery deviceDiscovery) {
-        this.deviceDiscovery = deviceDiscovery;
-        // 初始化虚拟桌面存储引用
-        this.virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+    public ScreenPreviewUI(VirtualDesktopStorage virtualDesktopStorage) {
         // 添加监听器
-        this.virtualDesktopStorage.addListener(this);
+        this.virtualDesktopStorage = virtualDesktopStorage;
         // 初始化界面
         initializeUI();
-    }
-
-    public void setDeviceDiscovery(DeviceDiscovery deviceDiscovery) {
-        this.deviceDiscovery = deviceDiscovery;
     }
 
     private void initializeUI() {
@@ -84,14 +75,6 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         // 创建缩放变换
         scaleTransform = new Scale(currentScale, currentScale, 0, 0);
         screenPane.getTransforms().add(scaleTransform);
-        
-        // 创建滚动窗格以支持缩放和滚动
-//        scrollPane = new ScrollPane();
-//        scrollPane.setContent(screenPane);
-//        scrollPane.setPrefHeight(800);
-//        scrollPane.setFitToWidth(false);
-//        scrollPane.setFitToHeight(false);
-//        scrollPane.setPannable(true); // 允许通过鼠标拖拽滚动
 
         // 添加鼠标滚轮缩放支持
         screenPane.addEventFilter(ScrollEvent.ANY, this::handleScroll);
@@ -108,15 +91,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         loadVirtualDesktopScreens();
 
         saveVirtualDesktopButton.setOnAction(event -> {
-            screenMap.keySet().forEach(screen -> {
-                ScreenInfo screenInfo = VirtualDesktopStorage.getInstance().getScreens().get(screenMap.get(screen));
-                screenInfo.setMx(screen.getBoundsInParent().getMinX());
-                screenInfo.setMy(screen.getBoundsInParent().getMinY());
-                screenInfo.setVx(screen.getBoundsInParent().getMinX()* scale);
-                screenInfo.setVy(screen.getBoundsInParent().getMinY() * scale);
-                System.out.println(screenInfo.getMx()+"-----"+screenInfo.getMy());
-                VirtualDesktopStorage.getInstance().applyScreen(screenInfo);
-            });
+            virtualDesktopStorage.applyVirtualDesktopScreen(screenMap, scale);
         });
     }
     
@@ -171,8 +146,8 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
     private void addScreenItem(ScreenInfo screenInfo, boolean isSelected) {
         // 创建屏幕预览框，根据实际屏幕尺寸设置大小
-        double screenWidth = (double) screenInfo.getWidth() / scale; // 缩放比例，最小100像素
-        double screenHeight = (double) screenInfo.getHeight() / scale; // 缩放比例，最小80像素
+        double screenWidth = screenInfo.getWidth() / scale; // 缩放比例，最小100像素
+        double screenHeight = screenInfo.getHeight() / scale; // 缩放比例，最小80像素
         Rectangle screenRect = new Rectangle(screenWidth, screenHeight);
 //        screenRect.setArcWidth(10);
 //        screenRect.setArcHeight(10);
@@ -192,10 +167,9 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
             screenRect.setFill(Color.LIGHTGRAY);
         }
 
-        // 如果是选中设备，添加边框
+        // 如果是选中设备，设置透明度
         if (isSelected) {
-            screenRect.setStroke(Color.BLUE);
-            screenRect.setStrokeWidth(1);
+            screenRect.setOpacity(0.8);
         }
 
         // 创建中心点标记
@@ -207,7 +181,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         centerLabel.setVisible(false); // 默认不显示坐标
 
         // 创建屏幕标签
-        Label screenLabel = new Label(screenInfo.getDeviceIp()+"\n"+screenInfo.getScreenName()+ "\n" + screenInfo.getWidth() + "x" + screenInfo.getHeight());
+        Label screenLabel = new Label(screenInfo.getDeviceIp()+"\n"+screenInfo.getScreenName()+ "\n" + screenWidth + "x" + screenHeight);
         screenLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: white; -fx-font-weight: bold;");
 
         // 创建包含容器，使标签悬浮在屏幕上
@@ -219,6 +193,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
         StackPane.setAlignment(centerPoint, Pos.CENTER); // 中心点居中
         StackPane.setAlignment(screenLabel, Pos.CENTER);
         StackPane.setAlignment(centerLabel, Pos.TOP_CENTER); // 坐标标签在顶部居中
+        System.out.println("--------------------------("+screenContainer.getWidth()+","+screenContainer.getHeight()+")");
 
         // 添加鼠标悬停事件来显示/隐藏中心点坐标
         screenContainer.setOnMouseEntered(e -> {
@@ -230,7 +205,7 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 //            double centerY = bounds.getMinY() + bounds.getHeight() / 2;
 
             // 更新坐标标签文本
-            centerLabel.setText(String.format("(%.0f, %.0f)", bounds.getMinX(),  bounds.getMinY()));
+            centerLabel.setText(String.format("(%.4f, %.4f, %.4f, %.4f)", bounds.getMinX(),  bounds.getMinY(), bounds.getWidth(), bounds.getHeight()));
         });
 
         screenContainer.setOnMouseExited(e -> centerLabel.setVisible(false));
@@ -245,8 +220,8 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
             screenContainer.setLayoutY(screenInfo.getMy());
         } else {
             // 默认位置
-            screenContainer.setLayoutX(50);
-            screenContainer.setLayoutY(50);
+            screenContainer.setLayoutX(0.0);
+            screenContainer.setLayoutY(0.0);
         }
 
         // 添加到面板和映射中
@@ -310,9 +285,8 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
                     Rectangle screenRect = (Rectangle) screenContainer.getChildren().get(0);
 
-                    // 设置选中状态的边框
-                    screenRect.setStroke(Color.BLUE);
-                    screenRect.setStrokeWidth(2);
+                    // 设置选中状态
+                    screenRect.setOpacity(0.8);
                 }
             } else {
                 // 取消其他屏幕的选中状态
@@ -321,9 +295,8 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
 
                     Rectangle screenRect = (Rectangle) screenContainer.getChildren().get(0);
 
-                    // 移除选中状态的边框
-                    screenRect.setStroke(null);
-                    screenRect.setStrokeWidth(0);
+                    // 移除选中状态
+                    screenRect.setOpacity(1);
                 }
             }
         }
@@ -441,13 +414,13 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
             double targetBottom = targetBounds.getMaxY();
 
             // 计算边缘距离
-            int distanceLeftToRight = (int) Math.abs(screenLeft - targetRight);
-            int distanceRightToLeft = (int) Math.abs(screenRight - targetLeft);
-            int distanceTopToBottom = (int) Math.abs(screenTop - targetBottom);
-            int distanceBottomToTop = (int) Math.abs(screenBottom - targetTop);
+            double distanceLeftToRight =  Math.abs(screenLeft - targetRight);
+            double distanceRightToLeft =  Math.abs(screenRight - targetLeft);
+            double distanceTopToBottom =  Math.abs(screenTop - targetBottom);
+            double distanceBottomToTop =  Math.abs(screenBottom - targetTop);
 
             // 找到最小边缘距离
-            int minEdgeDistance = Math.min(
+            double minEdgeDistance = Math.min(
                     Math.min(distanceLeftToRight, distanceRightToLeft),
                     Math.min(distanceTopToBottom, distanceBottomToTop)
             );
@@ -459,19 +432,19 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
                         ", threshold: " + REAL_TIME_SNAP_THRESHOLD);
 
                 // 根据最小边缘距离调整位置
-                if (minEdgeDistance == distanceLeftToRight) {
+                if (minEdgeDistance == distanceLeftToRight&&!(screenTop>targetBottom||screenBottom<targetTop)) {
                     logger.log(Level.INFO, "Left to right");
                     screen.setLayoutX(targetRight);
                 }
-                if (minEdgeDistance == distanceRightToLeft) {
+                if (minEdgeDistance == distanceRightToLeft&&!(screenTop>targetBottom||screenBottom<targetTop)) {
                     logger.log(Level.INFO, "Right to left");
                     screen.setLayoutX(targetLeft-screen.getWidth());
                 }
-                if (minEdgeDistance == distanceTopToBottom) {
+                if (minEdgeDistance == distanceTopToBottom&&!(screenRight>targetRight||screenLeft<targetLeft)) {
                     logger.log(Level.INFO, "Top to bottom");
                     screen.setLayoutY(targetBottom);
                 }
-                if (minEdgeDistance == distanceBottomToTop) {
+                if (minEdgeDistance == distanceBottomToTop&&!(screenRight>targetRight||screenLeft<targetLeft)) {
                     logger.log(Level.INFO, "Bottom to top");
                     screen.setLayoutY(targetTop-screen.getHeight());
                 }
@@ -510,13 +483,5 @@ public class ScreenPreviewUI extends VBox implements VirtualDesktopStorageListen
     public void refreshScreens() {
         loadVirtualDesktopScreens();
     }
-    
-    /**
-     * 当虚拟桌面发生变化时调用此方法
-     */
-    @Override
-    public void onVirtualDesktopChanged() {
-        // 在JavaFX应用程序线程中刷新屏幕预览
-        javafx.application.Platform.runLater(this::refreshScreens);
-    }
+
 }

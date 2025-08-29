@@ -7,10 +7,6 @@ echo 正在运行KeyMouseShare应用程序...
 java ^
   --module-path "target/lib" ^
   --add-modules javafx.controls,javafx.fxml ^
-  -Dsun.java2d.uiScale=1.0 ^
-  -Dsun.java2d.dpiaware=false ^
-  -Djavafx.css.scalingFactor=1.0 ^
-  -Dprism.allowhidpi=false ^
   -Dfile.encoding=UTF-8 ^
   -cp "target/lib/*;target/KeyMouseShare-1.0-SNAPSHOT.jar" ^
   com.keymouseshare.MainApplication

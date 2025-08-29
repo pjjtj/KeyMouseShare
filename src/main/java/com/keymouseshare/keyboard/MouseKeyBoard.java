@@ -2,22 +2,25 @@ package com.keymouseshare.keyboard;
 
 public interface MouseKeyBoard {
 
-    public void mouseMove(int x, int y);
+    void mouseMove(int x, int y);
 
-    public void mousePress(int button);
+    void mousePress(int button);
 
-    public void mouseRelease(int button);
+    void mouseRelease(int button);
 
-    public void mouseClick(int x, int y);
+    void mouseClick(int x, int y);
 
-    public void mouseDragged();
+    void mouseDragged();
 
-    public void keyPress(int keyCode);
+    void keyPress(int keyCode);
 
-    public void keyRelease(int keyCode);
+    void keyRelease(int keyCode);
 
-    public void startIntercept();
+    void initVirtualMouseLocation();
 
-    public void stopIntercept();
+    void startMouseKeyController();
 
+    void stopMouseKeyController();
+
+    void stopEdgeDetection();
 }
