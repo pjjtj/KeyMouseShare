@@ -23,10 +23,10 @@ public class MouseEdgeDetector {
 
     // 鼠标移动速度计算相关
     private static final long VELOCITY_CALCULATION_INTERVAL = 100; // 速度计算间隔（毫秒）
-    private static final double BASE_THRESHOLD = 5.0; // 基础阈值（像素）
+    private static final int BASE_THRESHOLD = 5; // 基础阈值（像素）
     private static final double VELOCITY_FACTOR = 0.1; // 速度因子
     private static final long ANTI_FALSE_TRIGGER_TIME = 100; // 防误触时间（毫秒）
-    private static final double IGNORE_BUFFER_ZONE = 165.0; // 忽略中间区域（像素）
+    private static final int IGNORE_BUFFER_ZONE = 165; // 忽略中间区域（像素）
 
     // 鼠标位置和时间记录
     private static double lastX = 0;
@@ -77,7 +77,7 @@ public class MouseEdgeDetector {
      *
      * @return 如果鼠标在屏幕边缘且满足触发条件，返回将被唤醒鼠标的ScreenInfo对象，否则返回null
      */
-    public static ScreenInfo isAtScreenEdge(double x,double y) {
+    public static ScreenInfo isAtScreenEdge(int x,int y) {
 //            logger.debug("检查鼠标边缘检测: 位置=(" + x + ", " + y + ")");
 
             // 计算鼠标速度
@@ -128,15 +128,12 @@ public class MouseEdgeDetector {
 
                 // 检查是否为相邻屏幕
                 if (isAdjacentScreen(currentScreen, screen)) {
-                    logger.debug("发现相邻屏幕: " + screen.getDeviceIp() + ":" + screen.getScreenName());
+//                    logger.debug("发现相邻屏幕: " + screen.getDeviceIp() + ":" + screen.getScreenName());
 
                     // 检查鼠标是否在当前屏幕的边缘，并且接近相邻屏幕
                     EdgeDirection direction = getEdgeDirection(x, y, currentScreen, threshold);
 
-
                     if (direction != EdgeDirection.NONE) {
-                        logger.debug("鼠标在当前屏幕的边缘方向: " + direction);
-
                         // 检查是否接近相邻屏幕
                         if (isCloseToAdjacentScreen(x, y, currentScreen, screen, direction, threshold)) {
                             targetScreen = screen;
@@ -155,12 +152,12 @@ public class MouseEdgeDetector {
 
                 // 检查是否满足触发条件（防误触）
                 boolean shouldTrigger = shouldTriggerEdgeTransition(targetScreenId, currentTime);
-                logger.debug("相邻屏幕 " + targetScreen.getDeviceIp() + ":" + targetScreen.getScreenName() +
-                        " 是否满足触发条件: " + shouldTrigger);
+//                logger.debug("相邻屏幕 " + targetScreen.getDeviceIp() + ":" + targetScreen.getScreenName() +
+//                        " 是否满足触发条件: " + shouldTrigger);
 
                 if (shouldTrigger) {
-                    logger.info("当前鼠标位置:["+x+","+y+"],鼠标方向:"+targetDirection+"-----触发边缘检测，将唤醒设备: " + targetScreen.getDeviceIp() +
-                            " 屏幕: " + targetScreen.getScreenName());
+//                    logger.info("当前鼠标位置:["+x+","+y+"],鼠标方向:"+targetDirection+"-----触发边缘检测，将唤醒设备: " + targetScreen.getDeviceIp() +
+//                            " 屏幕: " + targetScreen.getScreenName());
                     // 更新最后位置和时间
                     lastX = x;
                     lastY = y;
@@ -188,7 +185,7 @@ public class MouseEdgeDetector {
      * @param currentTime 当前时间
      * @return 鼠标移动速度（像素/毫秒）
      */
-    private static double calculateVelocity(double x, double y, long currentTime) {
+    private static double calculateVelocity(int x, int y, long currentTime) {
         if (lastTime == 0) {
             return 0; // 第一次调用，无法计算速度
         }
@@ -262,21 +259,22 @@ public class MouseEdgeDetector {
         double top = screen.getVy();
         double bottom = screen.getVy() + screen.getHeight();
 
-        logger.debug("获取边缘方向: x=" + x + ", y=" + y + ", 屏幕边界: left=" + left +
-                  ", right=" + right + ", top=" + top + ", bottom=" + bottom + ", 阈值=" + threshold);
-
         // 检查具体在哪个边缘
         if (x <= left + threshold) {
-            logger.debug("在左边缘");
+//            logger.debug("左---边缘方向: x=" + x + ", y=" + y + ", 屏幕边界: left=" + left +
+//                  ", right=" + right + ", top=" + top + ", bottom=" + bottom + ", 阈值=" + threshold);
             return EdgeDirection.LEFT;
         } else if (x >= right - threshold) {
-            logger.debug("在右边缘");
+//            logger.debug("右---边缘方向: x=" + x + ", y=" + y + ", 屏幕边界: left=" + left +
+//                    ", right=" + right + ", top=" + top + ", bottom=" + bottom + ", 阈值=" + threshold);
             return EdgeDirection.RIGHT;
         } else if (y <= top + threshold) {
-            logger.debug("在上边缘");
+//            logger.debug("上---边缘方向: x=" + x + ", y=" + y + ", 屏幕边界: left=" + left +
+//                    ", right=" + right + ", top=" + top + ", bottom=" + bottom + ", 阈值=" + threshold);
             return EdgeDirection.TOP;
         } else if (y >= bottom - threshold) {
-            logger.debug("在下边缘");
+//            logger.debug("下---边缘方向: x=" + x + ", y=" + y + ", 屏幕边界: left=" + left +
+//                    ", right=" + right + ", top=" + top + ", bottom=" + bottom + ", 阈值=" + threshold);
             return EdgeDirection.BOTTOM;
         }
 

@@ -8,6 +8,8 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Logger;
 
 /**
@@ -24,6 +26,7 @@ public class ControlRequestManager {
     private Window parentWindow;
     private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     private final DeviceStorage deviceStorage = DeviceStorage.getInstance();
+
 
     public ControlRequestManager(DeviceDiscovery deviceDiscovery) {
         this.deviceDiscovery = deviceDiscovery;
@@ -175,17 +178,6 @@ public class ControlRequestManager {
             logger.info("已发送控制请求到客户端: " + targetIpAddress + ", 事件类型: " + event.getType());
         } else {
             logger.warning("控制服务器未启动，无法发送控制请求到客户端: " + targetIpAddress);
-        }
-    }
-
-    /**
-     * 客户端发送消息给服务器
-     *
-     */
-    public void sendMouseEdgeCheckEvent(ControlEvent event){
-        if(controlClient !=  null){
-            controlClient.sendMouseEdgeCheckEvent(event);
-            logger.info("已发送鼠标边缘检测到控制中心: " + event);
         }
     }
 

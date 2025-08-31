@@ -22,5 +22,7 @@ public interface MouseKeyBoard {
 
     void stopMouseKeyController();
 
+    boolean isEdgeMode();
+
     void stopEdgeDetection();
 }

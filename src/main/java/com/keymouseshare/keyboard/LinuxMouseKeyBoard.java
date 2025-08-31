@@ -266,4 +266,9 @@ public class LinuxMouseKeyBoard implements MouseKeyBoard {
     public void stopEdgeDetection() {
 
     }
+
+    @Override
+    public boolean isEdgeMode() {
+        return false;
+    }
 }

@@ -21,6 +21,9 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
@@ -39,6 +42,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
     private MouseKeyBoard mouseKeyBoard;
     private DeviceStorage deviceStorage  = DeviceStorage.getInstance();
     private VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+    private ScheduledExecutorService mouseMoveScheduledExecutor;
 
 
     public static void main(String[] args) {
@@ -253,10 +257,12 @@ public class MainApplication extends Application implements DeviceListener, Virt
                 }
             });
             // TODO 且是控制器屏幕激活时才更新鼠标位置
-            if(virtualDesktopStorage.isApplyVirtualDesktopScreen()){
+            if(virtualDesktopStorage.isApplyVirtualDesktopScreen()&&!mouseKeyBoard.isEdgeMode()){
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
                 //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
-                virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx()+ x-vScreenInfo.getDx(),vScreenInfo.getVy()+y-vScreenInfo.getDy());
+                if(vScreenInfo!=null){
+                    virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx()+ x-vScreenInfo.getDx(),vScreenInfo.getVy()+y-vScreenInfo.getDy());
+                }
             }
         });
         jNativeHookInputMonitor.startMonitoring();
@@ -300,6 +306,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
         virtualDesktopStorage.setApplyVirtualDesktopScreen(false);
         mouseKeyBoard.stopMouseKeyController();
 
+        stopMouseMoveEvent();
         System.out.println("应用程序已停止");
     }
 
@@ -315,20 +322,43 @@ public class MainApplication extends Application implements DeviceListener, Virt
         screenMap.keySet().forEach(screen -> {
             ScreenInfo screenInfo = virtualDesktopStorage.getScreens().get(screenMap.get(screen));
             // 更新屏幕在画布中的位置
-            screenInfo.setMx(screen.getBoundsInParent().getMinX());
-            screenInfo.setMy(screen.getBoundsInParent().getMinY());
+            screenInfo.setMx((int) screen.getBoundsInParent().getMinX());
+            screenInfo.setMy((int) screen.getBoundsInParent().getMinY());
             // 更新屏幕在虚拟桌面中的位置
-            screenInfo.setVx(screen.getBoundsInParent().getMinX()*scale);
-            screenInfo.setVy(screen.getBoundsInParent().getMinY()*scale);
+            screenInfo.setVx((int) (screen.getBoundsInParent().getMinX()*scale));
+            screenInfo.setVy((int) (screen.getBoundsInParent().getMinY()*scale));
             System.out.println(screenInfo.getVx()+"-----"+screenInfo.getVy());
             virtualDesktopStorage.applyScreen(screenInfo);
         });
+
         virtualDesktopStorage.setApplyVirtualDesktopScreen(true);
 
         // 初始化鼠标在虚拟桌面中的位置、更新当前激活的虚拟屏幕
         mouseKeyBoard.initVirtualMouseLocation();
 
+        this.startMouseMoveEvent();
+
         // 开启鼠标位置检测控制
         mouseKeyBoard.startMouseKeyController();
+
+
+    }
+
+    private void startMouseMoveEvent(){
+        mouseMoveScheduledExecutor = new ScheduledThreadPoolExecutor(1);
+        mouseMoveScheduledExecutor.scheduleAtFixedRate(() -> {
+            if(virtualDesktopStorage.isApplyVirtualDesktopScreen()){
+                ScreenInfo screenInfo = virtualDesktopStorage.getActiveScreen();
+                if (!screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress()) && mouseKeyBoard.isEdgeMode()) {
+                    controlRequestManager.sendControlRequest(virtualDesktopStorage.getActiveScreen().getDeviceIp(), new ControlEvent(ControlEventType.MouseMoved.name(),
+                            virtualDesktopStorage.getMouseLocation()[0]-screenInfo.getVx(),
+                            virtualDesktopStorage.getMouseLocation()[1]-screenInfo.getVy()));
+                }
+            }
+        }, 0, 5, TimeUnit.MILLISECONDS);
+    }
+
+    private void stopMouseMoveEvent(){
+        mouseMoveScheduledExecutor.shutdown();
     }
 }

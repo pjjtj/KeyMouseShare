@@ -27,9 +27,9 @@ public class VirtualDesktopStorage {
     /**
      * 鼠标位置[x,y]
      */
-    private double[] mouseLocation = new double[2];
+    private int[] mouseLocation = new int[2];
 
-    public void setActiveScreen(ScreenInfo activeScreen) {
+    public synchronized void setActiveScreen(ScreenInfo activeScreen) {
         this.activeScreen = activeScreen;
     }
 
@@ -37,18 +37,24 @@ public class VirtualDesktopStorage {
         return activeScreen;
     }
 
-    public synchronized void moveMouseLocation(double dx, double dy) {
+    public synchronized void moveMouseLocation(int dx, int dy) {
+        // 锁定鼠标在当前虚拟屏幕内，防止鼠标快速移动跳出屏幕
+        if(this.mouseLocation[0]+dx<activeScreen.getVx()
+                ||this.mouseLocation[0]+dx>activeScreen.getVx()+activeScreen.getWidth()
+                ||this.mouseLocation[1]+dy<activeScreen.getVy()
+                ||this.mouseLocation[1]+dy>activeScreen.getVy()+activeScreen.getHeight()){
+            return;
+        }
         this.mouseLocation[0] += dx;
         this.mouseLocation[1] += dy;
-        this.mouseLocation =  new double[]{this.mouseLocation[0], this.mouseLocation[1]};
+        this.mouseLocation =  new int[]{this.mouseLocation[0], this.mouseLocation[1]};
     }
 
-    public void setMouseLocation(double dx, double dy) {
-        this.mouseLocation[0] = dx;
-        this.mouseLocation[1] = dy;
+    public synchronized void setMouseLocation(int dx, int dy) {
+        this.mouseLocation =  new int[]{dx, dy};
     }
 
-    public double[] getMouseLocation() {
+    public int[] getMouseLocation() {
         return mouseLocation;
     }
 
@@ -76,7 +82,7 @@ public class VirtualDesktopStorage {
     }
 
     // 坐标转换服务
-//    public ScreenCoordinate translate(double globalX, double globalY) {
+//    public ScreenCoordinate translate(int globalX, int globalY) {
 //        return screens.values().parallelStream()
 //                .filter(s -> s.virtualContains(globalX, globalY))
 //                .findFirst()
@@ -89,10 +95,10 @@ public class VirtualDesktopStorage {
 //    }
 
 //    private void recalculateBounds() {
-//        double minX = Integer.MAX_VALUE;
-//        double minY = Integer.MAX_VALUE;
-//        double maxX = Integer.MIN_VALUE;
-//        double maxY = Integer.MIN_VALUE;
+//        int minX = Integer.MAX_VALUE;
+//        int minY = Integer.MAX_VALUE;
+//        int maxX = Integer.MIN_VALUE;
+//        int maxY = Integer.MIN_VALUE;
 //
 //        for (ScreenInfo screen : screens.values()) {
 //            minX = Math.min(minX, screen.getVx());

@@ -7,8 +7,8 @@ public class ControlEvent {
     private String deviceIp;
     private String screenName;
     private String type;
-    private double x;
-    private double y;
+    private int x;
+    private int y;
     private int button;
     private int keyCode;
     private String data;
@@ -16,7 +16,7 @@ public class ControlEvent {
     public ControlEvent() {
     }
 
-    public ControlEvent(String type, double x, double y) {
+    public ControlEvent(String type, int x, int y) {
         this.type = type;
         this.x = x;
         this.y = y;
@@ -42,19 +42,19 @@ public class ControlEvent {
         this.type = type;
     }
 
-    public double getX() {
+    public int getX() {
         return x;
     }
 
-    public void setX(double x) {
+    public void setX(int x) {
         this.x = x;
     }
 
-    public double getY() {
+    public int getY() {
         return y;
     }
 
-    public void setY(double y) {
+    public void setY(int y) {
         this.y = y;
     }
 

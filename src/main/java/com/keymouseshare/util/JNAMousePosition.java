@@ -72,14 +72,14 @@ public class JNAMousePosition {
      */
     @Structure.FieldOrder({"x", "y"})
     public static class CGPoint extends Structure {
-        public double x;
-        public double y;
+        public int x;
+        public int y;
         
         public CGPoint() {
             super();
         }
         
-        public CGPoint(double x, double y) {
+        public CGPoint(int x, int y) {
             super();
             this.x = x;
             this.y = y;

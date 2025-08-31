@@ -2,6 +2,8 @@ package com.keymouseshare.network;
 
 import com.keymouseshare.bean.ControlEvent;
 import com.keymouseshare.bean.ControlEventType;
+import com.keymouseshare.keyboard.MouseKeyBoard;
+import com.keymouseshare.keyboard.MouseKeyBoardFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
@@ -12,6 +14,7 @@ import java.util.logging.Logger;
  */
 public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEvent> {
     private static final Logger logger = Logger.getLogger(ControlClientHandler.class.getName());
+    private MouseKeyBoard mouseKeyBoard = MouseKeyBoardFactory.getFactory();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
@@ -25,6 +28,7 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
         // 这里可以添加具体的事件处理逻辑
         if(event.getType().equals(ControlEventType.MouseMoved.name())){
             logger.info("鼠标移动到: " + event.getX() + ", " + event.getY());
+            mouseKeyBoard.mouseMove(event.getX(), event.getY());
         }
     }
 

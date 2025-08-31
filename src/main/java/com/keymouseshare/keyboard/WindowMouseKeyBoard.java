@@ -20,6 +20,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
 import static com.keymouseshare.util.KeyBoardUtils.getMouseEventFlags;
@@ -68,8 +70,8 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
             public HWND hwndTarget;
 
             @Override
-            protected java.util.List<String> getFieldOrder() {
-                return java.util.Arrays.asList("usUsagePage", "usUsage", "dwFlags", "hwndTarget");
+            protected List<String> getFieldOrder() {
+                return Arrays.asList("usUsagePage", "usUsage", "dwFlags", "hwndTarget");
             }
         }
 
@@ -81,8 +83,8 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
             public WPARAM wParam;
 
             @Override
-            protected java.util.List<String> getFieldOrder() {
-                return java.util.Arrays.asList("dwType", "dwSize", "hDevice", "wParam");
+            protected List<String> getFieldOrder() {
+                return Arrays.asList("dwType", "dwSize", "hDevice", "wParam");
             }
         }
 
@@ -97,8 +99,8 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
             public int ulExtraInformation;
 
             @Override
-            protected java.util.List<String> getFieldOrder() {
-                return java.util.Arrays.asList("usFlags", "usButtonFlags", "usButtonData", "ulRawButtons",
+            protected List<String> getFieldOrder() {
+                return Arrays.asList("usFlags", "usButtonFlags", "usButtonData", "ulRawButtons",
                         "lLastX", "lLastY", "ulExtraInformation");
             }
         }
@@ -109,8 +111,8 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
             public User32Ex.RAWMOUSE mouse; // 注意：这里使用mouse而不是data
 
             @Override
-            protected java.util.List<String> getFieldOrder() {
-                return java.util.Arrays.asList("header", "mouse");
+            protected List<String> getFieldOrder() {
+                return Arrays.asList("header", "mouse");
             }
 
             public RAWINPUT() {
@@ -306,23 +308,24 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
         if (virtualDesktopStorage.getActiveScreen() == null) {
             return;
         }
-        double x = virtualDesktopStorage.getMouseLocation()[0];
-        double y = virtualDesktopStorage.getMouseLocation()[1];
+        int x = virtualDesktopStorage.getMouseLocation()[0];
+        int y = virtualDesktopStorage.getMouseLocation()[1];
         ScreenInfo screenInfo = MouseEdgeDetector.isAtScreenEdge(x, y);
         if (screenInfo != null) {
             // 更新激活屏幕
             if(!(screenInfo.getDeviceIp()+screenInfo.getScreenName()).equals(virtualDesktopStorage.getActiveScreen().getDeviceIp()+virtualDesktopStorage.getActiveScreen().getScreenName())){
                 System.out.println("激活设备："+screenInfo.getDeviceIp()+",屏幕："+screenInfo.getScreenName());
                 virtualDesktopStorage.setActiveScreen(screenInfo);
-            }
-            System.out.println("检查鼠标边缘检测:  位置=(" + x + ", " + y + "),检测到边缘设备："+screenInfo.getDeviceIp()+",屏幕："+screenInfo.getScreenName());
-            // 如果是当前设备进行鼠标控制
-            if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
-                cleanup();
-                exitEdgeMode();
-            } else {
-                if (!edgeMode) {
-                    enterEdgeMode();
+                // 如果是当前设备进行鼠标控制
+                if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
+                    System.out.println("当前设备是控制器，需要退出鼠标隐藏");
+                    cleanup();
+                    exitEdgeMode();
+                } else {
+                    if (!edgeMode) {
+                        System.out.println("当前设备是控制器，需要隐藏鼠标");
+                        enterEdgeMode();
+                    }
                 }
             }
         }
@@ -340,6 +343,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
         wclx = new WNDCLASSEX();
         wclx.cbSize = wclx.size();
         wclx.style = 0;
+        edgeMode = false;
 
         wclx.lpfnWndProc = new WinUser.WindowProc() {
             @Override
@@ -459,6 +463,11 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
+    public boolean isEdgeMode() {
+        return edgeMode;
+    }
+
+    @Override
     public void stopEdgeDetection() {
         edgeWatcherExecutor.close();
     }
@@ -488,6 +497,9 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
             };
         }catch (Throwable ignored){
 
+        }
+        if(edgeMode){
+            exitEdgeMode();
         }
 
         System.out.println("[CLEAN] resources released.");
@@ -545,11 +557,11 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
             if (dx != 0 || dy != 0) {
                 // ★ 关键：即便 ClipCursor 锁住了系统光标，Raw Input 仍提供硬件相对位移
-//                System.out.print(System.currentTimeMillis() + "\t" + virtualDesktopStorage.getActiveScreen().getDeviceIp());
-//                System.out.print("[" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1] + ']');
+                System.out.print(System.currentTimeMillis() + "\t" + virtualDesktopStorage.getActiveScreen().getDeviceIp());
+                System.out.print("[" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1] + ']');
                 virtualDesktopStorage.moveMouseLocation(dx, dy);
-//                System.out.printf("\t[RAW] dx=%d, dy=%d", dx, dy);
-//                System.out.println("\t[" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1] + ']');
+                System.out.printf("\t[RAW] dx=%d, dy=%d", dx, dy);
+                System.out.println("\t[" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1] + ']');
             }
         }
     }

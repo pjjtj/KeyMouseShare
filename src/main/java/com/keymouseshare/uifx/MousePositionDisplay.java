@@ -53,9 +53,9 @@ public class MousePositionDisplay extends HBox {
      * @param x X坐标
      * @param y Y坐标
      */
-    public void updateMousePosition(double x, double y) {
-        xPositionLabel.setText("X: " + String.format("%.0f", x));
-        yPositionLabel.setText("Y: " + String.format("%.0f", y));
+    public void updateMousePosition(int x, int y) {
+        xPositionLabel.setText("X: " + x);
+        yPositionLabel.setText("Y: " + y);
         
         // 使用JavaFX获取更准确的鼠标位置和屏幕信息
         updateScreenInfo(x, y);
@@ -64,7 +64,7 @@ public class MousePositionDisplay extends HBox {
     /**
      * 使用JavaFX获取并更新屏幕信息
      */
-    public void updateScreenInfo(double x, double y) {
+    public void updateScreenInfo(int x, int y) {
         // 获取所有屏幕信息
         List<javafx.stage.Screen> screens = javafx.stage.Screen.getScreens();
         javafx.stage.Screen targetScreen = null;
@@ -93,15 +93,15 @@ public class MousePositionDisplay extends HBox {
         Rectangle2D visualBounds = targetScreen.getVisualBounds();
         
         // 计算相对于屏幕的位置
-        double screenX = x - bounds.getMinX();
-        double screenY = y - bounds.getMinY();
+        int screenX = x - (int)bounds.getMinX();
+        int screenY = y - (int)bounds.getMinY();
         
         // 尝试获取真实的屏幕分辨率
         String resolutionInfo = getRealScreenResolution(targetScreenIndex);
         
         // 显示更详细的信息，包括屏幕分辨率和完整坐标空间信息
-        screenPositionLabel.setText(String.format("(屏幕%d: %.0f, %.0f of %s)", 
-            targetScreenIndex + 1, screenX, screenY, resolutionInfo));
+        screenPositionLabel.setText(
+            targetScreenIndex + 1+":("+ screenX+","+ screenY+","+ resolutionInfo+")");
     }
     
     /**
@@ -147,7 +147,7 @@ public class MousePositionDisplay extends HBox {
      * @param y Y坐标
      * @param screenName 屏幕名称
      */
-    public void updateMousePosition(double x, double y, String screenName) {
+    public void updateMousePosition(int x, int y, String screenName) {
         xPositionLabel.setText("X: " + String.format("%.0f", x));
         yPositionLabel.setText("Y: " + String.format("%.0f", y));
         screenPositionLabel.setText(String.format("(屏幕: %s)", screenName));

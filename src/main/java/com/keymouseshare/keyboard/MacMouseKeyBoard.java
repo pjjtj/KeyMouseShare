@@ -70,8 +70,8 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
 
     // macOS CGPoint结构体
     public static class CGPoint extends com.sun.jna.Structure {
-        public double x;
-        public double y;
+        public int x;
+        public int y;
 
         @Override
         protected java.util.List<String> getFieldOrder() {
@@ -82,7 +82,7 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
             super();
         }
 
-        public CGPoint(double x, double y) {
+        public CGPoint(int x, int y) {
             super();
             this.x = x;
             this.y = y;
@@ -268,5 +268,10 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     @Override
     public void stopEdgeDetection() {
 
+    }
+
+    @Override
+    public boolean isEdgeMode() {
+        return false;
     }
 }

@@ -23,6 +23,7 @@ import javafx.scene.transform.Scale;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,14 +34,17 @@ public class ScreenPreviewUI extends VBox {
 
     private static final Logger logger = Logger.getLogger(ScreenPreviewUI.class.getName());
 
-    private int scale = 10;
+    private double scale = 10.0;
     private Pane screenPane;
+    private Circle virtualPoint;
+    private Label virtualPointLabel;
     private Map<StackPane, String> screenMap = new HashMap<>();
     private StackPane draggedScreen = null;
-    private double mouseXOffset = 0;
-    private double mouseYOffset = 0;
+    private int mouseXOffset = 0;
+    private int mouseYOffset = 0;
     private Button saveVirtualDesktopButton = new Button("应用设置");
     private VirtualDesktopStorage virtualDesktopStorage;
+    private ScheduledExecutorService virtualDesktopExecutor = Executors.newScheduledThreadPool(1);
 
     // 缩放相关属性
     private ScrollPane scrollPane;
@@ -92,8 +96,23 @@ public class ScreenPreviewUI extends VBox {
 
         saveVirtualDesktopButton.setOnAction(event -> {
             virtualDesktopStorage.applyVirtualDesktopScreen(screenMap, scale);
+//            virtualDesktopExecutor.scheduleAtFixedRate(this::showVirtualDesktopInfo, 0, 5, TimeUnit.MILLISECONDS);
         });
     }
+
+//    private void showVirtualDesktopInfo() {
+//        if(virtualDesktopStorage.getActiveScreen()!= null){
+//            virtualPoint.setLayoutX(virtualDesktopStorage.getMouseLocation()[0]/scale);
+//            virtualPoint.setLayoutY(virtualDesktopStorage.getMouseLocation()[1]/scale);
+//            virtualPointLabel.setText(String.format("(%.2f, %.2f)",virtualDesktopStorage.getMouseLocation()[0],virtualDesktopStorage.getMouseLocation()[1]));
+//            virtualPointLabel.setLayoutX(virtualDesktopStorage.getMouseLocation()[0]/scale);
+//            virtualPointLabel.setLayoutY(virtualDesktopStorage.getMouseLocation()[1]/scale);
+//            virtualPoint.setVisible(true);
+//            virtualPointLabel.setVisible(true);
+//        }
+//    }
+
+
     
     /**
      * 处理鼠标滚轮事件实现缩放功能
@@ -146,8 +165,8 @@ public class ScreenPreviewUI extends VBox {
 
     private void addScreenItem(ScreenInfo screenInfo, boolean isSelected) {
         // 创建屏幕预览框，根据实际屏幕尺寸设置大小
-        double screenWidth = screenInfo.getWidth() / scale; // 缩放比例，最小100像素
-        double screenHeight = screenInfo.getHeight() / scale; // 缩放比例，最小80像素
+        int screenWidth = (int) (screenInfo.getWidth() / scale); // 缩放比例，最小100像素
+        int screenHeight = (int) (screenInfo.getHeight() / scale); // 缩放比例，最小80像素
         Rectangle screenRect = new Rectangle(screenWidth, screenHeight);
 //        screenRect.setArcWidth(10);
 //        screenRect.setArcHeight(10);
@@ -187,13 +206,14 @@ public class ScreenPreviewUI extends VBox {
         // 创建包含容器，使标签悬浮在屏幕上
         StackPane screenContainer = new StackPane();
         screenContainer.setStyle("-fx-background-color: grey;");
-        screenContainer.setPrefSize(screenWidth, screenHeight);
-        screenContainer.getChildren().addAll(screenRect, centerPoint, centerLabel, screenLabel);
+        screenContainer.setMinSize(screenWidth, screenHeight);
+        screenContainer.setMaxSize(screenWidth, screenHeight);
+        screenContainer.getChildren().addAll(screenRect, centerPoint,screenLabel,centerLabel);
+        screenContainer.setStyle("-fx-padding: 0;");
         StackPane.setAlignment(screenRect, Pos.TOP_LEFT);
         StackPane.setAlignment(centerPoint, Pos.CENTER); // 中心点居中
         StackPane.setAlignment(screenLabel, Pos.CENTER);
         StackPane.setAlignment(centerLabel, Pos.TOP_CENTER); // 坐标标签在顶部居中
-        System.out.println("--------------------------("+screenContainer.getWidth()+","+screenContainer.getHeight()+")");
 
         // 添加鼠标悬停事件来显示/隐藏中心点坐标
         screenContainer.setOnMouseEntered(e -> {
@@ -201,11 +221,9 @@ public class ScreenPreviewUI extends VBox {
 
             // 获取屏幕容器的中心点坐标
             Bounds bounds = screenContainer.getBoundsInParent();
-//            double centerX = bounds.getMinX() + bounds.getWidth() / 2;
-//            double centerY = bounds.getMinY() + bounds.getHeight() / 2;
 
             // 更新坐标标签文本
-            centerLabel.setText(String.format("(%.4f, %.4f, %.4f, %.4f)", bounds.getMinX(),  bounds.getMinY(), bounds.getWidth(), bounds.getHeight()));
+            centerLabel.setText(String.format("(%.0f, %.0f, %.0f, %.0f)", bounds.getMinX(),  bounds.getMinY(), bounds.getWidth(), bounds.getHeight()));
         });
 
         screenContainer.setOnMouseExited(e -> centerLabel.setVisible(false));
@@ -225,7 +243,15 @@ public class ScreenPreviewUI extends VBox {
         }
 
         // 添加到面板和映射中
-        screenPane.getChildren().add(screenContainer);
+
+        // 创建虚拟鼠标标记
+        virtualPoint = new Circle(3, Color.BLACK);
+        virtualPoint.setVisible(false);
+        // 创建中心点坐标标签
+        virtualPointLabel = new Label();
+        centerLabel.setStyle("-fx-font-size: 8px; -fx-text-fill: black; -fx-font-weight: bold;");
+        centerLabel.setVisible(false); // 默认不显示坐标
+        screenPane.getChildren().addAll(screenContainer,virtualPoint,virtualPointLabel);
 
         screenMap.put(screenContainer, screenInfo.getDeviceIp()+screenInfo.getScreenName());
     }
@@ -237,10 +263,10 @@ public class ScreenPreviewUI extends VBox {
     private void adjustPositionToAvoidOverlap(StackPane screenContainer) {
         // 获取当前屏幕的边界
         Bounds currentBounds = screenContainer.getBoundsInParent();
-        double currentX = currentBounds.getMinX();
-        double currentY = currentBounds.getMinY();
-        double currentWidth = currentBounds.getWidth();
-        double currentHeight = currentBounds.getHeight();
+        int currentX = (int) currentBounds.getMinX();
+        int currentY = (int) currentBounds.getMinY();
+        int currentWidth = (int) currentBounds.getWidth();
+        int currentHeight = (int) currentBounds.getHeight();
         
         boolean hasOverlap;
         do {
@@ -306,16 +332,16 @@ public class ScreenPreviewUI extends VBox {
         screenContainer.setOnMousePressed((MouseEvent event) -> {
             // 记录被拖拽的屏幕和鼠标位置
             draggedScreen = screenContainer;
-            mouseXOffset = event.getSceneX() - screenContainer.getLayoutX();
-            mouseYOffset = event.getSceneY() - screenContainer.getLayoutY();
+            mouseXOffset = (int) (event.getSceneX() - screenContainer.getLayoutX());
+            mouseYOffset = (int) (event.getSceneY() - screenContainer.getLayoutY());
             event.consume();
         });
 
         screenContainer.setOnMouseDragged((MouseEvent event) -> {
             if (draggedScreen != null) {
                 // 计算新位置
-                double newX = event.getSceneX() - mouseXOffset;
-                double newY = event.getSceneY() - mouseYOffset;
+                int newX = (int) (event.getSceneX() - mouseXOffset);
+                int newY = (int) (event.getSceneY() - mouseYOffset);
 
                 logger.log(Level.FINE, "Mouse dragged to (" + event.getSceneX() + ", " + event.getSceneY() +
                         "), calculating new position (" + newX + ", " + newY + ")");
@@ -336,27 +362,27 @@ public class ScreenPreviewUI extends VBox {
      * @param screen 被拖拽的屏幕
      * @return 应用了实时吸附的坐标数组 [x, y]
      */
-    private void performRealTimeSnapping(StackPane screen,double newX,double newY) {
+    private void performRealTimeSnapping(StackPane screen,int newX,int newY) {
         Bounds screenBounds = screen.getBoundsInParent();
         String sourceScreenName = screenMap.get(screen);
 
         // 获取屏幕的实际宽度和高度
-        double screenActualWidth = screenBounds.getWidth();
-        double screenActualHeight = screenBounds.getHeight();
+        int screenActualWidth = (int) screenBounds.getWidth();
+        int screenActualHeight = (int) screenBounds.getHeight();
 
         // 计算当前屏幕在容器中的位置
-        double screenContainerX = screenBounds.getMinX();
-        double screenContainerY = screenBounds.getMinY();
+        int screenContainerX = (int) screenBounds.getMinX();
+        int screenContainerY = (int) screenBounds.getMinY();
 
         // 计算当前屏幕的中心点
-        double screenCenterX = screenContainerX + screenActualWidth / 2;
-        double screenCenterY = screenContainerY + screenActualHeight / 2;
+        int screenCenterX = screenContainerX + screenActualWidth / 2;
+        int screenCenterY = screenContainerY + screenActualHeight / 2;
 
         // 计算当前屏幕的四条边
-        double screenLeft = screenContainerX;
-        double screenRight = screenContainerX + screenActualWidth;
-        double screenTop = screenContainerY;
-        double screenBottom = screenContainerY + screenActualHeight;
+        int screenLeft = screenContainerX;
+        int screenRight = screenContainerX + screenActualWidth;
+        int screenTop = screenContainerY;
+        int screenBottom = screenContainerY + screenActualHeight;
 
         // 第一步：遍历获取一个中心距离最近，且不存在重叠的目标矩形
         StackPane bestTarget = null;
