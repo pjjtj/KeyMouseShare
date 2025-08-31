@@ -1,5 +1,9 @@
 package com.keymouseshare.keyboard;
 
+import com.keymouseshare.bean.DeviceStorage;
+import com.keymouseshare.bean.ScreenInfo;
+import com.keymouseshare.bean.VirtualDesktopStorage;
+import com.keymouseshare.util.MouseEdgeDetector;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
@@ -7,6 +11,9 @@ import com.sun.jna.Pointer;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,7 +29,12 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         return INSTANCE;
     }
 
+    private final DeviceStorage deviceStorage = DeviceStorage.getInstance();
+    private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+    private ScheduledExecutorService edgeWatcherExecutor;
+
     private Robot robot;
+    private static volatile boolean edgeMode = false;
 
     // macOS CoreGraphics API接口
     public interface CoreGraphics extends Library {
@@ -66,12 +78,26 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
          * @param event 事件指针
          */
         void CFRelease(Pointer event);
+        
+        /**
+         * 创建事件
+         * @param source 事件源
+         * @return 事件指针
+         */
+        Pointer CGEventCreate(Pointer source);
+        
+        /**
+         * 获取事件位置
+         * @param event 事件指针
+         * @return 位置点
+         */
+        MacMouseKeyBoard.CGPoint CGEventGetLocation(Pointer event);
     }
 
     // macOS CGPoint结构体
     public static class CGPoint extends com.sun.jna.Structure {
-        public int x;
-        public int y;
+        public double x;
+        public double y;
 
         @Override
         protected java.util.List<String> getFieldOrder() {
@@ -82,12 +108,26 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
             super();
         }
 
-        public CGPoint(int x, int y) {
+        public CGPoint(double x, double y) {
             super();
             this.x = x;
             this.y = y;
         }
     }
+
+    // macOS事件类型常量
+    private static final int kCGEventMouseMoved = 1;
+    private static final int kCGEventLeftMouseDown = 1;
+    private static final int kCGEventLeftMouseUp = 2;
+    private static final int kCGEventRightMouseDown = 3;
+    private static final int kCGEventRightMouseUp = 4;
+    private static final int kCGEventOtherMouseDown = 25;
+    private static final int kCGEventOtherMouseUp = 26;
+    
+    private static final int kCGHIDEventTap = 0;
+    private static final int kCGMouseButtonLeft = 0;
+    private static final int kCGMouseButtonRight = 1;
+    private static final int kCGMouseButtonCenter = 2;
 
     public MacMouseKeyBoard() {
         try {
@@ -105,12 +145,16 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
             if (Platform.isMac()) {
                 try {
                     MacMouseKeyBoard.CGPoint point = new MacMouseKeyBoard.CGPoint(x, y);
-                    Pointer event = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, 1, point, 0); // kCGEventMouseMoved
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(0, event); // kCGHIDEventTap
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
-                    return;
+                    Pointer event = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, kCGEventMouseMoved, point, 0); // kCGEventMouseMoved
+                    if (event != null) {
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(kCGHIDEventTap, event); // kCGHIDEventTap
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
+                        return;
+                    }
                 } catch (UnsatisfiedLinkError e) {
                     logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "JNA鼠标移动异常，回退到Robot", e);
                 }
             }
 
@@ -128,13 +172,18 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
             if (Platform.isMac()) {
                 try {
                     int eventType = getMacMouseEventType(button, true);
-                    MacMouseKeyBoard.CGPoint point = new MacMouseKeyBoard.CGPoint(0, 0); // 当前鼠标位置
-                    Pointer event = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, eventType, point, getMacMouseButton(button));
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(0, event); // kCGHIDEventTap
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
-                    return;
+                    int mouseButton = getMacMouseButton(button);
+                    MacMouseKeyBoard.CGPoint point = getCurrentMouseLocation();
+                    Pointer event = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, eventType, point, mouseButton);
+                    if (event != null) {
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(kCGHIDEventTap, event); // kCGHIDEventTap
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
+                        return;
+                    }
                 } catch (UnsatisfiedLinkError e) {
                     logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "JNA鼠标按下异常，回退到Robot", e);
                 }
             }
 
@@ -152,13 +201,18 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
             if (Platform.isMac()) {
                 try {
                     int eventType = getMacMouseEventType(button, false);
-                    MacMouseKeyBoard.CGPoint point = new MacMouseKeyBoard.CGPoint(0, 0); // 当前鼠标位置
-                    Pointer event = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, eventType, point, getMacMouseButton(button));
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(0, event); // kCGHIDEventTap
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
-                    return;
+                    int mouseButton = getMacMouseButton(button);
+                    MacMouseKeyBoard.CGPoint point = getCurrentMouseLocation();
+                    Pointer event = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, eventType, point, mouseButton);
+                    if (event != null) {
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(kCGHIDEventTap, event); // kCGHIDEventTap
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
+                        return;
+                    }
                 } catch (UnsatisfiedLinkError e) {
                     logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "JNA鼠标释放异常，回退到Robot", e);
                 }
             }
 
@@ -176,19 +230,27 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
                 try {
                     MacMouseKeyBoard.CGPoint point = new MacMouseKeyBoard.CGPoint(x, y);
                     // 创建并注入鼠标左键按下事件
-                    Pointer mouseDownEvent = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, 1, point, 0); // kCGEventLeftMouseDown
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(0, mouseDownEvent); // kCGHIDEventTap
+                    Pointer mouseDownEvent = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, kCGEventLeftMouseDown, point, kCGMouseButtonLeft); // kCGEventLeftMouseDown
+                    if (mouseDownEvent != null) {
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(kCGHIDEventTap, mouseDownEvent); // kCGHIDEventTap
 
-                    // 创建并注入鼠标左键释放事件
-                    Pointer mouseUpEvent = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, 2, point, 0); // kCGEventLeftMouseUp
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(0, mouseUpEvent); // kCGHIDEventTap
+                        // 创建并注入鼠标左键释放事件
+                        Pointer mouseUpEvent = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateMouseEvent(null, kCGEventLeftMouseUp, point, kCGMouseButtonLeft); // kCGEventLeftMouseUp
+                        if (mouseUpEvent != null) {
+                            MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(kCGHIDEventTap, mouseUpEvent); // kCGHIDEventTap
 
-                    // 释放事件
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(mouseDownEvent);
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(mouseUpEvent);
-                    return;
+                            // 释放事件
+                            MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(mouseDownEvent);
+                            MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(mouseUpEvent);
+                            return;
+                        } else {
+                            MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(mouseDownEvent);
+                        }
+                    }
                 } catch (UnsatisfiedLinkError e) {
                     logger.log(Level.WARNING, "无法使用JNA注入鼠标事件，回退到Robot", e);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "JNA鼠标点击异常，回退到Robot", e);
                 }
             }
 
@@ -213,11 +275,15 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
                 try {
                     short macKeyCode = convertToMacKeyCode(keyCode);
                     Pointer event = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateKeyboardEvent(null, macKeyCode, true);
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(0, event); // kCGHIDEventTap
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
-                    return;
+                    if (event != null) {
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(kCGHIDEventTap, event); // kCGHIDEventTap
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
+                        return;
+                    }
                 } catch (UnsatisfiedLinkError e) {
                     logger.log(Level.WARNING, "无法使用JNA注入键盘事件，回退到Robot", e);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "JNA键盘按下异常，回退到Robot", e);
                 }
             }
 
@@ -236,11 +302,15 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
                 try {
                     short macKeyCode = convertToMacKeyCode(keyCode);
                     Pointer event = MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventCreateKeyboardEvent(null, macKeyCode, false);
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(0, event); // kCGHIDEventTap
-                    MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
-                    return;
+                    if (event != null) {
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CGEventPost(kCGHIDEventTap, event); // kCGHIDEventTap
+                        MacMouseKeyBoard.CoreGraphics.INSTANCE.CFRelease(event);
+                        return;
+                    }
                 } catch (UnsatisfiedLinkError e) {
                     logger.log(Level.WARNING, "无法使用JNA注入键盘事件，回退到Robot", e);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "JNA键盘释放异常，回退到Robot", e);
                 }
             }
 
@@ -249,29 +319,181 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         }
     }
 
+    /**
+     * 获取当前鼠标位置
+     * @return 当前鼠标位置的CGPoint
+     */
+    private MacMouseKeyBoard.CGPoint getCurrentMouseLocation() {
+        try {
+            Pointer event = CoreGraphics.INSTANCE.CGEventCreate(null);
+            if (event != null) {
+                MacMouseKeyBoard.CGPoint point = CoreGraphics.INSTANCE.CGEventGetLocation(event);
+                CoreGraphics.INSTANCE.CFRelease(event);
+                return point;
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "无法获取当前鼠标位置", e);
+        }
+        // 如果无法获取，返回默认位置(0,0)
+        return new MacMouseKeyBoard.CGPoint(0, 0);
+    }
+
+    /**
+     * 获取macOS鼠标事件类型
+     * @param button 按钮类型
+     * @param isPress 是否按下
+     * @return 对应的事件类型
+     */
+    private int getMacMouseEventType(int button, boolean isPress) {
+        switch (button) {
+            case 1: // 左键
+                return isPress ? kCGEventLeftMouseDown : kCGEventLeftMouseUp;
+            case 2: // 右键
+                return isPress ? kCGEventRightMouseDown : kCGEventRightMouseUp;
+            case 3: // 中键
+                return isPress ? kCGEventOtherMouseDown : kCGEventOtherMouseUp;
+            default:
+                return isPress ? kCGEventLeftMouseDown : kCGEventLeftMouseUp;
+        }
+    }
+
+    /**
+     * 获取macOS鼠标按钮类型
+     * @param button 按钮类型
+     * @return 对应的按钮类型
+     */
+    private int getMacMouseButton(int button) {
+        switch (button) {
+            case 1: // 左键
+                return kCGMouseButtonLeft;
+            case 2: // 右键
+                return kCGMouseButtonRight;
+            case 3: // 中键
+                return kCGMouseButtonCenter;
+            default:
+                return kCGMouseButtonLeft;
+        }
+    }
+
+    private void virtualScreenEdgeCheck() {
+        if (virtualDesktopStorage.getActiveScreen() == null) {
+            return;
+        }
+        int x = virtualDesktopStorage.getMouseLocation()[0];
+        int y = virtualDesktopStorage.getMouseLocation()[1];
+        ScreenInfo screenInfo = MouseEdgeDetector.isAtScreenEdge(x, y);
+        if (screenInfo != null) {
+            // 更新激活屏幕
+            if(!(screenInfo.getDeviceIp()+screenInfo.getScreenName()).equals(virtualDesktopStorage.getActiveScreen().getDeviceIp()+virtualDesktopStorage.getActiveScreen().getScreenName())){
+                System.out.println("激活设备："+screenInfo.getDeviceIp()+",屏幕："+screenInfo.getScreenName());
+                virtualDesktopStorage.setActiveScreen(screenInfo);
+                // 如果是当前设备进行鼠标控制
+                if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
+                    System.out.println("当前设备是控制器，需要退出鼠标隐藏");
+                    exitEdgeMode();
+                } else {
+                    if (!edgeMode) {
+                        System.out.println("当前设备是控制器，需要隐藏鼠标");
+                        enterEdgeMode();
+                    }
+                }
+            }
+        }
+    }
 
     @Override
     public void initVirtualMouseLocation() {
-
+        if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
+            try {
+                MacMouseKeyBoard.CGPoint point = getCurrentMouseLocation();
+                System.out.println(point.x + "," + point.y);
+                
+                // 获取本地设备屏幕坐标系中的鼠标相对位置
+                ScreenInfo screenInfo = deviceStorage.getLocalDevice().getScreens().stream()
+                        .filter(s -> s.localContains((int)point.x, (int)point.y))
+                        .findFirst()
+                        .orElse(null);
+                        
+                // 修改鼠标虚拟桌面所在坐标
+                if (screenInfo != null) {
+                    ScreenInfo vScreenInfo = virtualDesktopStorage.getScreens().get(screenInfo.getDeviceIp() + screenInfo.getScreenName());
+                    // 控制器上更新当前鼠标所在屏幕
+                    virtualDesktopStorage.setActiveScreen(vScreenInfo);
+                    // 控制器上更新虚拟桌面鼠标坐标
+                    virtualDesktopStorage.setMouseLocation(
+                        vScreenInfo.getVx() + (int)point.x - screenInfo.getDx(), 
+                        vScreenInfo.getVy() + (int)point.y - screenInfo.getDy()
+                    );
+                }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "初始化虚拟鼠标位置失败", e);
+            }
+        }
     }
 
     @Override
     public void startMouseKeyController() {
+        if (!Platform.isMac()) {
+            return; // 仅在macOS上实现
+        }
 
+        // 启动边缘监视线程
+        if(edgeWatcherExecutor == null || edgeWatcherExecutor.isTerminated()) {
+            edgeWatcherExecutor = Executors.newScheduledThreadPool(1);
+        }
+        edgeWatcherExecutor.scheduleAtFixedRate(this::virtualScreenEdgeCheck, 0, 5, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void stopMouseKeyController() {
-
+        cleanup();
     }
 
-    @Override
-    public void stopEdgeDetection() {
+    private void enterEdgeMode() {
+        edgeMode = true;
+        System.out.println("[EDGE] Enter edge-mode: hide cursor");
+        // 在macOS中隐藏光标可能需要使用其他方法
+        // 这里可以添加具体的实现
+    }
 
+    private void exitEdgeMode() {
+        if (!edgeMode) return;
+        edgeMode = false;
+        System.out.println("[EDGE] Exit edge-mode: show cursor");
+        // 在macOS中显示光标可能需要使用其他方法
+        // 这里可以添加具体的实现
     }
 
     @Override
     public boolean isEdgeMode() {
-        return false;
+        return edgeMode;
+    }
+
+    @Override
+    public void stopEdgeDetection() {
+        if (edgeWatcherExecutor != null) {
+            edgeWatcherExecutor.shutdown();
+        }
+    }
+
+    private void cleanup() {
+        try {
+            showCursor();
+        } catch (Throwable ignored) {
+        }
+        
+        if (edgeMode) {
+            exitEdgeMode();
+        }
+
+        System.out.println("[CLEAN] resources released.");
+    }
+
+    /**
+     * 显示光标
+     */
+    private void showCursor() {
+        // 在macOS中显示光标的实现
+        // 可能需要使用其他API
     }
 }
