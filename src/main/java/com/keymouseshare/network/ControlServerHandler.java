@@ -1,6 +1,8 @@
 package com.keymouseshare.network;
 
 import com.keymouseshare.bean.*;
+import com.keymouseshare.storage.DeviceStorage;
+import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.NetUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -15,7 +17,7 @@ import java.util.logging.Logger;
 public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEvent> {
     private static final Logger logger = Logger.getLogger(ControlServerHandler.class.getName());
 
-    private final  VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+    private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     
     // 客户端连接映射
     private Map<String, ChannelHandlerContext> clientChannels;

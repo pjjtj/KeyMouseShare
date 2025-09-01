@@ -1,15 +1,15 @@
 package com.keymouseshare.keyboard;
 
-import com.sun.jna.Platform;
 
 public interface MouseKeyBoardFactory {
 
     static MouseKeyBoard getFactory() {
-        if (Platform.isWindows()) {
+        String OS = System.getProperty("os.name").toLowerCase();
+        if (OS.contains("win")) {
             return WindowMouseKeyBoard.getInstance();
-        } else if (Platform.isMac()) {
+        } else if (OS.contains("mac")) {
             return MacMouseKeyBoard.getInstance();
-        } else if (Platform.isLinux()) {
+        } else if (OS.contains("nux")) {
             return LinuxMouseKeyBoard.getInstance();
         }
         throw new UnsupportedOperationException("Unsupported platform");

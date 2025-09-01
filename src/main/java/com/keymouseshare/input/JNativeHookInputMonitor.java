@@ -8,9 +8,6 @@ import com.github.kwhat.jnativehook.mouse.NativeMouseEvent;
 import com.github.kwhat.jnativehook.mouse.NativeMouseListener;
 import com.github.kwhat.jnativehook.mouse.NativeMouseMotionListener;
 import com.keymouseshare.MainApplication;
-import com.keymouseshare.bean.DeviceStorage;
-import com.keymouseshare.bean.ScreenCoordinate;
-import com.keymouseshare.bean.VirtualDesktopStorage;
 
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;

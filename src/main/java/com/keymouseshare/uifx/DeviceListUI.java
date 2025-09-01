@@ -1,7 +1,7 @@
 package com.keymouseshare.uifx;
 
 import com.keymouseshare.bean.DeviceInfo;
-import com.keymouseshare.bean.DeviceStorage;
+import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.DeviceType;
 import com.keymouseshare.network.ControlRequestManager;
 import com.keymouseshare.network.DeviceDiscovery;

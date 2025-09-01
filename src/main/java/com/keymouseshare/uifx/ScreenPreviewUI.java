@@ -1,8 +1,8 @@
 package com.keymouseshare.uifx;
 
-import com.keymouseshare.bean.DeviceStorage;
+import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
-import com.keymouseshare.bean.VirtualDesktopStorage;
+import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.NetUtil;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -23,7 +23,6 @@ import javafx.scene.transform.Scale;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,7 +43,7 @@ public class ScreenPreviewUI extends VBox {
     private int mouseYOffset = 0;
     private Button saveVirtualDesktopButton = new Button("应用设置");
     private VirtualDesktopStorage virtualDesktopStorage;
-    private ScheduledExecutorService virtualDesktopExecutor = Executors.newScheduledThreadPool(1);
+//    private ScheduledExecutorService virtualDesktopExecutor = Executors.newScheduledThreadPool(1);
 
     // 缩放相关属性
     private ScrollPane scrollPane;
@@ -155,8 +154,6 @@ public class ScreenPreviewUI extends VBox {
         if (screens != null) {
             for (Map.Entry<String, ScreenInfo> entry : screens.entrySet()) {
                 ScreenInfo screenInfo = entry.getValue();
-                String screenName = screenInfo.getDeviceIp() + ":" + screenInfo.getScreenName();
-                
                 // 添加屏幕项到面板中
                 addScreenItem(screenInfo, false);
             }
@@ -168,8 +165,6 @@ public class ScreenPreviewUI extends VBox {
         int screenWidth = (int) (screenInfo.getWidth() / scale); // 缩放比例，最小100像素
         int screenHeight = (int) (screenInfo.getHeight() / scale); // 缩放比例，最小80像素
         Rectangle screenRect = new Rectangle(screenWidth, screenHeight);
-//        screenRect.setArcWidth(10);
-//        screenRect.setArcHeight(10);
 
         // 设置屏幕颜色（根据设备IP设置不同颜色）
         String deviceIp = screenInfo.getDeviceIp();

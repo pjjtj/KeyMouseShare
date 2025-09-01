@@ -1,8 +1,10 @@
-package com.keymouseshare.bean;
+package com.keymouseshare.storage;
 
+import com.keymouseshare.bean.DeviceInfo;
+import com.keymouseshare.bean.DeviceType;
+import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.util.NetUtil;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

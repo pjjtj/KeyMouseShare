@@ -1,15 +1,14 @@
 package com.keymouseshare.util;
 
-import com.keymouseshare.bean.DeviceStorage;
+import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
-import com.keymouseshare.bean.VirtualDesktopStorage;
+import com.keymouseshare.storage.VirtualDesktopStorage;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoardFactory;
-import com.sun.jna.platform.win32.User32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,9 +76,10 @@ public class MouseEdgeDetector {
      *
      * @return 如果鼠标在屏幕边缘且满足触发条件，返回将被唤醒鼠标的ScreenInfo对象，否则返回null
      */
-    public static ScreenInfo isAtScreenEdge(int x,int y) {
+    public static ScreenInfo isAtScreenEdge() {
 //            logger.debug("检查鼠标边缘检测: 位置=(" + x + ", " + y + ")");
-
+            int x = virtualDesktopStorage.getMouseLocation()[0];
+            int y = virtualDesktopStorage.getMouseLocation()[1];
             // 计算鼠标速度
             long currentTime = System.currentTimeMillis();
             double velocity = calculateVelocity(x, y, currentTime);

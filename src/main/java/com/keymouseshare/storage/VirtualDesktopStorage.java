@@ -1,5 +1,6 @@
-package com.keymouseshare.bean;
+package com.keymouseshare.storage;
 
+import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.listener.VirtualDesktopStorageListener;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.layout.StackPane;

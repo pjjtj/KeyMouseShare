@@ -8,6 +8,8 @@ import com.keymouseshare.listener.DeviceListener;
 import com.keymouseshare.listener.VirtualDesktopStorageListener;
 import com.keymouseshare.network.ControlRequestManager;
 import com.keymouseshare.network.DeviceDiscovery;
+import com.keymouseshare.storage.DeviceStorage;
+import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.uifx.DeviceListUI;
 import com.keymouseshare.uifx.MousePositionDisplay;
 import com.keymouseshare.uifx.ScreenPreviewUI;
@@ -257,6 +259,8 @@ public class MainApplication extends Application implements DeviceListener, Virt
                     mousePositionDisplay.updateMousePosition(x, y);
                 }
             });
+
+
             // TODO 且是控制器屏幕激活时才更新鼠标位置
             if(virtualDesktopStorage.isApplyVirtualDesktopScreen()&&!mouseKeyBoard.isEdgeMode()){
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
@@ -342,7 +346,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
         // 开启鼠标位置检测控制
         mouseKeyBoard.startMouseKeyController();
 
-
     }
 
     private void startMouseMoveEvent(){
@@ -365,6 +368,8 @@ public class MainApplication extends Application implements DeviceListener, Virt
     }
 
     private void stopMouseMoveEvent(){
-        mouseMoveScheduledExecutor.shutdown();
+        if(mouseMoveScheduledExecutor!=null){
+            mouseMoveScheduledExecutor.shutdown();
+        }
     }
 }
