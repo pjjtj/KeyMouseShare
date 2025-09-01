@@ -7,6 +7,8 @@ import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 import com.github.kwhat.jnativehook.mouse.NativeMouseEvent;
 import com.github.kwhat.jnativehook.mouse.NativeMouseListener;
 import com.github.kwhat.jnativehook.mouse.NativeMouseMotionListener;
+import com.github.kwhat.jnativehook.mouse.NativeMouseWheelEvent;
+import com.github.kwhat.jnativehook.mouse.NativeMouseWheelListener;
 import com.keymouseshare.MainApplication;
 
 import java.util.HashSet;
@@ -19,7 +21,7 @@ import java.util.logging.Level;
  * 基于JNativeHook的键盘鼠标输入监听器
  * 用于监听本地设备的键盘和鼠标事件并打印日志
  */
-public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseListener, NativeMouseMotionListener {
+public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseListener, NativeMouseMotionListener, NativeMouseWheelListener {
     private static final Logger logger = Logger.getLogger(JNativeHookInputMonitor.class.getName());
     
     // 用于跟踪当前按下的键
@@ -43,6 +45,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         void onMouseRelease(int button, int x, int y);
         void onMouseClick(int button, int x, int y);
         void onMouseDrag(int x, int y);
+        void onMouseWheel(int rotation, int x, int y); // 添加滚轮事件
     }
 
     public JNativeHookInputMonitor() {
@@ -56,7 +59,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     public void setMainApplication(MainApplication mainApplication) {
         this.mainApplication = mainApplication;
     }
-
+    
     /**
      * 设置鼠标事件监听器
      * @param listener 鼠标事件监听器
@@ -85,6 +88,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             GlobalScreen.addNativeKeyListener(this);
             GlobalScreen.addNativeMouseListener(this);
             GlobalScreen.addNativeMouseMotionListener(this);
+            GlobalScreen.addNativeMouseWheelListener(this); // 添加滚轮事件监听器
             
             isMonitoring = true;
             logger.info("开始使用JNativeHook监听本地键盘鼠标事件");
@@ -113,6 +117,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             GlobalScreen.removeNativeKeyListener(this);
             GlobalScreen.removeNativeMouseListener(this);
             GlobalScreen.removeNativeMouseMotionListener(this);
+            GlobalScreen.removeNativeMouseWheelListener(this); // 移除滚轮事件监听器
             
             // 注销全局屏幕监听器
             GlobalScreen.unregisterNativeHook();
@@ -258,6 +263,20 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
 //        if (mousePositionListener != null) {
 //            mousePositionListener.accept(e.getX(), e.getY());
 //        }
+    }
+    
+    @Override
+    public void nativeMouseWheelMoved(NativeMouseWheelEvent e) {
+        if (!isMonitoring) return;
+        
+        // 转发鼠标滚轮事件
+        if (mouseEventListener != null) {
+            mouseEventListener.onMouseWheel(e.getWheelRotation(), e.getX(), e.getY());
+        }
+        
+        // 暂停鼠标滚轮事件日志打印
+        // logger.info("鼠标滚轮事件: 旋转=" + e.getWheelRotation() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+        // System.out.println("鼠标滚轮事件: 旋转=" + e.getWheelRotation() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
     }
 
     /**

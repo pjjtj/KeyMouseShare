@@ -6,6 +6,7 @@ public enum ControlEventType {
     MouseReleased,
     MouseMoved,
     MouseDragged,
+    MouseWheel,  // 添加鼠标滚轮事件类型
     KeyPressed,
     KeyReleased,
 }

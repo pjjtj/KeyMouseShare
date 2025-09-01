@@ -1,10 +1,14 @@
-package com.keymouseshare.keyboard.win;
+package com.keymouseshare.keyboard.linux;
 
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.MouseEdgeDetector;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.Platform;
+import com.sun.jna.Pointer;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -13,18 +17,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.function.Consumer;
 
 import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
 
-public class WindowMouseKeyBoard implements MouseKeyBoard {
+public class LinuxMouseKeyBoard implements MouseKeyBoard {
 
-    private static final Logger logger = Logger.getLogger(WindowMouseKeyBoard.class.getName());
+    private static final Logger logger = Logger.getLogger(LinuxMouseKeyBoard.class.getName());
 
+    private static final LinuxMouseKeyBoard INSTANCE = new LinuxMouseKeyBoard();
 
-    private static final WindowMouseKeyBoard INSTANCE = new WindowMouseKeyBoard();
-
-    public static WindowMouseKeyBoard getInstance() {
+    public static LinuxMouseKeyBoard getInstance() {
         return INSTANCE;
     }
 
@@ -32,17 +34,33 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     private ScheduledExecutorService edgeWatcherExecutor;
 
-
     private Robot robot;
-    private WinHookManager hookManager;
-    private Thread hookThread;
-
     private static volatile boolean edgeMode = false;
 
-    public WindowMouseKeyBoard() {
+    // X11库接口
+    public interface X11 extends Library {
+        X11 INSTANCE = Native.load("X11", X11.class);
+
+        Pointer XOpenDisplay(String displayName);
+        int XCloseDisplay(Pointer display);
+        int XWarpPointer(Pointer display, Pointer srcW, Pointer destW, int srcX, int srcY, int srcWidth, int srcHeight, int destX, int destY);
+        int XFlush(Pointer display);
+    }
+
+    private Pointer x11Display;
+
+    public LinuxMouseKeyBoard() {
         try {
             robot = new Robot();
-            hookManager = new WinHookManager();
+            
+            // 尝试加载X11库
+            if (Platform.isLinux()) {
+                try {
+                    x11Display = X11.INSTANCE.XOpenDisplay(null);
+                } catch (UnsatisfiedLinkError e) {
+                    logger.log(Level.WARNING, "无法加载X11库", e);
+                }
+            }
         } catch (AWTException e) {
             logger.log(Level.SEVERE, "无法创建Robot实例", e);
         }
@@ -51,6 +69,18 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     @Override
     public void mouseMove(int x, int y) {
         if (robot != null) {
+            // 尝试使用X11库移动鼠标
+            if (x11Display != null) {
+                try {
+                    X11.INSTANCE.XWarpPointer(x11Display, null, null, 0, 0, 0, 0, x, y);
+                    X11.INSTANCE.XFlush(x11Display);
+                    return;
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "使用X11移动鼠标失败，回退到Robot", e);
+                }
+            }
+            
+            // 回退到Robot
             robot.mouseMove(x, y);
         }
     }
@@ -82,7 +112,8 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
     @Override
     public void mouseDragged() {
-
+        // 鼠标拖拽事件处理
+        // 在这个接口中，拖拽被视为鼠标移动，具体实现在mouseMove方法中
     }
 
     @Override
@@ -121,7 +152,6 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
                     if (!edgeMode) {
                         System.out.println("当前设备是控制器，需要隐藏鼠标");
                         enterEdgeMode();
-                        startInputInterception(event -> {});
                     }
                 }
             }
@@ -130,6 +160,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
     @Override
     public void startMouseKeyController() {
+        // 启动"右边界监视"线程：当光标到达右边界 → 进入边界模式（隐藏+锁定）
         if(edgeWatcherExecutor==null||edgeWatcherExecutor.isTerminated()){
             edgeWatcherExecutor = Executors.newScheduledThreadPool(1);
         }
@@ -141,25 +172,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
         cleanup();
     }
 
-    public void startInputInterception(Consumer<WinHookEvent> eventHandler) {
-        if (hookManager != null && !hookManager.isHooksActive()) {
-            hookThread = new Thread(() -> hookManager.startHooks(eventHandler), "WinHookThread");
-            hookThread.setDaemon(true);
-            hookThread.start();
-            logger.log(Level.INFO, "Input interception started");
-        } else {
-            logger.log(Level.WARNING, "Hook manager is null or hooks are already active");
-        }
-    }
-
-    public void stopInputInterception() {
-        if (hookManager != null) {
-            hookManager.stopHooks();
-            logger.log(Level.INFO, "Input interception stopped");
-        }
-    }
-
-    private void enterEdgeMode() {        // [40]
+    private void enterEdgeMode() {
         edgeMode = true;
         System.out.println("[EDGE] Enter edge-mode: hide cursor + clip to right edge");
         System.out.println("[READY] Move cursor to the RIGHT edge to enter edge-mode. Press Ctrl+Alt+Esc to quit.");
@@ -185,10 +198,20 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     }
 
     private void cleanup() {
-        stopInputInterception();
         if(edgeMode){
             exitEdgeMode();
         }
+        
+        // 关闭X11显示连接
+        if (x11Display != null) {
+            try {
+                X11.INSTANCE.XCloseDisplay(x11Display);
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "关闭X11显示连接失败", e);
+            }
+            x11Display = null;
+        }
+
         System.out.println("[CLEAN] resources released.");
     }
 
@@ -196,7 +219,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     public void initVirtualMouseLocation() {
         if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
             Point pt = MouseInfo.getPointerInfo().getLocation();
-            System.out.println(pt.x + "," + pt.y);// [39]
+            System.out.println(pt.x + "," + pt.y);
             // 获取本地设备屏幕坐标系中的鼠标相对位置
             ScreenInfo screenInfo = deviceStorage.getLocalDevice().getScreens().stream()
                     .filter(s -> s.localContains(pt.x, pt.y))
@@ -212,17 +235,6 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
                 //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
                 virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + pt.x - screenInfo.getDx(), vScreenInfo.getVy() + pt.y - screenInfo.getDy());
             }
-        }
-    }
-
-    /**
-     * 处理鼠标滚轮事件
-     * 
-     * @param wheelAmount 滚轮滚动量，正数表示向前滚动（远离用户），负数表示向后滚动（朝向用户）
-     */
-    public void mouseWheel(int wheelAmount) {
-        if (robot != null) {
-            robot.mouseWheel(wheelAmount);
         }
     }
     

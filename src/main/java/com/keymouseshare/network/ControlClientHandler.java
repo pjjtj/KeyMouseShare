@@ -1,11 +1,14 @@
 package com.keymouseshare.network;
 
 import com.keymouseshare.bean.ControlEvent;
+import com.keymouseshare.bean.ControlEventType;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoardFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
+import java.awt.Robot;
+import java.awt.event.InputEvent;
 import java.util.logging.Logger;
 
 /**
@@ -52,6 +55,17 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
                 mouseKeyBoard.mouseDragged();
                 // 在拖拽过程中通常也会伴随鼠标移动
                 mouseKeyBoard.mouseMove(event.getX(), event.getY());
+                break;
+                
+            case "MouseWheel":
+                logger.info("鼠标滚轮: 旋转=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
+                // 使用Robot类处理鼠标滚轮事件，因为MouseKeyBoard接口没有滚轮方法
+                try {
+                    Robot robot = new Robot();
+                    robot.mouseWheel(event.getButton()); // button字段存储滚轮旋转值
+                } catch (Exception e) {
+                    logger.severe("处理鼠标滚轮事件时出错: " + e.getMessage());
+                }
                 break;
                 
             case "KeyPressed":
