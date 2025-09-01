@@ -1,8 +1,8 @@
 package com.keymouseshare.keyboard;
 
-import com.keymouseshare.bean.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
-import com.keymouseshare.bean.VirtualDesktopStorage;
+import com.keymouseshare.storage.DeviceStorage;
+import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.MouseEdgeDetector;
 
 import java.awt.*;
@@ -100,7 +100,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
         }
         int x = virtualDesktopStorage.getMouseLocation()[0];
         int y = virtualDesktopStorage.getMouseLocation()[1];
-        ScreenInfo screenInfo = MouseEdgeDetector.isAtScreenEdge(x, y);
+        ScreenInfo screenInfo = MouseEdgeDetector.isAtScreenEdge();
         if (screenInfo != null) {
             // 更新激活屏幕
             if(!(screenInfo.getDeviceIp()+screenInfo.getScreenName()).equals(virtualDesktopStorage.getActiveScreen().getDeviceIp()+virtualDesktopStorage.getActiveScreen().getScreenName())){

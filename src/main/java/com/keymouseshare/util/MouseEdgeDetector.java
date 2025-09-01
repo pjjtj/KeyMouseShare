@@ -77,104 +77,104 @@ public class MouseEdgeDetector {
      * @return 如果鼠标在屏幕边缘且满足触发条件，返回将被唤醒鼠标的ScreenInfo对象，否则返回null
      */
     public static ScreenInfo isAtScreenEdge() {
+        int x = virtualDesktopStorage.getMouseLocation()[0];
+        int y = virtualDesktopStorage.getMouseLocation()[1];
 //            logger.debug("检查鼠标边缘检测: 位置=(" + x + ", " + y + ")");
-            int x = virtualDesktopStorage.getMouseLocation()[0];
-            int y = virtualDesktopStorage.getMouseLocation()[1];
-            // 计算鼠标速度
-            long currentTime = System.currentTimeMillis();
-            double velocity = calculateVelocity(x, y, currentTime);
+        // 计算鼠标速度
+        long currentTime = System.currentTimeMillis();
+        double velocity = calculateVelocity(x, y, currentTime);
 
-            // 获取动态阈值
-            double threshold = calculateDynamicThreshold(velocity);
+        // 获取动态阈值
+        double threshold = calculateDynamicThreshold(velocity);
 
 //            logger.debug("鼠标速度: " + velocity + ", 动态阈值: " + threshold);
 
-            // 检查所有屏幕
-            Map<String, ScreenInfo> screens = virtualDesktopStorage.getScreens();
+        // 检查所有屏幕
+        Map<String, ScreenInfo> screens = virtualDesktopStorage.getScreens();
 
-            // 首先检查鼠标是否在某个屏幕内
-            ScreenInfo currentScreen = null;
-            for (ScreenInfo screen : screens.values()) {
-                if (screen.virtualContains(x, y)) {
-                    currentScreen = screen;
-                    //logger.debug("鼠标在屏幕内: " + screen.getDeviceIp() + ":" + screen.getScreenName());
-                    break;
-                }
+        // 首先检查鼠标是否在某个屏幕内
+        ScreenInfo currentScreen = null;
+        for (ScreenInfo screen : screens.values()) {
+            if (screen.virtualContains(x, y)) {
+                currentScreen = screen;
+                //logger.debug("鼠标在屏幕内: " + screen.getDeviceIp() + ":" + screen.getScreenName());
+                break;
             }
+        }
 
-            // 如果鼠标不在任何屏幕内，则不触发边缘检测
-            if (currentScreen == null) {
-                //logger.debug("鼠标不在任何屏幕内，不触发边缘检测");
-                // 更新最后位置和时间
-                lastX = x;
-                lastY = y;
-                lastTime = currentTime;
-                lastVelocity = velocity;
-                return null;
-            }
-
-            // 检查相邻屏幕边缘
-            ScreenInfo targetScreen = null;
-            String targetScreenId = null;
-            EdgeDirection targetDirection = null;
-
-            for (Map.Entry<String, ScreenInfo> entry : screens.entrySet()) {
-                ScreenInfo screen = entry.getValue();
-
-                // 跳过当前鼠标所在的屏幕
-                if (screen == currentScreen) {
-                    continue;
-                }
-
-                // 检查是否为相邻屏幕
-                if (isAdjacentScreen(currentScreen, screen)) {
-//                    logger.debug("发现相邻屏幕: " + screen.getDeviceIp() + ":" + screen.getScreenName());
-
-                    // 检查鼠标是否在当前屏幕的边缘，并且接近相邻屏幕
-                    EdgeDirection direction = getEdgeDirection(x, y, currentScreen, threshold);
-
-                    if (direction != EdgeDirection.NONE) {
-                        // 检查是否接近相邻屏幕
-                        if (isCloseToAdjacentScreen(x, y, currentScreen, screen, direction, threshold)) {
-                            targetScreen = screen;
-                            targetScreenId = entry.getKey();
-                            targetDirection = direction;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // 如果找到目标屏幕，则检查是否满足触发条件
-            if (targetScreen != null) {
-                // 更新边缘状态
-                updateEdgeState(targetScreenId, targetDirection, currentTime);
-
-                // 检查是否满足触发条件（防误触）
-                boolean shouldTrigger = shouldTriggerEdgeTransition(targetScreenId, currentTime);
-//                logger.debug("相邻屏幕 " + targetScreen.getDeviceIp() + ":" + targetScreen.getScreenName() +
-//                        " 是否满足触发条件: " + shouldTrigger);
-
-                if (shouldTrigger) {
-//                    logger.info("当前鼠标位置:["+x+","+y+"],鼠标方向:"+targetDirection+"-----触发边缘检测，将唤醒设备: " + targetScreen.getDeviceIp() +
-//                            " 屏幕: " + targetScreen.getScreenName());
-                    // 更新最后位置和时间
-                    lastX = x;
-                    lastY = y;
-                    lastTime = currentTime;
-                    lastVelocity = velocity;
-                    return targetScreen; // 返回将被唤醒鼠标的屏幕信息
-                }
-            }
-
+        // 如果鼠标不在任何屏幕内，则不触发边缘检测
+        if (currentScreen == null) {
+            //logger.debug("鼠标不在任何屏幕内，不触发边缘检测");
             // 更新最后位置和时间
             lastX = x;
             lastY = y;
             lastTime = currentTime;
             lastVelocity = velocity;
-
-            //logger.debug("未触发任何屏幕的边缘检测");
             return null;
+        }
+
+        // 检查相邻屏幕边缘
+        ScreenInfo targetScreen = null;
+        String targetScreenId = null;
+        EdgeDirection targetDirection = null;
+
+        for (Map.Entry<String, ScreenInfo> entry : screens.entrySet()) {
+            ScreenInfo screen = entry.getValue();
+
+            // 跳过当前鼠标所在的屏幕
+            if (screen == currentScreen) {
+                continue;
+            }
+
+            // 检查是否为相邻屏幕
+            if (isAdjacentScreen(currentScreen, screen)) {
+//                    logger.debug("发现相邻屏幕: " + screen.getDeviceIp() + ":" + screen.getScreenName());
+
+                // 检查鼠标是否在当前屏幕的边缘，并且接近相邻屏幕
+                EdgeDirection direction = getEdgeDirection(x, y, currentScreen, threshold);
+
+                if (direction != EdgeDirection.NONE) {
+                    // 检查是否接近相邻屏幕
+                    if (isCloseToAdjacentScreen(x, y, currentScreen, screen, direction, threshold)) {
+                        targetScreen = screen;
+                        targetScreenId = entry.getKey();
+                        targetDirection = direction;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 如果找到目标屏幕，则检查是否满足触发条件
+        if (targetScreen != null) {
+            // 更新边缘状态
+            updateEdgeState(targetScreenId, targetDirection, currentTime);
+
+            // 检查是否满足触发条件（防误触）
+            boolean shouldTrigger = shouldTriggerEdgeTransition(targetScreenId, currentTime);
+//                logger.debug("相邻屏幕 " + targetScreen.getDeviceIp() + ":" + targetScreen.getScreenName() +
+//                        " 是否满足触发条件: " + shouldTrigger);
+
+            if (shouldTrigger) {
+//                    logger.info("当前鼠标位置:["+x+","+y+"],鼠标方向:"+targetDirection+"-----触发边缘检测，将唤醒设备: " + targetScreen.getDeviceIp() +
+//                            " 屏幕: " + targetScreen.getScreenName());
+                // 更新最后位置和时间
+                lastX = x;
+                lastY = y;
+                lastTime = currentTime;
+                lastVelocity = velocity;
+                return targetScreen; // 返回将被唤醒鼠标的屏幕信息
+            }
+        }
+
+        // 更新最后位置和时间
+        lastX = x;
+        lastY = y;
+        lastTime = currentTime;
+        lastVelocity = velocity;
+
+        //logger.debug("未触发任何屏幕的边缘检测");
+        return null;
     }
 
     /**
