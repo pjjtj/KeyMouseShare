@@ -72,25 +72,35 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         }
     }
 
+
     @Override
-    public void mouseClick(int x, int y) {
+    public void mouseWheel(int wheelAmount) {
         if (robot != null) {
             // 回退到Robot
-            robot.mouseMove(x, y);
-            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+            robot.mouseWheel(wheelAmount);
         }
+    }
+
+
+    @Override
+    public void mouseClick(int x, int y) {
+//        if (robot != null) {
+//            // 回退到Robot
+//            robot.mouseMove(x, y);
+//            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+//            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+//        }
     }
 
     @Override
     public void mouseDragged(int x, int y) {
-        // 鼠标拖拽事件处理
-        // 在这个接口中，拖拽被视为鼠标移动，具体实现在mouseMove方法中
-        if (robot != null) {
-            // 回退到Robot
-            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-            robot.mouseMove(x, y);
-        }
+//        // 鼠标拖拽事件处理
+//        // 在这个接口中，拖拽被视为鼠标移动，具体实现在mouseMove方法中
+//        if (robot != null) {
+//            // 回退到Robot
+//            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+//            robot.mouseMove(x, y);
+//        }
     }
 
     @Override
@@ -106,14 +116,6 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         if (robot != null) {
             // 回退到Robot
             robot.keyRelease(keyCode);
-        }
-    }
-
-    @Override
-    public void mouseWheel(int wheelAmount) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mouseWheel(wheelAmount);
         }
     }
 

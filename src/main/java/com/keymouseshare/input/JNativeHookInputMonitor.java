@@ -246,24 +246,24 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
 
     }
     
-    @Override
-    public void nativeMouseDragged(NativeMouseEvent e) {
-        if (!isMonitoring) return;
-        
-        // 转发鼠标拖拽事件
-        if (mouseEventListener != null) {
-            mouseEventListener.onMouseDrag(e.getX(), e.getY());
-        }
-        
-        // 暂停鼠标事件日志打印
-        // logger.info("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
-        // System.out.println("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
-        
-        // 通知鼠标位置监听器
-//        if (mousePositionListener != null) {
-//            mousePositionListener.accept(e.getX(), e.getY());
+//    @Override
+//    public void nativeMouseDragged(NativeMouseEvent e) {
+//        if (!isMonitoring) return;
+//
+//        // 转发鼠标拖拽事件
+//        if (mouseEventListener != null) {
+//            mouseEventListener.onMouseDrag(e.getX(), e.getY());
 //        }
-    }
+//
+//        // 暂停鼠标事件日志打印
+//        // logger.info("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
+//        // System.out.println("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
+//
+//        // 通知鼠标位置监听器
+////        if (mousePositionListener != null) {
+////            mousePositionListener.accept(e.getX(), e.getY());
+////        }
+//    }
     
     @Override
     public void nativeMouseWheelMoved(NativeMouseWheelEvent e) {
