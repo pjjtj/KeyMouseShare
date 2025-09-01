@@ -93,24 +93,18 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         CGPoint CGEventGetLocation(Pointer event);
     }
 
+
+
     // macOS CGPoint结构体
-    public static class CGPoint extends Structure {
+    public class CGPoint extends Structure {
+        public static class ByValue extends CGPoint implements Structure.ByValue {}
         public double x;
         public double y;
-
+        public CGPoint() {}
+        public CGPoint(double x, double y) { this.x = x; this.y = y; }
         @Override
-        protected List<String> getFieldOrder() {
-            return Arrays.asList("x", "y");
-        }
-
-        public CGPoint() {
-            super();
-        }
-
-        public CGPoint(double x, double y) {
-            super();
-            this.x = x;
-            this.y = y;
+        protected java.util.List<String> getFieldOrder() {
+            return java.util.Arrays.asList("x", "y");
         }
     }
 
@@ -143,7 +137,9 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
             // 尝试使用JNA在macOS上注入事件
             if (Platform.isMac()) {
                 try {
-                    CGPoint point = new CGPoint(x, y);
+                    CGPoint.ByValue point = new CGPoint.ByValue();
+                    point.x = x;
+                    point.y = y;
                     Pointer event = CoreGraphics.INSTANCE.CGEventCreateMouseEvent(Pointer.NULL, kCGEventMouseMoved, point, kCGMouseButtonLeft); // kCGEventMouseMoved
                     if (event != null) {
                         CoreGraphics.INSTANCE.CGEventPost(kCGHIDEventTap, event); // kCGHIDEventTap
