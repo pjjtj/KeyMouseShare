@@ -34,7 +34,6 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     private MouseEventListener mouseEventListener;
     
     private boolean isMonitoring = false;
-    private BiConsumer<Integer, Integer> mousePositionListener;
     private MainApplication mainApplication;
 
     // 鼠标事件监听器接口
@@ -57,15 +56,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     public void setMainApplication(MainApplication mainApplication) {
         this.mainApplication = mainApplication;
     }
-    
-    /**
-     * 设置鼠标位置更新监听器
-     * @param listener 鼠标位置监听器
-     */
-    public void setMousePositionListener(BiConsumer<Integer, Integer> listener) {
-        this.mousePositionListener = listener;
-    }
-    
+
     /**
      * 设置鼠标事件监听器
      * @param listener 鼠标事件监听器
@@ -247,11 +238,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         // 暂停鼠标事件日志打印
 //         logger.info("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
 //         System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
-        
-        // 通知鼠标位置监听器
-        if (mousePositionListener != null) {
-            mousePositionListener.accept(e.getX(), e.getY());
-        }
+
     }
     
     @Override
