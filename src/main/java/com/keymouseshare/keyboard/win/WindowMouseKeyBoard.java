@@ -1,5 +1,6 @@
-package com.keymouseshare.keyboard;
+package com.keymouseshare.keyboard.win;
 
+import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.storage.VirtualDesktopStorage;
@@ -12,16 +13,18 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.function.Consumer;
 
-import static com.keymouseshare.util.KeyBoardUtils.*;
+import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
 
-public class MacMouseKeyBoard implements MouseKeyBoard {
+public class WindowMouseKeyBoard implements MouseKeyBoard {
 
-    private static final Logger logger = Logger.getLogger(MacMouseKeyBoard.class.getName());
+    private static final Logger logger = Logger.getLogger(WindowMouseKeyBoard.class.getName());
 
-    private static final MacMouseKeyBoard INSTANCE = new MacMouseKeyBoard();
 
-    public static MacMouseKeyBoard getInstance() {
+    private static final WindowMouseKeyBoard INSTANCE = new WindowMouseKeyBoard();
+
+    public static WindowMouseKeyBoard getInstance() {
         return INSTANCE;
     }
 
@@ -29,12 +32,17 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     private ScheduledExecutorService edgeWatcherExecutor;
 
+
     private Robot robot;
+    private WinHookManager hookManager;
+    private Thread hookThread;
+
     private static volatile boolean edgeMode = false;
 
-    public MacMouseKeyBoard() {
+    public WindowMouseKeyBoard() {
         try {
             robot = new Robot();
+            hookManager = new WinHookManager();
         } catch (AWTException e) {
             logger.log(Level.SEVERE, "无法创建Robot实例", e);
         }
@@ -106,11 +114,14 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
                 // 如果是当前设备进行鼠标控制
                 if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
                     System.out.println("当前设备是控制器，需要退出鼠标隐藏");
+                    cleanup();
+                    mouseMove(x-screenInfo.getVx(), y-screenInfo.getVy());
                     exitEdgeMode();
                 } else {
                     if (!edgeMode) {
                         System.out.println("当前设备是控制器，需要隐藏鼠标");
                         enterEdgeMode();
+                        startInputInterception(event -> {});
                     }
                 }
             }
@@ -118,39 +129,8 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void initVirtualMouseLocation() {
-        if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
-            try {
-                Point point = MouseInfo.getPointerInfo().getLocation();
-                System.out.println(point.x + "," + point.y);
-                
-                // 获取本地设备屏幕坐标系中的鼠标相对位置
-                ScreenInfo screenInfo = deviceStorage.getLocalDevice().getScreens().stream()
-                        .filter(s -> s.localContains((int)point.x, (int)point.y))
-                        .findFirst()
-                        .orElse(null);
-                        
-                // 修改鼠标虚拟桌面所在坐标
-                if (screenInfo != null) {
-                    ScreenInfo vScreenInfo = virtualDesktopStorage.getScreens().get(screenInfo.getDeviceIp() + screenInfo.getScreenName());
-                    // 控制器上更新当前鼠标所在屏幕
-                    virtualDesktopStorage.setActiveScreen(vScreenInfo);
-                    // 控制器上更新虚拟桌面鼠标坐标
-                    virtualDesktopStorage.setMouseLocation(
-                        vScreenInfo.getVx() + (int)point.x - screenInfo.getDx(), 
-                        vScreenInfo.getVy() + (int)point.y - screenInfo.getDy()
-                    );
-                }
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "初始化虚拟鼠标位置失败", e);
-            }
-        }
-    }
-
-    @Override
     public void startMouseKeyController() {
-        // 启动边缘监视线程
-        if(edgeWatcherExecutor == null || edgeWatcherExecutor.isTerminated()) {
+        if(edgeWatcherExecutor==null||edgeWatcherExecutor.isTerminated()){
             edgeWatcherExecutor = Executors.newScheduledThreadPool(1);
         }
         edgeWatcherExecutor.scheduleAtFixedRate(this::virtualScreenEdgeCheck, 0, 5, TimeUnit.MILLISECONDS);
@@ -161,19 +141,35 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         cleanup();
     }
 
-    private void enterEdgeMode() {
+    public void startInputInterception(Consumer<WinHookEvent> eventHandler) {
+        if (hookManager != null && !hookManager.isHooksActive()) {
+            hookThread = new Thread(() -> hookManager.startHooks(eventHandler), "WinHookThread");
+            hookThread.setDaemon(true);
+            hookThread.start();
+            logger.log(Level.INFO, "Input interception started");
+        } else {
+            logger.log(Level.WARNING, "Hook manager is null or hooks are already active");
+        }
+    }
+
+    public void stopInputInterception() {
+        if (hookManager != null) {
+            hookManager.stopHooks();
+            logger.log(Level.INFO, "Input interception stopped");
+        }
+    }
+
+    private void enterEdgeMode() {        // [40]
         edgeMode = true;
-        System.out.println("[EDGE] Enter edge-mode: hide cursor");
-        // 在macOS中隐藏光标可能需要使用其他方法
-        // 这里可以添加具体的实现
+        System.out.println("[EDGE] Enter edge-mode: hide cursor + clip to right edge");
+        System.out.println("[READY] Move cursor to the RIGHT edge to enter edge-mode. Press Ctrl+Alt+Esc to quit.");
+        robot.mouseMove(-1,-1);
     }
 
     private void exitEdgeMode() {
         if (!edgeMode) return;
         edgeMode = false;
-        System.out.println("[EDGE] Exit edge-mode: show cursor");
-        // 在macOS中显示光标可能需要使用其他方法
-        // 这里可以添加具体的实现
+        System.out.println("[EDGE] Exit edge-mode: unclip + show cursor");
     }
 
     @Override
@@ -189,22 +185,33 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     }
 
     private void cleanup() {
-        try {
-            showCursor();
-        } catch (Throwable ignored) {
-        }
-        
-        if (edgeMode) {
+        stopInputInterception();
+        if(edgeMode){
             exitEdgeMode();
         }
-
         System.out.println("[CLEAN] resources released.");
     }
 
-    /**
-     * 显示光标
-     */
-    private void showCursor() {
-        // 不需要特殊实现，使用系统默认
+    @Override
+    public void initVirtualMouseLocation() {
+        if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
+            Point pt = MouseInfo.getPointerInfo().getLocation();
+            System.out.println(pt.x + "," + pt.y);// [39]
+            // 获取本地设备屏幕坐标系中的鼠标相对位置
+            ScreenInfo screenInfo = deviceStorage.getLocalDevice().getScreens().stream()
+                    .filter(s -> s.localContains(pt.x, pt.y))
+                    .findFirst()
+                    .orElse(null);
+            // 修改鼠标虚拟桌面所在坐标
+            if (screenInfo != null) {
+                ScreenInfo vScreenInfo = virtualDesktopStorage.getScreens().get(screenInfo.getDeviceIp() + screenInfo.getScreenName());
+                // 控制器上更新当前鼠标所在屏幕
+                virtualDesktopStorage.setActiveScreen(vScreenInfo);
+                // 控制器上更新虚拟桌面鼠标坐标
+                //  pt.x-screenInfo.getDx(),pt.y-screenInfo.getDy() 本地虚拟屏幕的相对坐标位置
+                //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
+                virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + pt.x - screenInfo.getDx(), vScreenInfo.getVy() + pt.y - screenInfo.getDy());
+            }
+        }
     }
 }

@@ -169,15 +169,14 @@ public class ControlRequestManager {
     /**
      * netty 服务器发送消息给客户端
      *
-     * @param targetIpAddress 目标客户端IP地址
      * @param event 控制事件
      */
-    public void sendControlRequest(String targetIpAddress, ControlEvent event) {
+    public void sendControlRequest( ControlEvent event) {
         if (controlServer != null) {
-            controlServer.sendControlEvent(targetIpAddress, event);
+            controlServer.sendControlEvent(event);
 //            logger.info("已发送控制请求到客户端: " + targetIpAddress + ", 事件类型: " + event.getType()+ ", 数据: (" + event.getX()+","+event.getY()+")");
         } else {
-            logger.warning("控制服务器未启动，无法发送控制请求到客户端: " + targetIpAddress);
+            logger.warning("控制服务器未启动，无法发送控制请求到客户端: " + event.getDeviceIp());
         }
     }
 

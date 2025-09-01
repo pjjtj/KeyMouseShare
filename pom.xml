@@ -37,6 +37,18 @@
             <version>2.8.9</version>
         </dependency>
 
+        <!-- JNA for native library access -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.14.0</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>5.14.0</version>
+        </dependency>
+
         <!-- JNativeHook for global keyboard and mouse monitoring -->
         <dependency>
             <groupId>com.github.kwhat</groupId>
@@ -62,7 +74,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.13</version>
+            <version>1.2.6</version>
         </dependency>
     </dependencies>
     

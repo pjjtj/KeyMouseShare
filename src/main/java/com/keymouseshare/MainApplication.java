@@ -32,7 +32,7 @@ import java.util.logging.Logger;
 /**
  * 主应用程序类
  */
-public class MainApplication extends Application implements DeviceListener, VirtualDesktopStorageListener {
+public class MainApplication extends Application implements DeviceListener, VirtualDesktopStorageListener, JNativeHookInputMonitor.MouseEventListener {
 
     private static final Logger logger = Logger.getLogger(MainApplication.class.getName());
 
@@ -251,6 +251,9 @@ public class MainApplication extends Application implements DeviceListener, Virt
         jNativeHookInputMonitor = new JNativeHookInputMonitor();
         // 设置主应用程序引用
         jNativeHookInputMonitor.setMainApplication(this);
+        
+        // 设置鼠标事件监听器
+        jNativeHookInputMonitor.setMouseEventListener(this);
 
         // 设置鼠标位置监听器
         jNativeHookInputMonitor.setMousePositionListener((x, y) -> {
@@ -262,11 +265,15 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
 
             // TODO 且是控制器屏幕激活时才更新鼠标位置
-            if(virtualDesktopStorage.isApplyVirtualDesktopScreen()&&!mouseKeyBoard.isEdgeMode()){
+            if(virtualDesktopStorage.isApplyVirtualDesktopScreen()){
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
                 //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
                 if(vScreenInfo!=null){
-                    virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx()+ x-vScreenInfo.getDx(),vScreenInfo.getVy()+y-vScreenInfo.getDy());
+                    if(mouseKeyBoard.isEdgeMode()){
+                        virtualDesktopStorage.moveMouseLocation(x,y);
+                    }else{
+                        virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx()+ x-vScreenInfo.getDx(),vScreenInfo.getVy()+y-vScreenInfo.getDy());
+                    }
                 }
             }
         });
@@ -356,7 +363,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
                 ScreenInfo screenInfo = virtualDesktopStorage.getActiveScreen();
                 if (!screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress()) && mouseKeyBoard.isEdgeMode()) {
 //                    if(lastLocation[0].get(0) !=virtualDesktopStorage.getMouseLocation()[0]|| lastLocation[0].get(1) !=virtualDesktopStorage.getMouseLocation()[1]){
-                        controlRequestManager.sendControlRequest(virtualDesktopStorage.getActiveScreen().getDeviceIp(), new ControlEvent(ControlEventType.MouseMoved.name(),
+                        controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(),ControlEventType.MouseMoved.name(),
                                 virtualDesktopStorage.getMouseLocation()[0]-screenInfo.getVx(),
                                 virtualDesktopStorage.getMouseLocation()[1]-screenInfo.getVy()));
 //                    }else{
@@ -371,5 +378,92 @@ public class MainApplication extends Application implements DeviceListener, Virt
         if(mouseMoveScheduledExecutor!=null){
             mouseMoveScheduledExecutor.shutdown();
         }
+    }
+
+    public void cancelKeyMouseShare() {
+        mouseKeyBoard.stopMouseKeyController();
+    }
+
+    @Override
+    public void onMouseMove(int x, int y) {
+        // 鼠标移动事件处理
+        // 这里可以添加鼠标移动的特殊处理逻辑
+        // 例如：发送鼠标移动事件到远程设备
+        if (controlRequestManager != null) {
+            // 发送鼠标移动事件到远程设备
+            ControlEvent event = new ControlEvent(ControlEventType.MouseReleased.name(), x, y);
+            // 如果有激活的屏幕，设置设备IP和屏幕名
+            if (virtualDesktopStorage.getActiveScreen() != null) {
+                event.setDeviceIp(virtualDesktopStorage.getActiveScreen().getDeviceIp());
+                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
+            }
+            controlRequestManager.sendControlRequest(event);
+        }
+    }
+
+    @Override
+    public void onMousePress(int button, int x, int y) {
+        // 鼠标按下事件处理
+        if (controlRequestManager != null) {
+            // 发送鼠标按下事件到远程设备
+            ControlEvent event = new ControlEvent(ControlEventType.MousePressed.name(), x, y);
+            event.setButton(button);
+            // 如果有激活的屏幕，设置设备IP和屏幕名
+            if (virtualDesktopStorage.getActiveScreen() != null) {
+                event.setDeviceIp(virtualDesktopStorage.getActiveScreen().getDeviceIp());
+                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
+            }
+            controlRequestManager.sendControlRequest(event);
+        }
+    }
+
+    @Override
+    public void onMouseRelease(int button, int x, int y) {
+        // 鼠标释放事件处理
+        if (controlRequestManager != null) {
+            // 发送鼠标释放事件到远程设备
+            ControlEvent event = new ControlEvent(ControlEventType.MouseReleased.name(), x, y);
+            event.setButton(button);
+            // 如果有激活的屏幕，设置设备IP和屏幕名
+            if (virtualDesktopStorage.getActiveScreen() != null) {
+                event.setDeviceIp(virtualDesktopStorage.getActiveScreen().getDeviceIp());
+                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
+            }
+            controlRequestManager.sendControlRequest(event);
+        }
+    }
+
+    @Override
+    public void onMouseClick(int button, int x, int y) {
+        // 鼠标点击事件处理
+        if (controlRequestManager != null) {
+            // 发送鼠标点击事件到远程设备
+            ControlEvent event = new ControlEvent(ControlEventType.MouseClicked.name(), x, y);
+            event.setButton(button);
+            // 如果有激活的屏幕，设置设备IP和屏幕名
+            if (virtualDesktopStorage.getActiveScreen() != null) {
+                event.setDeviceIp(virtualDesktopStorage.getActiveScreen().getDeviceIp());
+                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
+            }
+            controlRequestManager.sendControlRequest(event);
+        }
+    }
+
+    @Override
+    public void onMouseDrag(int x, int y) {
+        // 鼠标拖拽事件处理
+        if (controlRequestManager != null) {
+            // 发送鼠标拖拽事件到远程设备
+            ControlEvent event = new ControlEvent(ControlEventType.MouseDragged.name(), x, y);
+            // 如果有激活的屏幕，设置设备IP和屏幕名
+            if (virtualDesktopStorage.getActiveScreen() != null) {
+                event.setDeviceIp(virtualDesktopStorage.getActiveScreen().getDeviceIp());
+                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
+            }
+            controlRequestManager.sendControlRequest(event);
+        }
+        
+        // 同时处理拖拽时的鼠标移动
+        onMouseMove(x, y);
     }
 }

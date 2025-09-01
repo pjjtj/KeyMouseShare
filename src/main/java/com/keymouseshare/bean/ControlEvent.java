@@ -22,18 +22,43 @@ public class ControlEvent {
         this.y = y;
     }
 
-    public ControlEvent(String type, int button) {
+    public ControlEvent(String deviceIp,String type, int x, int y) {
+        this.deviceIp = deviceIp;
+        this.type = type;
+        this.x = x;
+        this.y = y;
+    }
+
+    public ControlEvent(String deviceIp,String type, int button) {
+        this.deviceIp = deviceIp;
         this.type = type;
         this.button = button;
     }
 
-    public ControlEvent(String type, int keyCode, String data) {
+    public ControlEvent(String deviceIp,String type, int keyCode, String data) {
+        this.deviceIp = deviceIp;
         this.type = type;
         this.keyCode = keyCode;
         this.data = data;
     }
 
     // Getters and setters
+    public String getDeviceIp() {
+        return deviceIp;
+    }
+
+    public void setDeviceIp(String deviceIp) {
+        this.deviceIp = deviceIp;
+    }
+
+    public String getScreenName() {
+        return screenName;
+    }
+
+    public void setScreenName(String screenName) {
+        this.screenName = screenName;
+    }
+
     public String getType() {
         return type;
     }

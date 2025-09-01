@@ -1,6 +1,10 @@
 package com.keymouseshare.keyboard;
 
 
+import com.keymouseshare.keyboard.mac.MacMouseKeyBoard;
+import com.keymouseshare.keyboard.nux.LinuxMouseKeyBoard;
+import com.keymouseshare.keyboard.win.WindowMouseKeyBoard;
+
 public interface MouseKeyBoardFactory {
 
     static MouseKeyBoard getFactory() {

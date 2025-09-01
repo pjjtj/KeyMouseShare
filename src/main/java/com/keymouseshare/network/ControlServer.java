@@ -64,12 +64,11 @@ public class ControlServer {
     
     /**
      * 向指定IP地址的客户端发送控制事件
-     * 
-     * @param targetIpAddress 目标客户端IP地址
-     * @param event 控制事件
+     *
+     * @param event    控制事件
      */
-    public void sendControlEvent(String targetIpAddress, ControlEvent event) {
-        ChannelHandlerContext ctx = clientChannels.get(targetIpAddress);
+    public void sendControlEvent(ControlEvent event) {
+        ChannelHandlerContext ctx = clientChannels.get(event.getDeviceIp());
         if (ctx != null && ctx.channel().isActive()) {
             ctx.writeAndFlush(event);
         }

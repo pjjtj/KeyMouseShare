@@ -1,4 +1,6 @@
-package com.keymouseshare.keyboard;
+package com.keymouseshare.keyboard.nux;
+
+import com.keymouseshare.keyboard.MouseKeyBoard;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
