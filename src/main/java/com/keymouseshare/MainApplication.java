@@ -370,7 +370,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
                 mousePositionDisplay.updateMousePosition(x, y);
             }
         });
-        // TODO 且是控制器屏幕激活时才更新鼠标位置
+
         if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
             ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
             //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
@@ -380,16 +380,14 @@ public class MainApplication extends Application implements DeviceListener, Virt
                     // 鼠标移动事件处理
                     // 这里可以添加鼠标移动的特殊处理逻辑
                     // 例如：发送鼠标移动事件到远程设备
-//                    if (controlRequestManager != null) {
-//                        // 发送鼠标移动事件到远程设备
-//                        ControlEvent event = new ControlEvent(ControlEventType.MouseReleased.name(), x, y);
-//                        // 如果有激活的屏幕，设置设备IP和屏幕名
-//                        if (virtualDesktopStorage.getActiveScreen() != null) {
-//                            event.setDeviceIp(virtualDesktopStorage.getActiveScreen().getDeviceIp());
-//                            event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
-//                        }
-//                        controlRequestManager.sendControlRequest(event);
-//                    }
+                    if (controlRequestManager != null) {
+                        // 发送鼠标移动事件到远程设备
+                        if (virtualDesktopStorage.getActiveScreen() != null) {
+                            controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseMoved.name(),
+                                    virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(),
+                                    virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
+                        }
+                    }
                 } else {
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x - vScreenInfo.getDx(), vScreenInfo.getVy() + y - vScreenInfo.getDy());
                 }
@@ -454,8 +452,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
                 controlRequestManager.sendControlRequest(event);
             }
         }
-        // 同时处理拖拽时的鼠标移动
-        onMouseMove(x, y);
     }
 
     @Override

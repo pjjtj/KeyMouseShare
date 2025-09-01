@@ -61,8 +61,11 @@ public class LinuxMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void mouseDragged() {
-
+    public void mouseDragged(int x,int y) {
+        if (robot != null) {
+            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+            robot.mouseMove(x, y);
+        }
     }
 
     @Override

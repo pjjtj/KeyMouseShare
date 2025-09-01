@@ -10,7 +10,7 @@ public interface MouseKeyBoard {
 
     void mouseClick(int x, int y);
 
-    void mouseDragged();
+    void mouseDragged(int x, int y);
 
     void keyPress(int keyCode);
 
