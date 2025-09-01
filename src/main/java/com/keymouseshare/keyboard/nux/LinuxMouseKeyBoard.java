@@ -80,6 +80,14 @@ public class LinuxMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
+    public void mouseWheel(int wheelAmount) {
+        if (robot != null) {
+            // 回退到Robot
+            robot.mouseWheel(wheelAmount);
+        }
+    }
+
+    @Override
     public void initVirtualMouseLocation() {
 
     }

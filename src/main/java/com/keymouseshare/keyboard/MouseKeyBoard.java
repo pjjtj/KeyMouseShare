@@ -26,5 +26,7 @@ public interface MouseKeyBoard {
 
     void stopEdgeDetection();
     
-    // 注意：鼠标滚轮事件由Robot类直接处理，不通过MouseKeyBoard接口
+
+    void mouseWheel(int wheelAmount);
+
 }
