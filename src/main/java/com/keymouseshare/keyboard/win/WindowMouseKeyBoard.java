@@ -99,6 +99,14 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
         }
     }
 
+    @Override
+    public void mouseWheel(int wheelAmount) {
+        if (robot != null) {
+            // 回退到Robot
+            robot.mouseWheel(wheelAmount);
+        }
+    }
+
     private void virtualScreenEdgeCheck() {
         if (virtualDesktopStorage.getActiveScreen() == null) {
             return;
@@ -215,20 +223,4 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
         }
     }
 
-    /**
-     * 处理鼠标滚轮事件
-     * 
-     * @param wheelAmount 滚轮滚动量，正数表示向前滚动（远离用户），负数表示向后滚动（朝向用户）
-     */
-    public void mouseWheel(int wheelAmount) {
-        if (robot != null) {
-            robot.mouseWheel(wheelAmount);
-        }
-    }
-    
-    /**
-     * 注意：鼠标滚轮事件由ControlClientHandler直接使用Robot类处理，
-     * 不通过MouseKeyBoard接口，因为标准的MouseKeyBoard接口没有定义滚轮方法。
-     * 如果需要在MouseKeyBoard中处理滚轮事件，可以添加mouseWheel方法。
-     */
 }
