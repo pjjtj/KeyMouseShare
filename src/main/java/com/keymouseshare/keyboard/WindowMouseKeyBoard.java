@@ -320,6 +320,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
                 if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
                     System.out.println("当前设备是控制器，需要退出鼠标隐藏");
                     cleanup();
+                    mouseMove(x-screenInfo.getVx(), y-screenInfo.getVy());
                     exitEdgeMode();
                 } else {
                     if (!edgeMode) {
@@ -441,15 +442,15 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
         // 将可用区域限制为屏幕最右侧 1px 列：x ∈ [screenW-1, screenW-1]
         RECT r = new RECT();                                             // [42]
-        r.left = virtualDesktopStorage.getActiveScreen().getDx()+virtualDesktopStorage.getActiveScreen().getWidth();
-        r.right = virtualDesktopStorage.getActiveScreen().getDx()+virtualDesktopStorage.getActiveScreen().getWidth()+1;
-        r.top = 0;
-        r.bottom = 1;
+        r.left = -1;
+        r.right = 0;
+        r.top = -1;
+        r.bottom = 0;
         User32Ex.INSTANCE.ClipCursor(r);
         User32Ex.INSTANCE.ShowCursor(false);
 
         // 可选：把系统光标定位到右边界（避免视觉误差）
-        User32Ex.INSTANCE.SetCursorPos(virtualDesktopStorage.getActiveScreen().getDx()+virtualDesktopStorage.getActiveScreen().getWidth(), 0); // [43]
+        User32Ex.INSTANCE.SetCursorPos(-1, -1); // [43]
 
         System.out.println("[READY] Move cursor to the RIGHT edge to enter edge-mode. Press Ctrl+Alt+Esc to quit.");
     }
@@ -557,11 +558,11 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
             if (dx != 0 || dy != 0) {
                 // ★ 关键：即便 ClipCursor 锁住了系统光标，Raw Input 仍提供硬件相对位移
-                System.out.print(System.currentTimeMillis() + "\t" + virtualDesktopStorage.getActiveScreen().getDeviceIp());
-                System.out.print("[" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1] + ']');
+//                System.out.print(System.currentTimeMillis() + "\t" + virtualDesktopStorage.getActiveScreen().getDeviceIp());
+//                System.out.print("[" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1] + ']');
                 virtualDesktopStorage.moveMouseLocation(dx, dy);
-                System.out.printf("\t[RAW] dx=%d, dy=%d", dx, dy);
-                System.out.println("\t[" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1] + ']');
+//                System.out.printf("\t[RAW] dx=%d, dy=%d", dx, dy);
+//                System.out.println("\t[" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1] + ']');
             }
         }
     }

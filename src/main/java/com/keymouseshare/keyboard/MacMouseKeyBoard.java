@@ -4,10 +4,7 @@ import com.keymouseshare.bean.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.bean.VirtualDesktopStorage;
 import com.keymouseshare.util.MouseEdgeDetector;
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.Platform;
-import com.sun.jna.Pointer;
+import com.sun.jna.*;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -16,6 +13,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.List;
+import java.util.Arrays;
 
 import static com.keymouseshare.util.KeyBoardUtils.*;
 
@@ -95,13 +94,13 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     }
 
     // macOS CGPoint结构体
-    public static class CGPoint extends com.sun.jna.Structure {
+    public static class CGPoint extends Structure {
         public double x;
         public double y;
 
         @Override
-        protected java.util.List<String> getFieldOrder() {
-            return java.util.Arrays.asList("x", "y");
+        protected List<String> getFieldOrder() {
+            return Arrays.asList("x", "y");
         }
 
         public CGPoint() {
@@ -116,7 +115,7 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     }
 
     // macOS事件类型常量
-    private static final int kCGEventMouseMoved = 1;
+    private static final int kCGEventMouseMoved = 5;
     private static final int kCGEventLeftMouseDown = 1;
     private static final int kCGEventLeftMouseUp = 2;
     private static final int kCGEventRightMouseDown = 3;

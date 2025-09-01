@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.logging.Logger;
 
 /**
@@ -346,13 +347,18 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
     private void startMouseMoveEvent(){
         mouseMoveScheduledExecutor = new ScheduledThreadPoolExecutor(1);
+        final AtomicIntegerArray[] lastLocation = {new AtomicIntegerArray(virtualDesktopStorage.getMouseLocation())};
         mouseMoveScheduledExecutor.scheduleAtFixedRate(() -> {
             if(virtualDesktopStorage.isApplyVirtualDesktopScreen()){
                 ScreenInfo screenInfo = virtualDesktopStorage.getActiveScreen();
                 if (!screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress()) && mouseKeyBoard.isEdgeMode()) {
-                    controlRequestManager.sendControlRequest(virtualDesktopStorage.getActiveScreen().getDeviceIp(), new ControlEvent(ControlEventType.MouseMoved.name(),
-                            virtualDesktopStorage.getMouseLocation()[0]-screenInfo.getVx(),
-                            virtualDesktopStorage.getMouseLocation()[1]-screenInfo.getVy()));
+//                    if(lastLocation[0].get(0) !=virtualDesktopStorage.getMouseLocation()[0]|| lastLocation[0].get(1) !=virtualDesktopStorage.getMouseLocation()[1]){
+                        controlRequestManager.sendControlRequest(virtualDesktopStorage.getActiveScreen().getDeviceIp(), new ControlEvent(ControlEventType.MouseMoved.name(),
+                                virtualDesktopStorage.getMouseLocation()[0]-screenInfo.getVx(),
+                                virtualDesktopStorage.getMouseLocation()[1]-screenInfo.getVy()));
+//                    }else{
+//                        lastLocation[0] = new AtomicIntegerArray(virtualDesktopStorage.getMouseLocation());
+//                    }
                 }
             }
         }, 0, 5, TimeUnit.MILLISECONDS);
