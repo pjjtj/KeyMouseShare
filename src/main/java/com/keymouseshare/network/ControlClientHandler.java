@@ -23,7 +23,7 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
     @Override
     public void channelRead0(ChannelHandlerContext ctx, ControlEvent event) {
         // 处理从服务器接收到的控制事件
-        logger.info("接收到控制事件: " + event.getType());
+//        logger.info("接收到控制事件: " + event.getType());
 
         // 根据事件类型调用相应的MouseKeyBoard方法
         switch (event.getType()) {
@@ -43,7 +43,7 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
                 break;
 
             case "MouseMoved":
-                logger.info("鼠标移动到: " + event.getX() + ", " + event.getY());
+//                logger.info("鼠标移动到: " + event.getX() + ", " + event.getY());
                 mouseKeyBoard.mouseMove(event.getX(), event.getY());
                 break;
 

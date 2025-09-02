@@ -1,5 +1,6 @@
 package com.keymouseshare.util;
 
+import com.keymouseshare.bean.MoveTargetScreenInfo;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.storage.VirtualDesktopStorage;
@@ -76,7 +77,7 @@ public class MouseEdgeDetector {
      *
      * @return 如果鼠标在屏幕边缘且满足触发条件，返回将被唤醒鼠标的ScreenInfo对象，否则返回null
      */
-    public static ScreenInfo isAtScreenEdge() {
+    public static MoveTargetScreenInfo isAtScreenEdge() {
         int x = virtualDesktopStorage.getMouseLocation()[0];
         int y = virtualDesktopStorage.getMouseLocation()[1];
 //            logger.debug("检查鼠标边缘检测: 位置=(" + x + ", " + y + ")");
@@ -97,7 +98,7 @@ public class MouseEdgeDetector {
         for (ScreenInfo screen : screens.values()) {
             if (screen.virtualContains(x, y)) {
                 currentScreen = screen;
-                //logger.debug("鼠标在屏幕内: " + screen.getDeviceIp() + ":" + screen.getScreenName());
+//                logger.debug("鼠标在屏幕内: " + screen.getDeviceIp() + ":" + screen.getScreenName());
                 break;
             }
         }
@@ -147,6 +148,8 @@ public class MouseEdgeDetector {
 
         // 如果找到目标屏幕，则检查是否满足触发条件
         if (targetScreen != null) {
+
+//            logger.debug("屏幕targetScreen " + targetScreen.getDeviceIp() + "----屏幕Screen" + currentScreen.getDeviceIp());
             // 更新边缘状态
             updateEdgeState(targetScreenId, targetDirection, currentTime);
 
@@ -156,14 +159,14 @@ public class MouseEdgeDetector {
 //                        " 是否满足触发条件: " + shouldTrigger);
 
             if (shouldTrigger) {
-//                    logger.info("当前鼠标位置:["+x+","+y+"],鼠标方向:"+targetDirection+"-----触发边缘检测，将唤醒设备: " + targetScreen.getDeviceIp() +
-//                            " 屏幕: " + targetScreen.getScreenName());
+                logger.info("当前鼠标位置:[" + x + "," + y + "],鼠标方向:" + targetDirection + "-----触发边缘检测，将唤醒设备: " + targetScreen.getDeviceIp() +
+                        " 屏幕: " + targetScreen.getScreenName());
                 // 更新最后位置和时间
                 lastX = x;
                 lastY = y;
                 lastTime = currentTime;
                 lastVelocity = velocity;
-                return targetScreen; // 返回将被唤醒鼠标的屏幕信息
+                return new MoveTargetScreenInfo(targetDirection.name(),targetScreen); // 返回将被唤醒鼠标的屏幕信息
             }
         }
 
@@ -233,12 +236,12 @@ public class MouseEdgeDetector {
 
         // 检查是否水平相邻（上下边缘对齐）
         boolean horizontalAdjacent =
-                (Math.abs(right1 - left2) < 0.1 || Math.abs(right2 - left1) < 0.1) &&  // 共享垂直边缘
+                (Math.abs(right1 - left2) <= 1 || Math.abs(right2 - left1) <= 1) &&  // 共享垂直边缘
                         (Math.max(top1, top2) < Math.min(bottom1, bottom2)); // Y轴有重叠
 
         // 检查是否垂直相邻（左右边缘对齐）
         boolean verticalAdjacent =
-                (Math.abs(bottom1 - top2) < 0.1 || Math.abs(bottom2 - top1) < 0.1) &&  // 共享水平边缘
+                (Math.abs(bottom1 - top2) <= 1 || Math.abs(bottom2 - top1) <= 1) &&  // 共享水平边缘
                         (Math.max(left1, left2) < Math.min(right1, right2)); // X轴有重叠
 
         return horizontalAdjacent || verticalAdjacent;
@@ -427,7 +430,7 @@ public class MouseEdgeDetector {
      * @param currentTime 当前时间
      */
     private static void updateEdgeState(String screenId, EdgeDirection direction, long currentTime) {
-        //logger.debug("更新边缘状态: screenId=" + screenId + ", direction=" + direction);
+        logger.debug("更新边缘状态: screenId=" + screenId + ", direction=" + direction);
 
         // 检查是否是同一个屏幕和方向，如果是，则保持原来的entryTime
         EdgeState existingState = screenEdgeStates.get(screenId);
@@ -475,8 +478,8 @@ public class MouseEdgeDetector {
         long timeAtEdge = currentTime - edgeState.entryTime;
         boolean shouldTrigger = timeAtEdge >= ANTI_FALSE_TRIGGER_TIME;
 
-        //logger.debug("在边缘时间: " + timeAtEdge + "ms, 防误触时间: " + ANTI_FALSE_TRIGGER_TIME + 
-//                  "ms, 是否触发: " + shouldTrigger);
+        logger.debug("在边缘时间: " + timeAtEdge + "ms, 防误触时间: " + ANTI_FALSE_TRIGGER_TIME +
+                "ms, 是否触发: " + shouldTrigger);
 
         // 如果不满足触发条件，但已经持续在边缘状态很长时间，也触发
         if (!shouldTrigger && timeAtEdge > ANTI_FALSE_TRIGGER_TIME * 3) {

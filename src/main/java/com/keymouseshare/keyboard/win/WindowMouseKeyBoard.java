@@ -1,5 +1,6 @@
 package com.keymouseshare.keyboard.win;
 
+import com.keymouseshare.bean.MoveTargetScreenInfo;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
@@ -8,9 +9,8 @@ import com.keymouseshare.util.MouseEdgeDetector;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.function.Consumer;
@@ -81,7 +81,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void mouseDragged(int x,int y) {
+    public void mouseDragged(int x, int y) {
         if (robot != null) {
             robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
             robot.mouseMove(x, y);
@@ -111,29 +111,52 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     }
 
     private void virtualScreenEdgeCheck() {
+        try {
+            virtualScreenEdgeCheckInternal();
+        } catch (ExecutionException | InterruptedException e) {
+            logger.log(Level.WARNING, "Error during virtual screen edge check", e);
+            Thread.currentThread().interrupt(); // Restore interrupted state
+        }
+    }
+
+    private void virtualScreenEdgeCheckInternal() throws ExecutionException, InterruptedException {
         if (virtualDesktopStorage.getActiveScreen() == null) {
             return;
         }
-        int x = virtualDesktopStorage.getMouseLocation()[0];
-        int y = virtualDesktopStorage.getMouseLocation()[1];
-        ScreenInfo screenInfo = MouseEdgeDetector.isAtScreenEdge();
-        if (screenInfo != null) {
+        MoveTargetScreenInfo moveTargetScreenInfo = MouseEdgeDetector.isAtScreenEdge();
+        if (moveTargetScreenInfo != null) {
+            String direction = moveTargetScreenInfo.getDirection();
+            ScreenInfo screenInfo = moveTargetScreenInfo.getScreenInfo();
             // 更新激活屏幕
-            if(!(screenInfo.getDeviceIp()+screenInfo.getScreenName()).equals(virtualDesktopStorage.getActiveScreen().getDeviceIp()+virtualDesktopStorage.getActiveScreen().getScreenName())){
-                System.out.println("激活设备："+screenInfo.getDeviceIp()+",屏幕："+screenInfo.getScreenName());
+            if (!(screenInfo.getDeviceIp() + screenInfo.getScreenName()).equals(virtualDesktopStorage.getActiveScreen().getDeviceIp() + virtualDesktopStorage.getActiveScreen().getScreenName())) {
+                System.out.println("激活设备：" + screenInfo.getDeviceIp() + ",屏幕：" + screenInfo.getScreenName());
                 virtualDesktopStorage.setActiveScreen(screenInfo);
-                // 如果是当前设备进行鼠标控制
+                if (direction.equals("LEFT")) {
+                    virtualDesktopStorage.moveMouseLocation(-10, 0);
+                }
+                if (direction.equals("RIGHT")) {
+                    virtualDesktopStorage.moveMouseLocation(+10, 0);
+                }
+                if (direction.equals("TOP")) {
+                    virtualDesktopStorage.moveMouseLocation(0, -10);
+                }
+                if (direction.equals("BOTTOM")) {
+                    virtualDesktopStorage.moveMouseLocation(0, +10);
+                }
+                // 被唤醒设备是控制中心
                 if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
                     System.out.println("当前设备是控制器，需要退出鼠标隐藏");
-                    cleanup();
-                    mouseMove(x-screenInfo.getVx(), y-screenInfo.getVy());
+
+//                    System.out.println("虚拟鼠标位置：" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1]);
                     exitEdgeMode();
-                } else {
-                    if (!edgeMode) {
-                        System.out.println("当前设备是控制器，需要隐藏鼠标");
-                        enterEdgeMode();
-                        startInputInterception(event -> {});
-                    }
+
+                    // 退出系统钩子
+                    stopInputInterception();
+                } else { // 被唤醒设备是远程设备
+                    // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
+                    startInputInterception(event -> {});
+                    // 启动成功后调用其他方法
+                    enterEdgeMode();
                 }
             }
         }
@@ -141,7 +164,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
     @Override
     public void startMouseKeyController() {
-        if(edgeWatcherExecutor==null||edgeWatcherExecutor.isTerminated()){
+        if (edgeWatcherExecutor == null || edgeWatcherExecutor.isTerminated()) {
             edgeWatcherExecutor = Executors.newScheduledThreadPool(1);
         }
         edgeWatcherExecutor.scheduleAtFixedRate(this::virtualScreenEdgeCheck, 0, 5, TimeUnit.MILLISECONDS);
@@ -149,7 +172,10 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
     @Override
     public void stopMouseKeyController() {
-        cleanup();
+        stopInputInterception();
+        exitEdgeMode();
+        stopEdgeDetection();
+        System.out.println("[StopMouseKeyController] resources released.");
     }
 
     public void startInputInterception(Consumer<WinHookEvent> eventHandler) {
@@ -172,15 +198,15 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
     private void enterEdgeMode() {        // [40]
         edgeMode = true;
-        System.out.println("[EDGE] Enter edge-mode: hide cursor + clip to right edge");
-        System.out.println("[READY] Move cursor to the RIGHT edge to enter edge-mode. Press Ctrl+Alt+Esc to quit.");
-        robot.mouseMove(-1,-1);
+        robot.mouseMove(0,0);
     }
 
     private void exitEdgeMode() {
         if (!edgeMode) return;
         edgeMode = false;
-        System.out.println("[EDGE] Exit edge-mode: unclip + show cursor");
+        // 根据虚拟鼠标位置转换为控制中心鼠标位置
+        System.out.println("控制中心鼠标位置：" + (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) + "," + (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
+        robot.mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
     }
 
     @Override
@@ -193,14 +219,6 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
         if (edgeWatcherExecutor != null) {
             edgeWatcherExecutor.shutdown();
         }
-    }
-
-    private void cleanup() {
-        stopInputInterception();
-        if(edgeMode){
-            exitEdgeMode();
-        }
-        System.out.println("[CLEAN] resources released.");
     }
 
     @Override
@@ -224,6 +242,10 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
                 virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + pt.x - screenInfo.getDx(), vScreenInfo.getVy() + pt.y - screenInfo.getDy());
             }
         }
+    }
+
+    public static void main(String[] args) {
+        WindowMouseKeyBoard.getInstance().mouseMove(3820, 1000);
     }
 
 }

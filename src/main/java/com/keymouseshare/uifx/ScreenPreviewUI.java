@@ -455,19 +455,19 @@ public class ScreenPreviewUI extends VBox {
                 // 根据最小边缘距离调整位置
                 if (minEdgeDistance == distanceLeftToRight&&!(screenTop>targetBottom||screenBottom<targetTop)) {
                     logger.log(Level.INFO, "Left to right");
-                    screen.setLayoutX(targetRight);
+                    screen.setLayoutX(targetRight+(1/scale));
                 }
                 if (minEdgeDistance == distanceRightToLeft&&!(screenTop>targetBottom||screenBottom<targetTop)) {
                     logger.log(Level.INFO, "Right to left");
-                    screen.setLayoutX(targetLeft-screen.getWidth());
+                    screen.setLayoutX(targetLeft-screen.getWidth()-(1/scale));
                 }
                 if (minEdgeDistance == distanceTopToBottom&&!(screenRight>targetRight||screenLeft<targetLeft)) {
-                    logger.log(Level.INFO, "Top to bottom");
+                    logger.log(Level.INFO, "Top to bottom"+(1/scale));
                     screen.setLayoutY(targetBottom);
                 }
                 if (minEdgeDistance == distanceBottomToTop&&!(screenRight>targetRight||screenLeft<targetLeft)) {
                     logger.log(Level.INFO, "Bottom to top");
-                    screen.setLayoutY(targetTop-screen.getHeight());
+                    screen.setLayoutY(targetTop-screen.getHeight()-(1/scale));
                 }
             } else {
                 logger.log(Level.INFO, "No real-time snapping: source screen '" + sourceScreenName +

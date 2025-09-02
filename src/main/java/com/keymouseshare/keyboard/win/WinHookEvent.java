@@ -29,45 +29,66 @@ public class WinHookEvent {
         this.mouseY = mouseY;
         this.mouseButton = mouseButton;
     }
-    
+
+    // Windows鼠标消息常量
+    private static final int WM_MOUSEMOVE = 0x0200;
+    private static final int WM_LBUTTONDOWN = 0x0201;
+    private static final int WM_LBUTTONUP = 0x0202;
+    private static final int WM_RBUTTONDOWN = 0x0204;
+    private static final int WM_RBUTTONUP = 0x0205;
+    private static final int WM_MBUTTONDOWN = 0x0207;
+    private static final int WM_MBUTTONUP = 0x0208;
+
     public static WinHookEvent fromMouse(WinDef.WPARAM wParam, WinDef.LPARAM lParam) {
-        // 解析鼠标事件
-        int mouseX = 0;
-        int mouseY = 0;
+        WinUser.MSLLHOOKSTRUCT mouseStruct = new WinUser.MSLLHOOKSTRUCT();
+        // 使用反射方式访问useMemory方法，避免访问保护成员的问题
+        try {
+            java.lang.reflect.Method useMemoryMethod = com.sun.jna.Structure.class.getDeclaredMethod("useMemory", com.sun.jna.Pointer.class);
+            useMemoryMethod.setAccessible(true);
+            useMemoryMethod.invoke(mouseStruct, new com.sun.jna.Pointer(lParam.longValue()));
+        } catch (Exception e) {
+            // 异常处理，但不执行任何操作，因为read()方法会处理内存访问
+        }
+        mouseStruct.read();
+        
+        int mouseX = mouseStruct.pt.x;
+        int mouseY = mouseStruct.pt.y;
         int mouseButton = 0;
         EventType type = EventType.MOUSE_MOVE;
-        
-        // 根据wParam的值确定事件类型
+
         switch (wParam.intValue()) {
-            case 0x0200: // WM_MOUSEMOVE
+            case WM_MOUSEMOVE:
                 type = EventType.MOUSE_MOVE;
                 break;
-            case 0x0201: // WM_LBUTTONDOWN
+            case WM_LBUTTONDOWN:
                 type = EventType.MOUSE_DOWN;
                 mouseButton = 1;
                 break;
-            case 0x0202: // WM_LBUTTONUP
+            case WM_LBUTTONUP:
                 type = EventType.MOUSE_UP;
                 mouseButton = 1;
                 break;
-            case 0x0204: // WM_RBUTTONDOWN
+            case WM_RBUTTONDOWN:
                 type = EventType.MOUSE_DOWN;
                 mouseButton = 2;
                 break;
-            case 0x0205: // WM_RBUTTONUP
+            case WM_RBUTTONUP:
                 type = EventType.MOUSE_UP;
                 mouseButton = 2;
                 break;
-            case 0x0207: // WM_MBUTTONDOWN
+            case WM_MBUTTONDOWN:
                 type = EventType.MOUSE_DOWN;
                 mouseButton = 3;
                 break;
-            case 0x0208: // WM_MBUTTONUP
+            case WM_MBUTTONUP:
                 type = EventType.MOUSE_UP;
                 mouseButton = 3;
+                break;
+            default:
+                // 对于未识别的鼠标事件，保持默认值 EventType.MOUSE_MOVE 和 mouseButton = 0
                 break;
         }
-        
+
         return new WinHookEvent(type, 0, mouseX, mouseY, mouseButton);
     }
     

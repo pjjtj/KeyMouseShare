@@ -24,7 +24,7 @@ public class WinHookManager {
             logger.log(Level.WARNING, "Hooks are already active");
             return;
         }
-        
+
         try {
             LowLevelProc mouseProc = (nCode, wParam, lParam) -> {
                 if (nCode >= 0) {
@@ -77,7 +77,7 @@ public class WinHookManager {
 
     public void stopHooks() {
         hooksActive = false;
-        
+
         if (mouseHook != null) {
             try {
                 WinUser32.INSTANCE.UnhookWindowsHookEx(mouseHook);

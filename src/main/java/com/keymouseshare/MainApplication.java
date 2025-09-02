@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.logging.Logger;
 
@@ -327,7 +328,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
         // 初始化鼠标在虚拟桌面中的位置、更新当前激活的虚拟屏幕
         mouseKeyBoard.initVirtualMouseLocation();
 
-        this.startMouseMoveEvent();
+//        this.startMouseMoveEvent();
 
         // 开启鼠标位置检测控制
         mouseKeyBoard.startMouseKeyController();
@@ -376,19 +377,22 @@ public class MainApplication extends Application implements DeviceListener, Virt
             //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
             if (vScreenInfo != null) {
                 if (mouseKeyBoard.isEdgeMode()) {
+
                     virtualDesktopStorage.moveMouseLocation(x, y);
                     // 鼠标移动事件处理
                     // 这里可以添加鼠标移动的特殊处理逻辑
                     // 例如：发送鼠标移动事件到远程设备
                     if (controlRequestManager != null) {
                         // 发送鼠标移动事件到远程设备
-                        if (virtualDesktopStorage.getActiveScreen() != null) {
+                        if (x!=0||y!=0) {
                             controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseMoved.name(),
                                     virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(),
                                     virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
                         }
                     }
+                    mouseKeyBoard.mouseMove(0,0);
                 } else {
+//                    System.out.println("当前不是边缘模式，鼠标位置：" + x + " " + y);
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x - vScreenInfo.getDx(), vScreenInfo.getVy() + y - vScreenInfo.getDy());
                 }
             }

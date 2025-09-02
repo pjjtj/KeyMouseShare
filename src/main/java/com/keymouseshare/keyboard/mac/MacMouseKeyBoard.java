@@ -1,23 +1,21 @@
 package com.keymouseshare.keyboard.mac;
 
+import com.keymouseshare.bean.MoveTargetScreenInfo;
+import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
-import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.MouseEdgeDetector;
-import com.sun.jna.*;
+import com.sun.jna.Platform;
 
 import java.awt.*;
-import java.awt.event.InputEvent;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.List;
-import java.util.Arrays;
 
-import static com.keymouseshare.util.KeyBoardUtils.*;
+import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
 
 public class MacMouseKeyBoard implements MouseKeyBoard {
 
@@ -125,8 +123,10 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         }
         int x = virtualDesktopStorage.getMouseLocation()[0];
         int y = virtualDesktopStorage.getMouseLocation()[1];
-        ScreenInfo screenInfo = MouseEdgeDetector.isAtScreenEdge();
-        if (screenInfo != null) {
+        MoveTargetScreenInfo moveTargetScreenInfo = MouseEdgeDetector.isAtScreenEdge();
+        if (moveTargetScreenInfo != null) {
+
+            ScreenInfo screenInfo = moveTargetScreenInfo.getScreenInfo();
             // 更新激活屏幕
             if(!(screenInfo.getDeviceIp()+screenInfo.getScreenName()).equals(virtualDesktopStorage.getActiveScreen().getDeviceIp()+virtualDesktopStorage.getActiveScreen().getScreenName())){
                 System.out.println("激活设备："+screenInfo.getDeviceIp()+",屏幕："+screenInfo.getScreenName());
