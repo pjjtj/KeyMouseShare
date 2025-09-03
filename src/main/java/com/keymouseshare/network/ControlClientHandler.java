@@ -58,13 +58,13 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
                 break;
 
             case "KeyPressed":
-                logger.info("键盘按下: 键码=" + event.getKeyCode());
-                mouseKeyBoard.keyPress(event.getKeyCode());
+                logger.info("键盘按下: 键码=" + event.getKeyChar());
+                mouseKeyBoard.keyPress(event.getKeyChar());
                 break;
 
             case "KeyReleased":
-                logger.info("键盘释放: 键码=" + event.getKeyCode());
-                mouseKeyBoard.keyRelease(event.getKeyCode());
+                logger.info("键盘释放: 键码=" + event.getKeyChar());
+                mouseKeyBoard.keyRelease(event.getKeyChar());
                 break;
 
             default:

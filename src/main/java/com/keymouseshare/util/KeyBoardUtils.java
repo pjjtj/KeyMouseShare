@@ -123,4 +123,12 @@ public class KeyBoardUtils {
                 return (short) keyCode;
         }
     }
+
+    public static int keyCharToMacKeyCode(char ch) {
+        int keyCode = KeyEvent.getExtendedKeyCodeForChar(ch);
+        if (keyCode == KeyEvent.VK_UNDEFINED) {
+            System.err.println("无法映射字符: " + ch);
+        }
+        return keyCode;
+    }
 }

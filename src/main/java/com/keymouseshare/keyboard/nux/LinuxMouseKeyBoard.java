@@ -1,6 +1,7 @@
 package com.keymouseshare.keyboard.nux;
 
 import com.keymouseshare.keyboard.MouseKeyBoard;
+import com.keymouseshare.util.KeyBoardUtils;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -69,16 +70,18 @@ public class LinuxMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void keyPress(int keyCode) {
+    public void keyPress(char keyChar) {
         if (robot != null) {
-            robot.keyPress(keyCode);
+            //TDDO 需要修改
+            robot.keyPress(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
         }
     }
 
     @Override
-    public void keyRelease(int keyCode) {
+    public void keyRelease(char keyChar) {
         if (robot != null) {
-            robot.keyRelease(keyCode);
+            //TDDO 需要修改
+            robot.keyRelease(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
         }
     }
 

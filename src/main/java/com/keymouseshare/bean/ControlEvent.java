@@ -10,7 +10,7 @@ public class ControlEvent {
     private int x;
     private int y;
     private int button;
-    private int keyCode;
+    private char keyChar;
     private String data;
 
     public ControlEvent() {
@@ -22,10 +22,10 @@ public class ControlEvent {
         this.y = y;
     }
 
-    public ControlEvent(String deviceIp,String type,int keyCode) {
+    public ControlEvent(String deviceIp,String type,char keyChar) {
         this.deviceIp = deviceIp;
         this.type = type;
-        this.keyCode = keyCode;
+        this.keyChar = keyChar;
     }
 
     public ControlEvent(String deviceIp,String type, int x, int y) {
@@ -41,10 +41,10 @@ public class ControlEvent {
 //        this.button = button;
 //    }
 
-    public ControlEvent(String deviceIp,String type, int keyCode, String data) {
+    public ControlEvent(String deviceIp,String type, char keyChar, String data) {
         this.deviceIp = deviceIp;
         this.type = type;
-        this.keyCode = keyCode;
+        this.keyChar = keyChar;
         this.data = data;
     }
 
@@ -97,12 +97,12 @@ public class ControlEvent {
         this.button = button;
     }
 
-    public int getKeyCode() {
-        return keyCode;
+    public char getKeyChar() {
+        return keyChar;
     }
 
-    public void setKeyCode(int keyCode) {
-        this.keyCode = keyCode;
+    public void setKeyChar(char keyChar) {
+        this.keyChar = keyChar;
     }
 
     public String getData() {

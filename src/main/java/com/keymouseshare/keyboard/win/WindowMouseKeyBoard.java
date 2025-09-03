@@ -6,6 +6,7 @@ import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.uifx.TransparentFullScreenFxUtils;
+import com.keymouseshare.util.KeyBoardUtils;
 import com.keymouseshare.util.MouseEdgeDetector;
 import com.keymouseshare.keyboard.win.WinHookManager;
 
@@ -90,16 +91,18 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void keyPress(int keyCode) {
+    public void keyPress(char keyChar) {
         if (robot != null) {
-            robot.keyPress(keyCode);
+            //TDDO 需要修改
+            robot.keyPress(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
         }
     }
 
     @Override
-    public void keyRelease(int keyCode) {
+    public void keyRelease(char keyChar) {
         if (robot != null) {
-            robot.keyRelease(keyCode);
+            //TDDO 需要修改
+            robot.keyRelease(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
         }
     }
 

@@ -5,6 +5,7 @@ import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
+import com.keymouseshare.util.KeyBoardUtils;
 import com.keymouseshare.util.MouseEdgeDetector;
 import com.sun.jna.Platform;
 
@@ -102,18 +103,18 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void keyPress(int keyCode) {
+    public void keyPress(char keyChar) {
         if (robot != null) {
             // 回退到Robot
-            robot.keyPress(keyCode);
+            robot.keyPress(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
         }
     }
 
     @Override
-    public void keyRelease(int keyCode) {
+    public void keyRelease(char keyChar) {
         if (robot != null) {
             // 回退到Robot
-            robot.keyRelease(keyCode);
+            robot.keyRelease(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
         }
     }
 

@@ -446,13 +446,13 @@ public class MainApplication extends Application implements DeviceListener, Virt
     }
 
     @Override
-    public void onKeyPress(int keyCode) {
+    public void onKeyPress(char keyChart) {
         // 鼠标滚轮事件处理
         if (controlRequestManager != null && mouseKeyBoard.isEdgeMode()) {
             // 创建一个特殊的控制事件来表示滚轮事件
             // 如果有激活的屏幕，设置设备IP和屏幕名
             if (virtualDesktopStorage.getActiveScreen() != null) {
-                ControlEvent event = new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.KeyPressed.name(), keyCode);
+                ControlEvent event = new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.KeyPressed.name(), keyChart);
                 event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
                 controlRequestManager.sendControlRequest(event);
             }
@@ -460,13 +460,13 @@ public class MainApplication extends Application implements DeviceListener, Virt
     }
 
     @Override
-    public void onKeyRelease(int keyCode) {
+    public void onKeyRelease(char keyChart) {
         // 鼠标滚轮事件处理
         if (controlRequestManager != null && mouseKeyBoard.isEdgeMode()) {
             // 创建一个特殊的控制事件来表示滚轮事件
             // 如果有激活的屏幕，设置设备IP和屏幕名
             if (virtualDesktopStorage.getActiveScreen() != null) {
-                ControlEvent event = new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.KeyReleased.name(), keyCode);
+                ControlEvent event = new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.KeyReleased.name(), keyChart);
                 event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
                 controlRequestManager.sendControlRequest(event);
             }

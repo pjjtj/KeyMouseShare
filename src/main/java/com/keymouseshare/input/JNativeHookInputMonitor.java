@@ -46,8 +46,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         void onMouseClick(int button, int x, int y);
         void onMouseDrag(int x, int y);
         void onMouseWheel(int rotation, int x, int y); // 添加滚轮事件
-        void onKeyPress(int keyCode);
-        void onKeyRelease(int keyCode);
+        void onKeyPress(char keyCode);
+        void onKeyRelease(char keyCode);
     }
 
     public interface KeyBoardEventListener {
@@ -153,7 +153,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         
         // 转发键盘按下事件
         if (mouseKeyBoardEventListener != null) {
-            mouseKeyBoardEventListener.onKeyPress(keyCode);
+            mouseKeyBoardEventListener.onKeyPress(e.getKeyChar());
         }
 
         // 暂停键盘事件日志打印
@@ -170,9 +170,9 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
 
         System.out.println("Sent nativeKeyReleased event: " + keyCode);
 
-        // 转发键盘按下事件
+        // 转发键盘释放事件
         if (mouseKeyBoardEventListener != null) {
-            mouseKeyBoardEventListener.onKeyRelease(keyCode);
+            mouseKeyBoardEventListener.onKeyRelease(e.getKeyChar());
         }
         
         // 暂停键盘事件日志打印
