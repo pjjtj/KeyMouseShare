@@ -142,6 +142,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         
         int keyCode = e.getKeyCode();
         pressedKeys.add(keyCode);
+
+        System.out.println("Sent nativeKeyPressed event: " + keyCode);
         
         // 检查是否按下了Ctrl+Alt+Esc组合键
         if (isCtrlAltEscPressed()) {
@@ -151,9 +153,9 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         
         // 转发键盘按下事件
         if (mouseKeyBoardEventListener != null) {
-            // 可以在这里添加键盘事件转发逻辑
+            mouseKeyBoardEventListener.onKeyPress(keyCode);
         }
-        
+
         // 暂停键盘事件日志打印
         // logger.info("键盘事件: 类型=按键按下, 键码=" + e.getKeyCode());
         // System.out.println("键盘事件: 类型=按键按下, 键码=" + e.getKeyCode());
@@ -165,10 +167,12 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         
         int keyCode = e.getKeyCode();
         pressedKeys.remove(keyCode);
-        
-        // 转发键盘释放事件
-        if (mainApplication != null) {
-            // 可以在这里添加键盘事件转发逻辑
+
+        System.out.println("Sent nativeKeyReleased event: " + keyCode);
+
+        // 转发键盘按下事件
+        if (mouseKeyBoardEventListener != null) {
+            mouseKeyBoardEventListener.onKeyRelease(keyCode);
         }
         
         // 暂停键盘事件日志打印
