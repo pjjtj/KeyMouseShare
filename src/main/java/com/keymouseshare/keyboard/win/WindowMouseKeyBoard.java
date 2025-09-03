@@ -5,12 +5,13 @@ import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.storage.VirtualDesktopStorage;
+import com.keymouseshare.uifx.TransparentFullScreenFxUtils;
 import com.keymouseshare.util.MouseEdgeDetector;
+import com.keymouseshare.keyboard.win.WinHookManager;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.function.Consumer;
@@ -147,16 +148,20 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
                 if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
                     System.out.println("当前设备是控制器，需要退出鼠标隐藏");
 
-//                    System.out.println("虚拟鼠标位置：" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1]);
-                    exitEdgeMode();
-
                     // 退出系统钩子
                     stopInputInterception();
+
+                    // System.out.println("虚拟鼠标位置：" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1]);
+                    exitEdgeMode();
+
+
                 } else { // 被唤醒设备是远程设备
-                    // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
-                    startInputInterception(event -> {});
                     // 启动成功后调用其他方法
                     enterEdgeMode();
+
+                    // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
+                    startInputInterception(event -> {});
+
                 }
             }
         }
@@ -180,9 +185,7 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
     public void startInputInterception(Consumer<WinHookEvent> eventHandler) {
         if (hookManager != null && !hookManager.isHooksActive()) {
-            hookThread = new Thread(() -> hookManager.startHooks(eventHandler), "WinHookThread");
-            hookThread.setDaemon(true);
-            hookThread.start();
+            hookManager.startHooks(eventHandler);
             logger.log(Level.INFO, "Input interception started");
         } else {
             logger.log(Level.WARNING, "Hook manager is null or hooks are already active");
@@ -198,15 +201,17 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
 
     private void enterEdgeMode() {        // [40]
         edgeMode = true;
-        robot.mouseMove(0,0);
+        virtualDesktopStorage.enterEdgeMode();
+        robot.mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
     }
 
     private void exitEdgeMode() {
         if (!edgeMode) return;
         edgeMode = false;
-        // 根据虚拟鼠标位置转换为控制中心鼠标位置
         System.out.println("控制中心鼠标位置：" + (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) + "," + (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
         robot.mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+        // 根据虚拟鼠标位置转换为控制中心鼠标位置
+        virtualDesktopStorage.exitEdgeMode();
     }
 
     @Override
@@ -242,10 +247,6 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
                 virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + pt.x - screenInfo.getDx(), vScreenInfo.getVy() + pt.y - screenInfo.getDy());
             }
         }
-    }
-
-    public static void main(String[] args) {
-        WindowMouseKeyBoard.getInstance().mouseMove(3820, 1000);
     }
 
 }

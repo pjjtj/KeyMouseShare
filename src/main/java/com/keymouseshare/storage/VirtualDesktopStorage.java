@@ -155,4 +155,16 @@ public class VirtualDesktopStorage {
             listener.onApplyVirtualDesktopScreen(screenMap, scale);
         }
     }
+
+    public void enterEdgeMode() {
+        for (VirtualDesktopStorageListener listener : listeners) {
+            listener.onEnterEdgeMode();
+        }
+    }
+
+    public void exitEdgeMode() {
+        for (VirtualDesktopStorageListener listener : listeners) {
+            listener.onExitEdgeMode();
+        }
+    }
 }

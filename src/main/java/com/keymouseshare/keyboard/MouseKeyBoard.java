@@ -26,7 +26,6 @@ public interface MouseKeyBoard {
 
     void stopEdgeDetection();
     
-
     void mouseWheel(int wheelAmount);
 
 }

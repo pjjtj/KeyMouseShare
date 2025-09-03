@@ -22,6 +22,12 @@ public class ControlEvent {
         this.y = y;
     }
 
+    public ControlEvent(String deviceIp,String type,int keyCode) {
+        this.deviceIp = deviceIp;
+        this.type = type;
+        this.keyCode = keyCode;
+    }
+
     public ControlEvent(String deviceIp,String type, int x, int y) {
         this.deviceIp = deviceIp;
         this.type = type;
@@ -29,11 +35,11 @@ public class ControlEvent {
         this.y = y;
     }
 
-    public ControlEvent(String deviceIp,String type, int button) {
-        this.deviceIp = deviceIp;
-        this.type = type;
-        this.button = button;
-    }
+//    public ControlEvent(String deviceIp,String type, int button) {
+//        this.deviceIp = deviceIp;
+//        this.type = type;
+//        this.button = button;
+//    }
 
     public ControlEvent(String deviceIp,String type, int keyCode, String data) {
         this.deviceIp = deviceIp;

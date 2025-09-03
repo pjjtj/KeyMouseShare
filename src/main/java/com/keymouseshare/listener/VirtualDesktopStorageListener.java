@@ -14,4 +14,8 @@ public interface VirtualDesktopStorageListener {
     void onVirtualDesktopChanged();
 
     void onApplyVirtualDesktopScreen(Map<StackPane, String>  screenMap, double scale);
+
+    void onEnterEdgeMode();
+
+    void onExitEdgeMode();
 }

@@ -1,6 +1,9 @@
 package com.keymouseshare;
 
-import com.keymouseshare.bean.*;
+import com.keymouseshare.bean.ControlEvent;
+import com.keymouseshare.bean.ControlEventType;
+import com.keymouseshare.bean.DeviceInfo;
+import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.input.JNativeHookInputMonitor;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoardFactory;
@@ -10,9 +13,7 @@ import com.keymouseshare.network.ControlRequestManager;
 import com.keymouseshare.network.DeviceDiscovery;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
-import com.keymouseshare.uifx.DeviceListUI;
-import com.keymouseshare.uifx.MousePositionDisplay;
-import com.keymouseshare.uifx.ScreenPreviewUI;
+import com.keymouseshare.uifx.*;
 import com.keymouseshare.util.MacOSAccessibilityHelper;
 import com.keymouseshare.util.NetUtil;
 import javafx.application.Application;
@@ -20,20 +21,19 @@ import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.logging.Logger;
 
 /**
  * 主应用程序类
  */
-public class MainApplication extends Application implements DeviceListener, VirtualDesktopStorageListener, JNativeHookInputMonitor.MouseEventListener {
+public class MainApplication extends Application implements DeviceListener, VirtualDesktopStorageListener, JNativeHookInputMonitor.MouseKeyBoardEventListener {
 
     private static final Logger logger = Logger.getLogger(MainApplication.class.getName());
 
@@ -46,7 +46,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
     private MouseKeyBoard mouseKeyBoard;
     private DeviceStorage deviceStorage = DeviceStorage.getInstance();
     private VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
-    private ScheduledExecutorService mouseMoveScheduledExecutor;
 
 
     public static void main(String[] args) {
@@ -297,7 +296,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
         virtualDesktopStorage.setApplyVirtualDesktopScreen(false);
         mouseKeyBoard.stopMouseKeyController();
 
-        stopMouseMoveEvent();
         System.out.println("应用程序已停止");
     }
 
@@ -328,36 +326,9 @@ public class MainApplication extends Application implements DeviceListener, Virt
         // 初始化鼠标在虚拟桌面中的位置、更新当前激活的虚拟屏幕
         mouseKeyBoard.initVirtualMouseLocation();
 
-//        this.startMouseMoveEvent();
-
         // 开启鼠标位置检测控制
         mouseKeyBoard.startMouseKeyController();
 
-    }
-
-    private void startMouseMoveEvent() {
-        mouseMoveScheduledExecutor = new ScheduledThreadPoolExecutor(1);
-        final AtomicIntegerArray[] lastLocation = {new AtomicIntegerArray(virtualDesktopStorage.getMouseLocation())};
-        mouseMoveScheduledExecutor.scheduleAtFixedRate(() -> {
-            if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
-                ScreenInfo screenInfo = virtualDesktopStorage.getActiveScreen();
-                if (!screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress()) && mouseKeyBoard.isEdgeMode()) {
-//                    if(lastLocation[0].get(0) !=virtualDesktopStorage.getMouseLocation()[0]|| lastLocation[0].get(1) !=virtualDesktopStorage.getMouseLocation()[1]){
-                    controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseMoved.name(),
-                            virtualDesktopStorage.getMouseLocation()[0] - screenInfo.getVx(),
-                            virtualDesktopStorage.getMouseLocation()[1] - screenInfo.getVy()));
-//                    }else{
-//                        lastLocation[0] = new AtomicIntegerArray(virtualDesktopStorage.getMouseLocation());
-//                    }
-                }
-            }
-        }, 0, 5, TimeUnit.MILLISECONDS);
-    }
-
-    private void stopMouseMoveEvent() {
-        if (mouseMoveScheduledExecutor != null) {
-            mouseMoveScheduledExecutor.shutdown();
-        }
     }
 
     public void cancelKeyMouseShare() {
@@ -377,20 +348,21 @@ public class MainApplication extends Application implements DeviceListener, Virt
             //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
             if (vScreenInfo != null) {
                 if (mouseKeyBoard.isEdgeMode()) {
-
-                    virtualDesktopStorage.moveMouseLocation(x, y);
+                    virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x, vScreenInfo.getVy() + y);
+//                    virtualDesktopStorage.moveMouseLocation(x,y);
                     // 鼠标移动事件处理
                     // 这里可以添加鼠标移动的特殊处理逻辑
                     // 例如：发送鼠标移动事件到远程设备
                     if (controlRequestManager != null) {
                         // 发送鼠标移动事件到远程设备
-                        if (x!=0||y!=0) {
+                        if (x != 0 || y != 0) {
+//                            System.out.println("鼠标相对位置：" + x + " " + y);
                             controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseMoved.name(),
                                     virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(),
                                     virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
                         }
                     }
-                    mouseKeyBoard.mouseMove(0,0);
+//                    mouseKeyBoard.mouseMove(0,0);
                 } else {
 //                    System.out.println("当前不是边缘模式，鼠标位置：" + x + " " + y);
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x - vScreenInfo.getDx(), vScreenInfo.getVy() + y - vScreenInfo.getDy());
@@ -471,5 +443,43 @@ public class MainApplication extends Application implements DeviceListener, Virt
                 controlRequestManager.sendControlRequest(event);
             }
         }
+    }
+
+    @Override
+    public void onKeyPress(int keyCode) {
+        // 鼠标滚轮事件处理
+        if (controlRequestManager != null && mouseKeyBoard.isEdgeMode()) {
+            // 创建一个特殊的控制事件来表示滚轮事件
+            // 如果有激活的屏幕，设置设备IP和屏幕名
+            if (virtualDesktopStorage.getActiveScreen() != null) {
+                ControlEvent event = new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.KeyPressed.name(), keyCode);
+                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
+                controlRequestManager.sendControlRequest(event);
+            }
+        }
+    }
+
+    @Override
+    public void onKeyRelease(int keyCode) {
+        // 鼠标滚轮事件处理
+        if (controlRequestManager != null && mouseKeyBoard.isEdgeMode()) {
+            // 创建一个特殊的控制事件来表示滚轮事件
+            // 如果有激活的屏幕，设置设备IP和屏幕名
+            if (virtualDesktopStorage.getActiveScreen() != null) {
+                ControlEvent event = new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.KeyReleased.name(), keyCode);
+                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
+                controlRequestManager.sendControlRequest(event);
+            }
+        }
+    }
+
+    @Override
+    public void onEnterEdgeMode() {
+        Platform.runLater(TransparentFullScreenFxUtils::openTransparentOverlayHiddenCursor);
+    }
+
+    @Override
+    public void onExitEdgeMode() {
+        Platform.runLater(TransparentFullScreenFxUtils::closeFullScreenAndRestoreCursor);
     }
 }
