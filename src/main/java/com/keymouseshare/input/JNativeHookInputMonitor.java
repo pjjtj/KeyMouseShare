@@ -4,18 +4,13 @@ import com.github.kwhat.jnativehook.GlobalScreen;
 import com.github.kwhat.jnativehook.NativeHookException;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
-import com.github.kwhat.jnativehook.mouse.NativeMouseEvent;
-import com.github.kwhat.jnativehook.mouse.NativeMouseListener;
-import com.github.kwhat.jnativehook.mouse.NativeMouseMotionListener;
-import com.github.kwhat.jnativehook.mouse.NativeMouseWheelEvent;
-import com.github.kwhat.jnativehook.mouse.NativeMouseWheelListener;
+import com.github.kwhat.jnativehook.mouse.*;
 import com.keymouseshare.MainApplication;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 基于JNativeHook的键盘鼠标输入监听器
@@ -143,7 +138,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         int keyCode = e.getKeyCode();
         pressedKeys.add(keyCode);
 
-        System.out.println("Sent nativeKeyPressed event: " + keyCode);
+        System.out.println("Sent nativeKeyPressed event: " + e.getKeyChar());
         
         // 检查是否按下了Ctrl+Alt+Esc组合键
         if (isCtrlAltEscPressed()) {

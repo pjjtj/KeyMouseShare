@@ -2,6 +2,7 @@ package com.keymouseshare.keyboard.nux;
 
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.util.KeyBoardUtils;
+import com.keymouseshare.util.NativeToAwtKeyEventMapper;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -70,18 +71,16 @@ public class LinuxMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void keyPress(char keyChar) {
+    public void keyPress(int keyCode) {
         if (robot != null) {
-            //TDDO 需要修改
-            robot.keyPress(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
+            robot.keyPress(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));
         }
     }
 
     @Override
-    public void keyRelease(char keyChar) {
+    public void keyRelease(int keyCode) {
         if (robot != null) {
-            //TDDO 需要修改
-            robot.keyRelease(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
+            robot.keyRelease(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));
         }
     }
 

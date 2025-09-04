@@ -7,6 +7,7 @@ import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.KeyBoardUtils;
 import com.keymouseshare.util.MouseEdgeDetector;
+import com.keymouseshare.util.NativeToAwtKeyEventMapper;
 import com.sun.jna.Platform;
 
 import java.awt.*;
@@ -17,6 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
+import static com.keymouseshare.util.KeyBoardUtils.getMacMouseButton;
 
 public class MacMouseKeyBoard implements MouseKeyBoard {
 
@@ -56,7 +58,7 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     @Override
     public void mousePress(int button) {
         if (robot != null) {
-            int buttonMask = getButtonMask(button);
+            int buttonMask = getMacMouseButton(button);
             // 回退到Robot
             robot.mousePress(buttonMask);
         }
@@ -65,7 +67,7 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     @Override
     public void mouseRelease(int button) {
         if (robot != null) {
-            int buttonMask = getButtonMask(button);
+            int buttonMask = getMacMouseButton(button);
             // 回退到Robot
             robot.mouseRelease(buttonMask);
         }
@@ -103,18 +105,16 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void keyPress(char keyChar) {
+    public void keyPress(int keyCode) {
         if (robot != null) {
-            // 回退到Robot
-            robot.keyPress(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
+            robot.keyPress(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));
         }
     }
 
     @Override
-    public void keyRelease(char keyChar) {
+    public void keyRelease(int keyCode) {
         if (robot != null) {
-            // 回退到Robot
-            robot.keyRelease(KeyBoardUtils.keyCharToMacKeyCode(keyChar));
+            robot.keyRelease(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));
         }
     }
 

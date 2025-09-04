@@ -12,9 +12,9 @@ public interface MouseKeyBoard {
 
     void mouseDragged(int x, int y);
 
-    void keyPress(char keyChar);
+    void keyPress(int keyCode);
 
-    void keyRelease(char keyChar);
+    void keyRelease(int keyCode);
 
     void initVirtualMouseLocation();
 
