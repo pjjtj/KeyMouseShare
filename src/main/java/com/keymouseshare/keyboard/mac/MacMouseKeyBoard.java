@@ -58,18 +58,16 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     @Override
     public void mousePress(int button) {
         if (robot != null) {
-            int buttonMask = getMacMouseButton(button);
             // 回退到Robot
-            robot.mousePress(buttonMask);
+            robot.mousePress(button);
         }
     }
 
     @Override
     public void mouseRelease(int button) {
         if (robot != null) {
-            int buttonMask = getMacMouseButton(button);
             // 回退到Robot
-            robot.mouseRelease(buttonMask);
+            robot.mouseRelease(button);
         }
     }
 
@@ -107,14 +105,14 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     @Override
     public void keyPress(int keyCode) {
         if (robot != null) {
-            robot.keyPress(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));
+            robot.keyPress(keyCode);
         }
     }
 
     @Override
     public void keyRelease(int keyCode) {
         if (robot != null) {
-            robot.keyRelease(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));
+            robot.keyRelease(keyCode);
         }
     }
 
