@@ -184,7 +184,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         }
         
         // 暂停鼠标事件日志打印
-        // logger.info("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+         logger.info("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
         // System.out.println("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
     }
     
@@ -198,7 +198,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         }
         
         // 暂停鼠标事件日志打印
-        // logger.info("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+         logger.info("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
         // System.out.println("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
     }
     
