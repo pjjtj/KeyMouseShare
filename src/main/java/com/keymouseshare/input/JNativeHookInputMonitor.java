@@ -138,8 +138,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         int keyCode = e.getKeyCode();
         pressedKeys.add(keyCode);
 
-        System.out.println("Sent nativeKeyPressed event: " + e.getKeyChar());
-        
+        System.out.println("Sent nativeKeyPressed event: " + e.getKeyCode());
+
         // 检查是否按下了Ctrl+Alt+Esc组合键
         if (isCtrlAltEscPressed()) {
             handleCtrlAltEscCombination();
