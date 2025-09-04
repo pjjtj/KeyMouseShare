@@ -402,35 +402,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
     }
 
     @Override
-    public void onMouseClick(int button, int x, int y) {
-        // 鼠标点击事件处理
-        if (controlRequestManager != null && mouseKeyBoard.isEdgeMode()) {
-            // 发送鼠标点击事件到远程设备
-            // 如果有激活的屏幕，设置设备IP和屏幕名
-            if (virtualDesktopStorage.getActiveScreen() != null) {
-                ControlEvent event = new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseClicked.name(), x, y);
-                event.setButton(button);
-                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
-                controlRequestManager.sendControlRequest(event);
-            }
-        }
-    }
-
-    @Override
-    public void onMouseDrag(int x, int y) {
-        // 鼠标拖拽事件处理
-        if (controlRequestManager != null && mouseKeyBoard.isEdgeMode()) {
-            // 发送鼠标拖拽事件到远程设备
-            // 如果有激活的屏幕，设置设备IP和屏幕名
-            if (virtualDesktopStorage.getActiveScreen() != null) {
-                ControlEvent event = new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseDragged.name(), x, y);
-                event.setScreenName(virtualDesktopStorage.getActiveScreen().getScreenName());
-                controlRequestManager.sendControlRequest(event);
-            }
-        }
-    }
-
-    @Override
     public void onMouseWheel(int rotation, int x, int y) {
         // 鼠标滚轮事件处理
         if (controlRequestManager != null && mouseKeyBoard.isEdgeMode()) {
