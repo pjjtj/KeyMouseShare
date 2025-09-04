@@ -1,8 +1,11 @@
 package com.keymouseshare.network;
 
+import com.github.kwhat.jnativehook.mouse.NativeMouseEvent;
 import com.keymouseshare.bean.ControlEvent;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoardFactory;
+import com.keymouseshare.util.NativeToAwtKeyEventMapper;
+import com.keymouseshare.util.NativeToAwtMouseEventMapper;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
@@ -34,12 +37,12 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
 
             case "MousePressed":
                 logger.info("鼠标按下: 按钮=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
-                mouseKeyBoard.mousePress(event.getButton());
+                mouseKeyBoard.mousePress(NativeToAwtMouseEventMapper.toAwtButton(event.getButton()));
                 break;
 
             case "MouseReleased":
                 logger.info("鼠标释放: 按钮=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
-                mouseKeyBoard.mouseRelease(event.getButton());
+                mouseKeyBoard.mouseRelease(NativeToAwtMouseEventMapper.toAwtButton(event.getButton()));
                 break;
 
             case "MouseMoved":
@@ -54,17 +57,17 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
 
             case "MouseWheel":
                 logger.info("鼠标滚轮: 旋转=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
-                mouseKeyBoard.mouseWheel(event.getButton()); // button字段存储滚轮旋转值
+                mouseKeyBoard.mouseWheel(NativeToAwtMouseEventMapper.toAwtButton(event.getButton())); // button字段存储滚轮旋转值
                 break;
 
             case "KeyPressed":
-                logger.info("键盘按下: 键码=" + event.getKeyChar());
-                mouseKeyBoard.keyPress(event.getKeyChar());
+                logger.info("键盘按下: 键码=" + event.getKeyCode());
+                mouseKeyBoard.keyPress(NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 break;
 
             case "KeyReleased":
-                logger.info("键盘释放: 键码=" + event.getKeyChar());
-                mouseKeyBoard.keyRelease(event.getKeyChar());
+                logger.info("键盘释放: 键码=" + event.getKeyCode());
+                mouseKeyBoard.keyRelease(NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 break;
 
             default:
