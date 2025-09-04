@@ -39,8 +39,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         void onMousePress(int button, int x, int y);
         void onMouseRelease(int button, int x, int y);
         void onMouseWheel(int rotation, int x, int y); // 添加滚轮事件
-        void onKeyPress(char keyCode);
-        void onKeyRelease(char keyCode);
+        void onKeyPress(int keyCode);
+        void onKeyRelease(int keyCode);
     }
 
     public interface KeyBoardEventListener {
@@ -146,7 +146,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         
         // 转发键盘按下事件
         if (mouseKeyBoardEventListener != null) {
-            mouseKeyBoardEventListener.onKeyPress(e.getKeyChar());
+            mouseKeyBoardEventListener.onKeyPress(e.getKeyCode());
         }
 
         // 暂停键盘事件日志打印
@@ -165,27 +165,14 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
 
         // 转发键盘释放事件
         if (mouseKeyBoardEventListener != null) {
-            mouseKeyBoardEventListener.onKeyRelease(e.getKeyChar());
+            mouseKeyBoardEventListener.onKeyRelease(e.getKeyCode());
         }
         
         // 暂停键盘事件日志打印
         // logger.info("键盘事件: 类型=按键释放, 键码=" + e.getKeyCode());
         // System.out.println("键盘事件: 类型=按键释放, 键码=" + e.getKeyCode());
     }
-    
-    @Override
-    public void nativeKeyTyped(NativeKeyEvent e) {
-        if (!isMonitoring) return;
-        
-        // 转发键盘输入事件
-        if (mainApplication != null) {
-            // 可以在这里添加键盘事件转发逻辑
-        }
-        
-        // 暂停键盘事件日志打印
-        // logger.info("键盘事件: 类型=按键输入, 字符=" + e.getKeyChar());
-        // System.out.println("键盘事件: 类型=按键输入, 字符=" + e.getKeyChar());
-    }
+
     
     @Override
     public void nativeMousePressed(NativeMouseEvent e) {
@@ -225,8 +212,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         }
         
         // 暂停鼠标事件日志打印
-//         logger.info("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
-//         System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
+        // logger.info("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
+        // System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
 
     }
     
@@ -279,13 +266,13 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     /**
      * 处理Ctrl+鼠标左键点击事件
      */
-//    private void handleCtrlLeftClick() {
-//        System.out.println("[HOTKEY] Ctrl+Left Click detected");
-//        logger.info("检测到Ctrl+鼠标左键点击");
-//
-//        // 可以在这里添加特定的处理逻辑
-//        // 例如：切换控制模式、标记屏幕区域等
-//    }
+    private void handleCtrlLeftClick() {
+        System.out.println("[HOTKEY] Ctrl+Left Click detected");
+        logger.info("检测到Ctrl+鼠标左键点击");
+
+        // 可以在这里添加特定的处理逻辑
+        // 例如：切换控制模式、标记屏幕区域等
+    }
 
     /**
      * 检查监听器是否正在运行
