@@ -75,23 +75,6 @@ public class WindowMouseKeyBoard implements MouseKeyBoard {
     }
 
     @Override
-    public void mouseClick(int x, int y) {
-        if (robot != null) {
-            robot.mouseMove(x, y);
-            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
-        }
-    }
-
-    @Override
-    public void mouseDragged(int x, int y) {
-        if (robot != null) {
-            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-            robot.mouseMove(x, y);
-        }
-    }
-
-    @Override
     public void keyPress(int keyCode) {
         if (robot != null) {
             robot.keyPress(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));

@@ -30,19 +30,15 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
 
         // 根据事件类型调用相应的MouseKeyBoard方法
         switch (event.getType()) {
-            case "MouseClicked":
-                logger.info("鼠标点击: 按钮=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
-                mouseKeyBoard.mouseClick(event.getX(), event.getY());
-                break;
 
             case "MousePressed":
                 logger.info("鼠标按下: 按钮=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
-                mouseKeyBoard.mousePress(NativeToAwtMouseEventMapper.toAwtButton(event.getButton()));
+                mouseKeyBoard.mousePress(NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()));
                 break;
 
             case "MouseReleased":
                 logger.info("鼠标释放: 按钮=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
-                mouseKeyBoard.mouseRelease(NativeToAwtMouseEventMapper.toAwtButton(event.getButton()));
+                mouseKeyBoard.mouseRelease(NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()));
                 break;
 
             case "MouseMoved":
@@ -50,14 +46,9 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
                 mouseKeyBoard.mouseMove(event.getX(), event.getY());
                 break;
 
-            case "MouseDragged":
-                logger.info("鼠标拖拽到: " + event.getX() + ", " + event.getY());
-                mouseKeyBoard.mouseDragged(event.getX(), event.getY());
-                break;
-
             case "MouseWheel":
                 logger.info("鼠标滚轮: 旋转=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
-                mouseKeyBoard.mouseWheel(NativeToAwtMouseEventMapper.toAwtButton(event.getButton())); // button字段存储滚轮旋转值
+                mouseKeyBoard.mouseWheel(event.getButton()); // button字段存储滚轮旋转值
                 break;
 
             case "KeyPressed":

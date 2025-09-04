@@ -5,9 +5,7 @@ import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
-import com.keymouseshare.util.KeyBoardUtils;
 import com.keymouseshare.util.MouseEdgeDetector;
-import com.keymouseshare.util.NativeToAwtKeyEventMapper;
 import com.sun.jna.Platform;
 
 import java.awt.*;
@@ -17,8 +15,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
-import static com.keymouseshare.util.KeyBoardUtils.getMacMouseButton;
 
 public class MacMouseKeyBoard implements MouseKeyBoard {
 
@@ -80,28 +76,6 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
         }
     }
 
-
-    @Override
-    public void mouseClick(int x, int y) {
-//        if (robot != null) {
-//            // 回退到Robot
-//            robot.mouseMove(x, y);
-//            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-//            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
-//        }
-    }
-
-    @Override
-    public void mouseDragged(int x, int y) {
-//        // 鼠标拖拽事件处理
-//        // 在这个接口中，拖拽被视为鼠标移动，具体实现在mouseMove方法中
-//        if (robot != null) {
-//            // 回退到Robot
-//            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-//            robot.mouseMove(x, y);
-//        }
-    }
-
     @Override
     public void keyPress(int keyCode) {
         if (robot != null) {
@@ -115,6 +89,7 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
             robot.keyRelease(keyCode);
         }
     }
+
 
     private void virtualScreenEdgeCheck() {
         if (virtualDesktopStorage.getActiveScreen() == null) {

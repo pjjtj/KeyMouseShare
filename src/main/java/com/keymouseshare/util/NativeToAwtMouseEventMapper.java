@@ -47,6 +47,11 @@ public class NativeToAwtMouseEventMapper {
         }
     }
 
+    /** 按钮映射 */
+    public static int toInputEventButton(int nativeButton) {
+       return InputEvent.getMaskForButton(toAwtButton(nativeButton));
+    }
+
     /** 修饰键映射（Shift/Alt/Ctrl/Meta） */
     public static int toAwtModifiers(int nativeMods) {
         int mods = 0;

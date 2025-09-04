@@ -38,8 +38,6 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         void onMouseMove(int x, int y);
         void onMousePress(int button, int x, int y);
         void onMouseRelease(int button, int x, int y);
-        void onMouseClick(int button, int x, int y);
-        void onMouseDrag(int x, int y);
         void onMouseWheel(int rotation, int x, int y); // 添加滚轮事件
         void onKeyPress(char keyCode);
         void onKeyRelease(char keyCode);
@@ -190,25 +188,6 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     }
     
     @Override
-    public void nativeMouseClicked(NativeMouseEvent e) {
-        if (!isMonitoring) return;
-        
-        // 转发鼠标点击事件
-        if (mouseKeyBoardEventListener != null) {
-            mouseKeyBoardEventListener.onMouseClick(e.getButton(), e.getX(), e.getY());
-        }
-        
-        // 检查是否按下了Ctrl键的同时点击鼠标
-//        if (isCtrlPressed() && e.getButton() == NativeMouseEvent.BUTTON1) {
-//            handleCtrlLeftClick();
-//        }
-        
-        // 暂停鼠标事件日志打印
-        // logger.info("鼠标事件: 类型=点击, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
-        // System.out.println("鼠标事件: 类型=点击, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
-    }
-    
-    @Override
     public void nativeMousePressed(NativeMouseEvent e) {
         if (!isMonitoring) return;
         
@@ -250,25 +229,6 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
 //         System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
 
     }
-    
-//    @Override
-//    public void nativeMouseDragged(NativeMouseEvent e) {
-//        if (!isMonitoring) return;
-//
-//        // 转发鼠标拖拽事件
-//        if (mouseKeyBoardEventListener != null) {
-//            mouseKeyBoardEventListener.onMouseDrag(e.getX(), e.getY());
-//        }
-//
-//        // 暂停鼠标事件日志打印
-//        // logger.info("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
-//        // System.out.println("鼠标事件: 类型=拖拽, 位置=(" + e.getX() + "," + e.getY() + ")");
-//
-//        // 通知鼠标位置监听器
-////        if (mousePositionListener != null) {
-////            mousePositionListener.accept(e.getX(), e.getY());
-////        }
-//    }
     
     @Override
     public void nativeMouseWheelMoved(NativeMouseWheelEvent e) {

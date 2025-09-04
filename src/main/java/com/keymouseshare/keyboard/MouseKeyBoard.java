@@ -8,13 +8,14 @@ public interface MouseKeyBoard {
 
     void mouseRelease(int button);
 
-    void mouseClick(int x, int y);
+    void mouseWheel(int wheelAmount);
 
-    void mouseDragged(int x, int y);
 
     void keyPress(int keyCode);
 
     void keyRelease(int keyCode);
+
+
 
     void initVirtualMouseLocation();
 
@@ -26,6 +27,6 @@ public interface MouseKeyBoard {
 
     void stopEdgeDetection();
     
-    void mouseWheel(int wheelAmount);
+
 
 }
