@@ -52,12 +52,12 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
                 break;
 
             case "KeyPressed":
-                logger.info("键盘按下: 键码=" + event.getKeyCode());
+                logger.info("键盘按下: 键码=" + NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 mouseKeyBoard.keyPress(NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 break;
 
             case "KeyReleased":
-                logger.info("键盘释放: 键码=" + event.getKeyCode());
+                logger.info("键盘释放: 键码=" +NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 mouseKeyBoard.keyRelease(NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 break;
 
