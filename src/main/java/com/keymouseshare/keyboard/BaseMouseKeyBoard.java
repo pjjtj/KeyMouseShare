@@ -18,7 +18,6 @@ public class BaseMouseKeyBoard {
     public BaseMouseKeyBoard() {
         try {
             robot = new Robot();
-            robot.delay(50);
         } catch (AWTException e) {
             logger.error("无法创建Robot实例", e);
         }
@@ -28,6 +27,7 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             // 回退到Robot
             robot.mouseMove(x, y);
+            robot.delay(50);
         }
     }
 
@@ -38,6 +38,7 @@ public class BaseMouseKeyBoard {
                 pressCombination();
             }
             robot.mousePress(button);
+            robot.delay(50);
         }
     }
 
@@ -45,6 +46,7 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             // 回退到Robot
             robot.mouseRelease(button);
+            robot.delay(50);
         }
     }
 
@@ -53,6 +55,7 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             // 回退到Robot
             robot.mouseWheel(wheelAmount);
+            robot.delay(50);
         }
     }
 
@@ -64,6 +67,7 @@ public class BaseMouseKeyBoard {
             }
             // 执行普通点击操作
             robot.keyPress(keyCode);
+            robot.delay(50);
         }
     }
 
@@ -71,6 +75,7 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             robot.keyRelease(keyCode);
             pressedKeys.remove(keyCode);
+            robot.delay(50);
         }
     }
 
@@ -82,6 +87,7 @@ public class BaseMouseKeyBoard {
             // 按顺序按下所有键
             for (int keyCode : pressedKeys) {
                 robot.keyPress(keyCode);
+                robot.delay(50);
             }
         }
     }
