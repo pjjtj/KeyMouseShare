@@ -33,11 +33,13 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
 
             case "MousePressed":
                 logger.info("鼠标按下: 按钮=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
+                logger.info("转换后: 按钮=" + NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()) + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
                 mouseKeyBoard.mousePress(NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()));
                 break;
 
             case "MouseReleased":
                 logger.info("鼠标释放: 按钮=" + event.getButton() + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
+                logger.info("转换后: 按钮=" + NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()) + ", 位置=(" + event.getX() + ", " + event.getY() + ")");
                 mouseKeyBoard.mouseRelease(NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()));
                 break;
 
