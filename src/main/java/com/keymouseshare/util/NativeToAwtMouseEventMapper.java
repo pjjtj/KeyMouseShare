@@ -49,7 +49,12 @@ public class NativeToAwtMouseEventMapper {
 
     /** 按钮映射 */
     public static int toInputEventButton(int nativeButton) {
-       return InputEvent.getMaskForButton(toAwtButton(nativeButton));
+        switch (toAwtButton(nativeButton)){
+            case MouseEvent.BUTTON1: return InputEvent.getMaskForButton(toAwtButton(MouseEvent.BUTTON1));
+            case MouseEvent.BUTTON2: return InputEvent.getMaskForButton(toAwtButton(MouseEvent.BUTTON3));
+            case MouseEvent.BUTTON3: return InputEvent.getMaskForButton(toAwtButton(MouseEvent.BUTTON2));
+        }
+       return InputEvent.getMaskForButton(MouseEvent.NOBUTTON);
     }
 
     /** 修饰键映射（Shift/Alt/Ctrl/Meta） */
