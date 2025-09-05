@@ -1,13 +1,14 @@
 package com.keymouseshare.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
-import java.util.logging.Level;
 
 /**
  * macOS辅助功能授权助手类
@@ -15,7 +16,7 @@ import java.util.logging.Level;
  */
 public class MacOSAccessibilityHelper {
     
-    private static final Logger logger = Logger.getLogger(MacOSAccessibilityHelper.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(MacOSAccessibilityHelper.class);
     
     /**
      * 检查当前应用是否具有辅助功能权限
@@ -30,12 +31,12 @@ public class MacOSAccessibilityHelper {
             // 尝试使用JNA方式检查权限
             return checkAccessibilityWithJNA();
         } catch (Exception e) {
-            logger.log(Level.WARNING, "使用JNA检查辅助功能权限时发生异常，尝试使用AppleScript方式", e);
+            logger.error("使用JNA检查辅助功能权限时发生异常，尝试使用AppleScript方式", e);
             try {
                 // 回退到AppleScript方式
                 return checkAccessibilityWithAppleScript();
             } catch (Exception ex) {
-                logger.log(Level.SEVERE, "检查辅助功能权限时发生异常", ex);
+                logger.error("检查辅助功能权限时发生异常", ex);
                 return false;
             }
         }
@@ -124,13 +125,13 @@ public class MacOSAccessibilityHelper {
             String[] cmd = {"open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"};
             Runtime.getRuntime().exec(cmd);
         } catch (Exception e) {
-            logger.log(Level.WARNING, "无法直接打开辅助功能设置页面", e);
+            logger.error("无法直接打开辅助功能设置页面", e);
             // 如果无法直接打开特定页面，则打开系统偏好设置
             try {
                 String[] cmd = {"open", "-a", "System Preferences"};
                 Runtime.getRuntime().exec(cmd);
             } catch (Exception ex) {
-                logger.log(Level.SEVERE, "无法打开系统偏好设置", ex);
+                logger.error("无法打开系统偏好设置", ex);
             }
         }
     }

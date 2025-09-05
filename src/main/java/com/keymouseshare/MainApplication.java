@@ -13,7 +13,10 @@ import com.keymouseshare.network.ControlRequestManager;
 import com.keymouseshare.network.DeviceDiscovery;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
-import com.keymouseshare.uifx.*;
+import com.keymouseshare.uifx.DeviceListUI;
+import com.keymouseshare.uifx.MousePositionDisplay;
+import com.keymouseshare.uifx.ScreenPreviewUI;
+import com.keymouseshare.uifx.TransparentFullScreenFxUtils;
 import com.keymouseshare.util.MacOSAccessibilityHelper;
 import com.keymouseshare.util.NetUtil;
 import javafx.application.Application;
@@ -21,21 +24,19 @@ import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.net.SocketException;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 /**
  * 主应用程序类
  */
 public class MainApplication extends Application implements DeviceListener, VirtualDesktopStorageListener, JNativeHookInputMonitor.MouseKeyBoardEventListener {
 
-    private static final Logger logger = Logger.getLogger(MainApplication.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(MainApplication.class);
 
     private DeviceDiscovery deviceDiscovery;
     private DeviceListUI deviceListUI;
@@ -46,6 +47,9 @@ public class MainApplication extends Application implements DeviceListener, Virt
     private MouseKeyBoard mouseKeyBoard;
     private DeviceStorage deviceStorage = DeviceStorage.getInstance();
     private VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
+
+    public MainApplication() throws SocketException {
+    }
 
 
     public static void main(String[] args) {
@@ -70,6 +74,9 @@ public class MainApplication extends Application implements DeviceListener, Virt
         // 检查并提示macOS辅助功能授权
         checkAndPromptAccessibilityPermission();
 
+        // 初始化网络设备发现
+        initDeviceDiscovery();
+
         // 创建设备列表UI（左侧）
         deviceListUI = new DeviceListUI(deviceDiscovery);
         root.setLeft(deviceListUI);
@@ -90,9 +97,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
             // 根据选中的设备IP选择对应的屏幕
             screenPreviewUI.selectScreen(ipAddress);
         });
-
-        // 初始化网络设备发现
-        initDeviceDiscovery();
 
         // 初始化控制请求管理器
         initControlRequestManager(primaryStage);
@@ -209,7 +213,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
      * 初始化控制请求管理器
      */
     private void initControlRequestManager(Stage primaryStage) {
-        controlRequestManager = new ControlRequestManager(deviceDiscovery);
+        controlRequestManager = new ControlRequestManager();
         // 先初始化，但暂时不设置父窗口，因为此时场景可能还没有创建
         // 在需要时再重新设置父窗口
     }
@@ -278,7 +282,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
             }
         } catch (Exception e) {
-            logger.severe("发送服务器关闭广播失败: " + e.getMessage());
+            logger.error("发送服务器关闭广播失败: {}", e.getMessage());
         }
         deviceDiscovery.stopDiscovery();
 
@@ -296,7 +300,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
         virtualDesktopStorage.setApplyVirtualDesktopScreen(false);
         mouseKeyBoard.stopMouseKeyController();
 
-        System.out.println("应用程序已停止");
     }
 
     @Override
@@ -349,7 +352,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
             if (vScreenInfo != null) {
                 if (mouseKeyBoard.isEdgeMode()) {
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x, vScreenInfo.getVy() + y);
-//                    virtualDesktopStorage.moveMouseLocation(x,y);
                     // 鼠标移动事件处理
                     // 这里可以添加鼠标移动的特殊处理逻辑
                     // 例如：发送鼠标移动事件到远程设备
@@ -362,7 +364,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
                                     virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
                         }
                     }
-//                    mouseKeyBoard.mouseMove(0,0);
                 } else {
 //                    System.out.println("当前不是边缘模式，鼠标位置：" + x + " " + y);
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x - vScreenInfo.getDx(), vScreenInfo.getVy() + y - vScreenInfo.getDy());

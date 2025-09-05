@@ -16,15 +16,15 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * 设备列表UI组件
  */
 public class DeviceListUI extends VBox {
-    private static final Logger logger = Logger.getLogger(DeviceListUI.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(DeviceListUI.class);
 
     private ListView<HBox> deviceListView;
     private Button startServerButton = new Button("启动服务器");
@@ -140,13 +140,13 @@ public class DeviceListUI extends VBox {
                     try {
                         deviceDiscovery.sendServerStartBroadcast();
                     }catch (Exception e){
-                        logger.severe("发送服务器启动广播失败: " + e.getMessage());
+                        logger.error("发送服务器启动广播失败: {}", e.getMessage());
                     }
                 }else{
                     try {
                         deviceDiscovery.sendServerCloseBroadcast();
                     }catch (Exception e){
-                        logger.severe("发送服务器关闭广播失败: " + e.getMessage());
+                        logger.error("发送服务器关闭广播失败: {}", e.getMessage());
                     }
                 }
             }
@@ -169,7 +169,7 @@ public class DeviceListUI extends VBox {
             // 异步发送控制请求
             deviceDiscovery.sendControlRequest(targetDeviceIp);
         }catch (Exception e){
-            logger.severe("发送服务器控制请求广播失败: " + e.getMessage());
+            logger.error("发送服务器控制请求广播失败: {}", e.getMessage());
         }
     }
 
@@ -216,7 +216,7 @@ public class DeviceListUI extends VBox {
                 deviceListView.getItems().add(deviceItem);
             }
         }catch (Exception e){
-            logger.log(Level.FINE,"Error adding device to list: " + e.getMessage());
+            logger.error("Error adding device to list: {}", e.getMessage());
         }
 
     }

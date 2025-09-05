@@ -6,18 +6,19 @@ import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 import com.github.kwhat.jnativehook.mouse.*;
 import com.keymouseshare.MainApplication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * 基于JNativeHook的键盘鼠标输入监听器
  * 用于监听本地设备的键盘和鼠标事件并打印日志
  */
 public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseListener, NativeMouseMotionListener, NativeMouseWheelListener {
-    private static final Logger logger = Logger.getLogger(JNativeHookInputMonitor.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(JNativeHookInputMonitor.class);
     
     // 用于跟踪当前按下的键
     private final Set<Integer> pressedKeys = new HashSet<>();
@@ -44,7 +45,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     }
 
     public JNativeHookInputMonitor() {
-        logger.info("JNativeHookInputMonitor实例已创建");
+//        logger.info("JNativeHookInputMonitor实例已创建");
     }
     
     /**
@@ -74,8 +75,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         
         try {
             // 禁用JNativeHook的默认日志记录器，避免日志过多
-            java.util.logging.Logger.getLogger(GlobalScreen.class.getPackage().getName()).setLevel(Level.OFF);
-            
+//            java.util.logging.Logger.getLogger(GlobalScreen.class.getPackage().getName()).setLevel(Level.OFF);
+
             // 注册全局屏幕监听器
             GlobalScreen.registerNativeHook();
             
@@ -89,7 +90,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             logger.info("开始使用JNativeHook监听本地键盘鼠标事件");
             System.out.println("JNativeHook输入监听已启动");
         } catch (NativeHookException e) {
-            logger.log(Level.SEVERE, "无法注册JNativeHook", e);
+            logger.error("无法注册JNativeHook", e);
             System.err.println("无法注册JNativeHook: " + e.getMessage());
             isMonitoring = false;
         }
@@ -121,7 +122,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             logger.info("停止使用JNativeHook监听本地键盘鼠标事件");
             System.out.println("JNativeHook输入监听已停止");
         } catch (NativeHookException e) {
-            logger.log(Level.WARNING, "注销JNativeHook时发生异常", e);
+            logger.error("注销JNativeHook时发生异常", e);
         }
     }
     
@@ -180,7 +181,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         }
         
         // 暂停鼠标事件日志打印
-         logger.info("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+//         logger.info("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
         // System.out.println("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
     }
     
@@ -194,7 +195,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         }
         
         // 暂停鼠标事件日志打印
-         logger.info("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+//         logger.info("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
         // System.out.println("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
     }
     

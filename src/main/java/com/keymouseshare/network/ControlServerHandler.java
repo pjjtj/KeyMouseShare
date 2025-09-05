@@ -6,16 +6,17 @@ import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.NetUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * 控制服务端处理器
  */
 public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEvent> {
-    private static final Logger logger = Logger.getLogger(ControlServerHandler.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(ControlServerHandler.class.getName());
 
     private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     
@@ -63,7 +64,7 @@ public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEve
     public void channelRead0(ChannelHandlerContext ctx, ControlEvent event) {
         String clientIp = NetUtil.dealRemoteAddress(ctx.channel().remoteAddress().toString());
         // 处理从客户端接收到的控制事件
-        logger.info("接收到控制事件: " + event.getType() + " 来自客户端: " + clientIp);
+        logger.info("接收到控制事件: {} 来自客户端: {}", event.getType(), clientIp);
         // 这里可以添加具体的事件处理逻辑
         
         // 示例：将事件回传给客户端
@@ -73,7 +74,7 @@ public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEve
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         String clientIp = NetUtil.dealRemoteAddress(ctx.channel().remoteAddress().toString());
-        logger.severe("控制服务端发生异常: " + cause.getMessage() + " 客户端IP: " + clientIp);
+        logger.error("控制服务端发生异常: {} 客户端IP: {}", cause.getMessage(), clientIp);
         ctx.close();
         
         // 移除客户端连接

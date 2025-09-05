@@ -7,6 +7,8 @@ import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.MouseEdgeDetector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.concurrent.ExecutionException;
@@ -14,12 +16,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
 
-    private static final Logger logger = Logger.getLogger(WindowMouseKeyBoard.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(WindowMouseKeyBoard.class);
 
 
     private static final WindowMouseKeyBoard INSTANCE = new WindowMouseKeyBoard();
@@ -46,7 +46,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
         try {
             virtualScreenEdgeCheckInternal();
         } catch (ExecutionException | InterruptedException e) {
-            logger.log(Level.WARNING, "Error during virtual screen edge check", e);
+            logger.error("Error during virtual screen edge check {}", e.getMessage());
             Thread.currentThread().interrupt(); // Restore interrupted state
         }
     }
@@ -117,16 +117,16 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     public void startInputInterception(Consumer<WinHookEvent> eventHandler) {
         if (hookManager != null && !hookManager.isHooksActive()) {
             hookManager.startHooks(eventHandler);
-            logger.log(Level.INFO, "Input interception started");
+            logger.info("Input interception started");
         } else {
-            logger.log(Level.WARNING, "Hook manager is null or hooks are already active");
+            logger.info("Hook manager is null or hooks are already active");
         }
     }
 
     public void stopInputInterception() {
         if (hookManager != null) {
             hookManager.stopHooks();
-            logger.log(Level.INFO, "Input interception stopped");
+            logger.info("Input interception stopped");
         }
     }
 

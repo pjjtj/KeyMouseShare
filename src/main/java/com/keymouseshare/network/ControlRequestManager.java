@@ -8,18 +8,18 @@ import javafx.scene.control.ButtonType;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
 
 /**
  * 控制请求管理器
  * 处理权限控制与连接建立流程
  */
 public class ControlRequestManager {
-    private static final Logger logger = Logger.getLogger(ControlRequestManager.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(ControlRequestManager.class);
 
-    private DeviceDiscovery deviceDiscovery;
     private ControlServer controlServer;
     private ControlClient controlClient;
     private boolean isServerMode = false;
@@ -28,8 +28,8 @@ public class ControlRequestManager {
     private final DeviceStorage deviceStorage = DeviceStorage.getInstance();
 
 
-    public ControlRequestManager(DeviceDiscovery deviceDiscovery) {
-        this.deviceDiscovery = deviceDiscovery;
+    public ControlRequestManager() {
+
     }
 
     /**
@@ -73,14 +73,14 @@ public class ControlRequestManager {
                     controlServer.start(8889); // 使用8889端口进行控制连接
                     logger.info("控制服务端已启动，端口: 8889");
                 } catch (Exception e) {
-                    logger.severe("启动控制服务端失败: " + e.getMessage());
+                    logger.error("启动控制服务端失败: {}", e.getMessage());
                 }
             }).start();
 
             deviceStorage.getLocalDevice().getScreens().forEach(virtualDesktopStorage::addScreen);
 
         } catch (Exception e) {
-            logger.severe("创建控制服务端失败: " + e.getMessage());
+            logger.error("创建控制服务端失败: {}", e.getMessage());
         }
     }
 
@@ -93,7 +93,7 @@ public class ControlRequestManager {
                 controlServer.stop();
                 logger.info("控制服务端已停止");
             } catch (Exception e) {
-                logger.severe("停止控制服务端失败: " + e.getMessage());
+                logger.error("停止控制服务端失败: {}", e.getMessage());
             }
         }
     }
@@ -176,7 +176,7 @@ public class ControlRequestManager {
             controlServer.sendControlEvent(event);
 //            logger.info("已发送控制请求到客户端: " + event.getDeviceIp() + ", 事件类型: " + event.getType()+ ", 数据: (" + event.getX()+","+event.getY()+")");
         } else {
-            logger.warning("控制服务器未启动，无法发送控制请求到客户端: " + event.getDeviceIp());
+            logger.error("控制服务器未启动，无法发送控制请求到客户端: {}", event.getDeviceIp());
         }
     }
 
@@ -189,7 +189,7 @@ public class ControlRequestManager {
                 controlClient.disconnect();
                 logger.info("控制客户端已断开连接");
             } catch (Exception e) {
-                logger.severe("断开控制客户端连接失败: " + e.getMessage());
+                logger.error("断开控制客户端连接失败: {}", e.getMessage());
             }
         }
     }

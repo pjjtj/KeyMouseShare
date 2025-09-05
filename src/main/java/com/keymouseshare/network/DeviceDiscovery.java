@@ -8,6 +8,8 @@ import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.util.DeviceTools;
 import com.keymouseshare.util.NetUtil;
 import javafx.application.Platform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -18,13 +20,12 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 /**
  * UDP网络发现模块，用于发现局域网内的设备及其屏幕信息，并提供设备控制请求功能。
  */
 public class DeviceDiscovery {
-    private static final Logger logger = Logger.getLogger(DeviceDiscovery.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(DeviceDiscovery.class);
 
     // UDP广播端口
     private static final int DISCOVERY_PORT = 8888;
@@ -71,7 +72,7 @@ public class DeviceDiscovery {
         // 启动设备清理线程
         startDeviceCleanupThread();
 
-        System.out.println("设备发现服务已启动，本地IP: " + localIpAddress + "，广播地址: " + localBroadcastAddress);
+        logger.info("设备发现服务已启动，本地IP: {}，广播地址: {}", localIpAddress, localBroadcastAddress);
         // 打印本机信息
         DeviceStorage.getInstance().printLocalDevices();
     }
@@ -106,7 +107,7 @@ public class DeviceDiscovery {
                     handleMessage(message, packet.getAddress().getHostAddress());
                 } catch (IOException e) {
                     if (!socket.isClosed()) {
-                        e.printStackTrace();
+                        logger.error("Error receiving broadcast: {}", e.getMessage());
                     }
                 }
             }
@@ -126,7 +127,7 @@ public class DeviceDiscovery {
             try {
                 sendDeviceHeartBeatBroadcast();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("发送设备心跳广播失败: {}", e.getMessage());
             }
         }, 5, 3, TimeUnit.SECONDS);
 

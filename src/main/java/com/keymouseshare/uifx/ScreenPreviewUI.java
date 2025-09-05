@@ -20,18 +20,18 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Scale;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * 屏幕预览UI组件
  */
 public class ScreenPreviewUI extends VBox {
 
-    private static final Logger logger = Logger.getLogger(ScreenPreviewUI.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(ScreenPreviewUI.class);
 
     private double scale = 10.0;
     private Pane screenPane;
@@ -338,8 +338,7 @@ public class ScreenPreviewUI extends VBox {
                 int newX = (int) (event.getSceneX() - mouseXOffset);
                 int newY = (int) (event.getSceneY() - mouseYOffset);
 
-                logger.log(Level.FINE, "Mouse dragged to (" + event.getSceneX() + ", " + event.getSceneY() +
-                        "), calculating new position (" + newX + ", " + newY + ")");
+                logger.info("Mouse dragged to ({}, {}), calculating new position ({}, {})", event.getSceneX(), event.getSceneY(), newX, newY);
 
                 draggedScreen.setLayoutX(newX);
                 draggedScreen.setLayoutY(newY);
@@ -448,34 +447,30 @@ public class ScreenPreviewUI extends VBox {
 
             // 如果最小边缘距离小于阈值，则进行实时吸附
             if (minEdgeDistance < REAL_TIME_SNAP_THRESHOLD) {
-                logger.log(Level.INFO, "Real-time snapping: source screen '" + sourceScreenName +
-                        "' to target screen '" + targetScreenName + "', min edge distance: " + minEdgeDistance +
-                        ", threshold: " + REAL_TIME_SNAP_THRESHOLD);
+                logger.info("Real-time snapping: source screen '{}' to target screen '{}', min edge distance: {}, threshold: " + REAL_TIME_SNAP_THRESHOLD, sourceScreenName, targetScreenName, minEdgeDistance);
 
                 // 根据最小边缘距离调整位置
                 if (minEdgeDistance == distanceLeftToRight&&!(screenTop>targetBottom||screenBottom<targetTop)) {
-                    logger.log(Level.INFO, "Left to right");
+                    logger.info("Left to right");
                     screen.setLayoutX(targetRight+(1/scale));
                 }
                 if (minEdgeDistance == distanceRightToLeft&&!(screenTop>targetBottom||screenBottom<targetTop)) {
-                    logger.log(Level.INFO, "Right to left");
+                    logger.info("Right to left");
                     screen.setLayoutX(targetLeft-screen.getWidth()-(1/scale));
                 }
                 if (minEdgeDistance == distanceTopToBottom&&!(screenRight>targetRight||screenLeft<targetLeft)) {
-                    logger.log(Level.INFO, "Top to bottom"+(1/scale));
+                    logger.info("Top to bottom{}", 1 / scale);
                     screen.setLayoutY(targetBottom);
                 }
                 if (minEdgeDistance == distanceBottomToTop&&!(screenRight>targetRight||screenLeft<targetLeft)) {
-                    logger.log(Level.INFO, "Bottom to top");
+                    logger.info( "Bottom to top");
                     screen.setLayoutY(targetTop-screen.getHeight()-(1/scale));
                 }
             } else {
-                logger.log(Level.INFO, "No real-time snapping: source screen '" + sourceScreenName +
-                        "' to target screen '" + targetScreenName + "', min edge distance: " + minEdgeDistance +
-                        ", threshold: " + REAL_TIME_SNAP_THRESHOLD);
+                logger.info("No real-time snapping: source screen '{}' to target screen '{}', min edge distance: {}, threshold: " + REAL_TIME_SNAP_THRESHOLD, sourceScreenName, targetScreenName, minEdgeDistance);
             }
         } else {
-            logger.log(Level.INFO, "No non-overlapping target found for screen '" + sourceScreenName + "'");
+            logger.info("No non-overlapping target found for screen '{}'", sourceScreenName);
         }
 
     }

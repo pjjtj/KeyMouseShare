@@ -8,16 +8,17 @@ import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.MouseEdgeDetector;
 import com.sun.jna.Platform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 
 public class MacMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
 
-    private static final Logger logger = Logger.getLogger(MacMouseKeyBoard.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(MacMouseKeyBoard.class);
 
     private static final MacMouseKeyBoard INSTANCE = new MacMouseKeyBoard();
 

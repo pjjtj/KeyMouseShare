@@ -19,7 +19,7 @@ public class BaseMouseKeyBoard {
         try {
             robot = new Robot();
         } catch (AWTException e) {
-            logger.error("无法创建Robot实例", e);
+            logger.error("无法创建Robot实例 {}", e.getMessage());
         }
     }
 
