@@ -60,9 +60,10 @@ public class BaseMouseKeyBoard {
             pressedKeys.add(keyCode);
             if (pressedKeys.size() > 1) {
                 pressCombination();
+            }else{
+                // 执行普通点击操作
+                robot.keyPress(keyCode);
             }
-            // 执行普通点击操作
-            robot.keyPress(keyCode);
         }
     }
 

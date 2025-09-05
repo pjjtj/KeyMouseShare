@@ -33,7 +33,7 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
         switch (event.getType()) {
 
             case "MousePressed":
-//                logger.info("鼠标按下: 按钮={}, 位置=({}, {})", event.getButton(), event.getX(), event.getY());
+//                logger.info("鼠标按下:info 鼠标按下按钮={}, 位置=({}, {})", event.getButton(), event.getX(), event.getY());
                 mouseKeyBoard.mousePress(NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()), event.getX(), event.getY());
                 break;
 
@@ -63,7 +63,7 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
                 break;
 
             default:
-//                logger.error("未知的控制事件类型: {}", event.getType());
+                logger.error("未知的控制事件类型: {}", event.getType());
                 break;
         }
     }

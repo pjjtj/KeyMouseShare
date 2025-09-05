@@ -11,10 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
@@ -23,6 +20,9 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
 
 
     private static final WindowMouseKeyBoard INSTANCE = new WindowMouseKeyBoard();
+
+    // 创建调度执行器服务，使用单线程即可
+    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static WindowMouseKeyBoard getInstance() {
         return INSTANCE;
@@ -91,7 +91,8 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
                     enterEdgeMode();
 
                     // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
-                    startInputInterception(event -> {});
+                    startInputInterception(event -> {
+                    });
 
                 }
             }
@@ -133,16 +134,57 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     private void enterEdgeMode() {        // [40]
         edgeMode = true;
         virtualDesktopStorage.enterEdgeMode();
-        mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+
+        try {
+            Thread.sleep(200);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 检查调度器是否已经关闭，如果已关闭则创建一个新的
+        if (scheduler.isShutdown()) {
+            scheduler = Executors.newScheduledThreadPool(1);
+        }
+
+        ScheduledFuture<?> scheduledFuture = scheduler.scheduleAtFixedRate(() -> {
+            mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+        }, 0, 50, TimeUnit.MILLISECONDS);
+
+        // 安排一个任务在500ms后停止调度器并取消循环任务
+        scheduler.schedule(() -> {
+            scheduledFuture.cancel(true); // 取消周期性任务
+            scheduler.shutdown();         // 关闭调度器
+            System.out.println("调度器已关闭，任务执行完毕。");
+        }, 500, TimeUnit.MILLISECONDS);
+
     }
 
     private void exitEdgeMode() {
         if (!edgeMode) return;
         edgeMode = false;
         System.out.println("控制中心鼠标位置：" + (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) + "," + (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
-        mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
-        // 根据虚拟鼠标位置转换为控制中心鼠标位置
+
+        // 检查调度器是否已经关闭，如果已关闭则创建一个新的
+        if (scheduler.isShutdown()) {
+            scheduler = Executors.newScheduledThreadPool(1);
+        }
+
+        ScheduledFuture<?> scheduledFuture = scheduler.scheduleAtFixedRate(() -> {
+            // 根据虚拟鼠标位置转换为控制中心鼠标位置
+            mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+        }, 0, 50, TimeUnit.MILLISECONDS);
+
+        // 安排一个任务在500ms后停止调度器并取消循环任务
+        scheduler.schedule(() -> {
+            scheduledFuture.cancel(true); // 取消周期性任务
+            scheduler.shutdown();         // 关闭调度器
+            System.out.println("调度器已关闭，任务执行完毕。");
+            // 创建一个新的调度器以替换已关闭的调度器
+            scheduler = Executors.newScheduledThreadPool(1);
+        }, 500, TimeUnit.MILLISECONDS);
+
         virtualDesktopStorage.exitEdgeMode();
+
     }
 
     @Override
