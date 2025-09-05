@@ -1,21 +1,25 @@
 package com.keymouseshare.keyboard.win;
 
 import com.keymouseshare.bean.MoveTargetScreenInfo;
-import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.keyboard.BaseMouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
+import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.storage.VirtualDesktopStorage;
+import com.keymouseshare.uifx.TransparentFullScreenFxUtils;
+import com.keymouseshare.util.KeyBoardUtils;
 import com.keymouseshare.util.MouseEdgeDetector;
+import com.keymouseshare.keyboard.win.WinHookManager;
+import com.keymouseshare.util.NativeToAwtKeyEventMapper;
 
 import java.awt.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.awt.event.InputEvent;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.function.Consumer;
+
+import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
 
 public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
 
@@ -33,10 +37,13 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     private ScheduledExecutorService edgeWatcherExecutor;
 
 
+    private WinHookManager hookManager;
+
     private static volatile boolean edgeMode = false;
 
     public WindowMouseKeyBoard() {
         super();
+        hookManager = new WinHookManager();
     }
 
     private void virtualScreenEdgeCheck() {
@@ -130,14 +137,14 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     private void enterEdgeMode() {        // [40]
         edgeMode = true;
         virtualDesktopStorage.enterEdgeMode();
-        robot.mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+        mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
     }
 
     private void exitEdgeMode() {
         if (!edgeMode) return;
         edgeMode = false;
         System.out.println("控制中心鼠标位置：" + (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) + "," + (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
-        robot.mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+        mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
         // 根据虚拟鼠标位置转换为控制中心鼠标位置
         virtualDesktopStorage.exitEdgeMode();
     }
