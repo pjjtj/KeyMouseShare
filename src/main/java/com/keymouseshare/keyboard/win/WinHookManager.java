@@ -58,9 +58,9 @@ public class WinHookManager {
                         WinHookEvent event = WinHookEvent.fromKeyboard(wParam, kbdllhookstruct);
                         eventHandler.accept(event);
 
-                        if (event.shouldBlock()) {
+//                        if (event.shouldBlock()) {
                             return new LRESULT(1); // 阻止继续传递
-                        }
+//                        }
                     }
                     return User32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, new LPARAM(Pointer.nativeValue(kbdllhookstruct.getPointer())));
                 };
