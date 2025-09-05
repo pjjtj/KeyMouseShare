@@ -1,17 +1,11 @@
 package com.keymouseshare.keyboard.nux;
 
+import com.keymouseshare.keyboard.BaseMouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoard;
-import com.keymouseshare.util.KeyBoardUtils;
-import com.keymouseshare.util.NativeToAwtKeyEventMapper;
 
-import java.awt.*;
-import java.awt.event.InputEvent;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
-
-public class LinuxMouseKeyBoard implements MouseKeyBoard {
+public class LinuxMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
     private static final Logger logger = Logger.getLogger(LinuxMouseKeyBoard.class.getName());
 
     private static final LinuxMouseKeyBoard INSTANCE = new LinuxMouseKeyBoard();
@@ -20,59 +14,8 @@ public class LinuxMouseKeyBoard implements MouseKeyBoard {
         return INSTANCE;
     }
 
-    private Robot robot;
-
     public LinuxMouseKeyBoard() {
-        try {
-            robot = new Robot();
-        } catch (AWTException e) {
-            logger.log(Level.SEVERE, "无法创建Robot实例", e);
-        }
-    }
-
-    @Override
-    public void mouseMove(int x, int y) {
-        if (robot != null) {
-            robot.mouseMove(x, y);
-        }
-    }
-
-    @Override
-    public void mousePress(int button) {
-        if (robot != null) {
-            int buttonMask = getButtonMask(button);
-            robot.mousePress(buttonMask);
-        }
-    }
-
-    @Override
-    public void mouseRelease(int button) {
-        if (robot != null) {
-            int buttonMask = getButtonMask(button);
-            robot.mouseRelease(buttonMask);
-        }
-    }
-
-    @Override
-    public void keyPress(int keyCode) {
-        if (robot != null) {
-            robot.keyPress(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));
-        }
-    }
-
-    @Override
-    public void keyRelease(int keyCode) {
-        if (robot != null) {
-            robot.keyRelease(NativeToAwtKeyEventMapper.toAwtKeyCode(keyCode));
-        }
-    }
-
-    @Override
-    public void mouseWheel(int wheelAmount) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mouseWheel(wheelAmount);
-        }
+       super();
     }
 
     @Override

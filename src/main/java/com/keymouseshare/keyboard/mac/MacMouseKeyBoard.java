@@ -2,21 +2,20 @@ package com.keymouseshare.keyboard.mac;
 
 import com.keymouseshare.bean.MoveTargetScreenInfo;
 import com.keymouseshare.bean.ScreenInfo;
+import com.keymouseshare.keyboard.BaseMouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
 import com.keymouseshare.util.MouseEdgeDetector;
 import com.sun.jna.Platform;
 
-import java.awt.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class MacMouseKeyBoard implements MouseKeyBoard {
+public class MacMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
 
     private static final Logger logger = Logger.getLogger(MacMouseKeyBoard.class.getName());
 
@@ -30,66 +29,13 @@ public class MacMouseKeyBoard implements MouseKeyBoard {
     private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     private ScheduledExecutorService edgeWatcherExecutor;
 
-    private Robot robot;
+
     private static volatile boolean edgeMode = false;
 
 
-    public MacMouseKeyBoard() {
-        try {
-            robot = new Robot();
-        } catch (AWTException e) {
-            logger.log(Level.SEVERE, "无法创建Robot实例", e);
-        }
+    private MacMouseKeyBoard(){
+        super();
     }
-
-
-    @Override
-    public void mouseMove(int x, int y) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mouseMove(x, y);
-        }
-    }
-
-    @Override
-    public void mousePress(int button) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mousePress(button);
-        }
-    }
-
-    @Override
-    public void mouseRelease(int button) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mouseRelease(button);
-        }
-    }
-
-
-    @Override
-    public void mouseWheel(int wheelAmount) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mouseWheel(wheelAmount);
-        }
-    }
-
-    @Override
-    public void keyPress(int keyCode) {
-        if (robot != null) {
-            robot.keyPress(keyCode);
-        }
-    }
-
-    @Override
-    public void keyRelease(int keyCode) {
-        if (robot != null) {
-            robot.keyRelease(keyCode);
-        }
-    }
-
 
     private void virtualScreenEdgeCheck() {
         if (virtualDesktopStorage.getActiveScreen() == null) {
