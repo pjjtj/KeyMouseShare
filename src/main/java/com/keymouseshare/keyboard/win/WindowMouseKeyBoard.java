@@ -1,25 +1,21 @@
 package com.keymouseshare.keyboard.win;
 
 import com.keymouseshare.bean.MoveTargetScreenInfo;
+import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.keyboard.BaseMouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.storage.DeviceStorage;
-import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.storage.VirtualDesktopStorage;
-import com.keymouseshare.uifx.TransparentFullScreenFxUtils;
-import com.keymouseshare.util.KeyBoardUtils;
 import com.keymouseshare.util.MouseEdgeDetector;
-import com.keymouseshare.keyboard.win.WinHookManager;
-import com.keymouseshare.util.NativeToAwtKeyEventMapper;
 
 import java.awt.*;
-import java.awt.event.InputEvent;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.function.Consumer;
-
-import static com.keymouseshare.util.KeyBoardUtils.getButtonMask;
 
 public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
 
