@@ -18,7 +18,7 @@ public class BaseMouseKeyBoard {
     public BaseMouseKeyBoard() {
         try {
             robot = new Robot();
-            robot.delay(5);
+            robot.delay(50);
         } catch (AWTException e) {
             logger.error("无法创建Robot实例", e);
         }

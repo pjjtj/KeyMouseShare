@@ -43,10 +43,6 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         void onKeyRelease(int keyCode);
     }
 
-    public interface KeyBoardEventListener {
-
-    }
-
     public JNativeHookInputMonitor() {
         logger.info("JNativeHookInputMonitor实例已创建");
     }
