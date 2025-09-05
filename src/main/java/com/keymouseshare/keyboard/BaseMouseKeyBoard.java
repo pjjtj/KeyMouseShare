@@ -34,6 +34,9 @@ public class BaseMouseKeyBoard {
     public void mousePress(int button) {
         if (robot != null) {
             // 回退到Robot
+            if(!pressedKeys.isEmpty()){
+                pressCombination();
+            }
             robot.mousePress(button);
         }
     }
