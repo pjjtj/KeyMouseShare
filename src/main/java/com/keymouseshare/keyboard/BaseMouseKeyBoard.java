@@ -14,11 +14,11 @@ public class BaseMouseKeyBoard {
 
     private Robot robot;
     private Set<Integer> pressedKeys = new LinkedHashSet<>();
+    private boolean mousePressed = false;
 
     public BaseMouseKeyBoard() {
         try {
             robot = new Robot();
-            robot.setAutoDelay(50);
         } catch (AWTException e) {
             logger.error("无法创建Robot实例", e);
         }
@@ -27,24 +27,32 @@ public class BaseMouseKeyBoard {
     public void mouseMove(int x, int y) {
         if (robot != null) {
             // 回退到Robot
-            robot.mouseMove(x, y);
+            if(!mousePressed){
+                robot.mouseMove(x, y);
+            }
         }
     }
 
-    public void mousePress(int button) {
+    public void mousePress(int button,int x, int y) {
         if (robot != null) {
+            mousePressed = true;
             // 回退到Robot
             if (!pressedKeys.isEmpty()) {
                 pressCombination();
             }
             robot.mousePress(button);
+            if(mousePressed){
+                robot.mouseMove(x, y);
+            }
         }
     }
 
-    public void mouseRelease(int button) {
+    public void mouseRelease(int button,int x, int y) {
         if (robot != null) {
             // 回退到Robot
             robot.mouseRelease(button);
+            robot.mouseMove(x,y);
+            mousePressed = false;
         }
     }
 

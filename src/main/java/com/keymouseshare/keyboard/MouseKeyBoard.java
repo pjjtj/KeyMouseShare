@@ -4,9 +4,9 @@ public interface MouseKeyBoard {
 
     void mouseMove(int x, int y);
 
-    void mousePress(int button);
+    void mousePress(int button,int x, int y);
 
-    void mouseRelease(int button);
+    void mouseRelease(int button, int x, int y);
 
     void mouseWheel(int wheelAmount);
 
