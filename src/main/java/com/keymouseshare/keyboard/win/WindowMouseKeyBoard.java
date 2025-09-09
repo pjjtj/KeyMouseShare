@@ -91,8 +91,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
                     enterEdgeMode();
 
                     // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
-                    startInputInterception(event -> {
-                    });
+                    startInputInterception(event -> {});
 
                 }
             }
@@ -136,7 +135,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
         virtualDesktopStorage.enterEdgeMode();
 
         try {
-            Thread.sleep(200);
+            Thread.sleep(300);
         }catch (Exception e) {
             e.printStackTrace();
         }
@@ -162,6 +161,9 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     private void exitEdgeMode() {
         if (!edgeMode) return;
         edgeMode = false;
+
+        virtualDesktopStorage.exitEdgeMode();
+
         System.out.println("控制中心鼠标位置：" + (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) + "," + (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
 
         // 检查调度器是否已经关闭，如果已关闭则创建一个新的
@@ -181,9 +183,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
             System.out.println("调度器已关闭，任务执行完毕。");
             // 创建一个新的调度器以替换已关闭的调度器
             scheduler = Executors.newScheduledThreadPool(1);
-        }, 500, TimeUnit.MILLISECONDS);
-
-        virtualDesktopStorage.exitEdgeMode();
+        }, 1000, TimeUnit.MILLISECONDS);
 
     }
 
