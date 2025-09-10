@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.SocketException;
 import java.util.Map;
+import java.util.concurrent.FutureTask;
 
 /**
  * 主应用程序类
@@ -347,25 +348,28 @@ public class MainApplication extends Application implements DeviceListener, Virt
         });
 
         if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
-            ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
             //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
-            if (vScreenInfo != null) {
-                if (mouseKeyBoard.isEdgeMode()) {
+            if (mouseKeyBoard.isEdgeMode()) {
+                ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
+                if(!mouseKeyBoard.isChangingScreen()){
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x, vScreenInfo.getVy() + y);
-                    // 鼠标移动事件处理
-                    // 这里可以添加鼠标移动的特殊处理逻辑
-                    // 例如：发送鼠标移动事件到远程设备
-                    if (controlRequestManager != null) {
-                        // 发送鼠标移动事件到远程设备
-                        if (x != 0 || y != 0) {
+                }
+                // 鼠标移动事件处理
+                // 这里可以添加鼠标移动的特殊处理逻辑
+                // 例如：发送鼠标移动事件到远程设备
+                if (controlRequestManager != null) {
+                    // 发送鼠标移动事件到远程设备
+                    if (x != 0 || y != 0) {
 //                            System.out.println("鼠标相对位置：" + x + " " + y);
-                            controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseMoved.name(),
-                                    virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(),
-                                    virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
-                        }
+                        controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseMoved.name(),
+                                virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(),
+                                virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
                     }
-                } else {
+                }
+            } else {
+                ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
 //                    System.out.println("当前不是边缘模式，鼠标位置：" + x + " " + y);
+                if(!mouseKeyBoard.isChangingScreen()){
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x - vScreenInfo.getDx(), vScreenInfo.getVy() + y - vScreenInfo.getDy());
                 }
             }
@@ -447,11 +451,29 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
     @Override
     public void onEnterEdgeMode() {
-        Platform.runLater(TransparentFullScreenFxUtils::openTransparentOverlayHiddenCursor);
+        FutureTask<Void> task = new FutureTask<>(() -> {
+            TransparentFullScreenFxUtils.openTransparentOverlayHiddenCursor();
+            return null;
+        });
+        Platform.runLater(task);
+        try {
+            task.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onExitEdgeMode() {
-        Platform.runLater(TransparentFullScreenFxUtils::closeFullScreenAndRestoreCursor);
+        FutureTask<Void> task = new FutureTask<>(() -> {
+            TransparentFullScreenFxUtils.closeFullScreenAndRestoreCursor();
+            return null;
+        });
+        Platform.runLater(task);
+        try {
+            task.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

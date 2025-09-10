@@ -32,6 +32,8 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     private ScheduledExecutorService edgeWatcherExecutor;
 
+    private static volatile boolean changingScreen = false;
+
 
     private WinHookManager hookManager;
 
@@ -63,36 +65,19 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
             if (!(screenInfo.getDeviceIp() + screenInfo.getScreenName()).equals(virtualDesktopStorage.getActiveScreen().getDeviceIp() + virtualDesktopStorage.getActiveScreen().getScreenName())) {
                 System.out.println("激活设备：" + screenInfo.getDeviceIp() + ",屏幕：" + screenInfo.getScreenName());
                 virtualDesktopStorage.setActiveScreen(screenInfo);
-                if (direction.equals("LEFT")) {
-                    virtualDesktopStorage.moveMouseLocation(-10, 0);
-                }
-                if (direction.equals("RIGHT")) {
-                    virtualDesktopStorage.moveMouseLocation(+10, 0);
-                }
-                if (direction.equals("TOP")) {
-                    virtualDesktopStorage.moveMouseLocation(0, -10);
-                }
-                if (direction.equals("BOTTOM")) {
-                    virtualDesktopStorage.moveMouseLocation(0, +10);
-                }
+
+                System.out.println("虚拟鼠标位置：" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1]);
                 // 被唤醒设备是控制中心
                 if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
                     System.out.println("当前设备是控制器，需要退出鼠标隐藏");
-
+                    exitEdgeMode(direction);
                     // 退出系统钩子
                     stopInputInterception();
-
-                    // System.out.println("虚拟鼠标位置：" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1]);
-                    exitEdgeMode();
-
-
                 } else { // 被唤醒设备是远程设备
                     // 启动成功后调用其他方法
-                    enterEdgeMode();
-
+                    enterEdgeMode(direction);
                     // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
                     startInputInterception(event -> {});
-
                 }
             }
         }
@@ -109,7 +94,8 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     @Override
     public void stopMouseKeyController() {
         stopInputInterception();
-        exitEdgeMode();
+        edgeMode = false;
+        virtualDesktopStorage.exitEdgeMode();
         stopEdgeDetection();
         System.out.println("[StopMouseKeyController] resources released.");
     }
@@ -130,60 +116,105 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
         }
     }
 
-    private void enterEdgeMode() {        // [40]
+    private void enterEdgeMode(String direction) {        // [40]
         edgeMode = true;
+
+        changingScreen = true;
+
+
         virtualDesktopStorage.enterEdgeMode();
 
-        try {
-            Thread.sleep(300);
-        }catch (Exception e) {
-            e.printStackTrace();
+        if (direction.equals("LEFT")) {
+            virtualDesktopStorage.moveMouseLocation(-10, 0);
+        }else if (direction.equals("RIGHT")) {
+            virtualDesktopStorage.moveMouseLocation(10, 0);
+        }else if (direction.equals("TOP")) {
+            virtualDesktopStorage.moveMouseLocation(0, -10);
+        }else if (direction.equals("BOTTOM")) {
+            virtualDesktopStorage.moveMouseLocation(0, +10);
         }
+
+        for (int i = 0; i < 5; i++){
+            try {
+                Thread.sleep(50);
+                logger.info("[RemoteMousePosition]:({},{})", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+                mouseMove(virtualDesktopStorage.getMouseLocation()[0]-virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        changingScreen = false;
 
         // 检查调度器是否已经关闭，如果已关闭则创建一个新的
-        if (scheduler.isShutdown()) {
-            scheduler = Executors.newScheduledThreadPool(1);
-        }
-
-        ScheduledFuture<?> scheduledFuture = scheduler.scheduleAtFixedRate(() -> {
-            mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
-        }, 0, 50, TimeUnit.MILLISECONDS);
+//        if (scheduler.isShutdown()) {
+//            scheduler = Executors.newScheduledThreadPool(1);
+//        }
+//
+//        ScheduledFuture<?> scheduledFuture = scheduler.scheduleAtFixedRate(() -> {
+//            logger.info("[RemoteActiveScreen]:({},{})", virtualDesktopStorage.getActiveScreen().getVx(),virtualDesktopStorage.getActiveScreen().getVy());
+//            logger.info("[RemoteMousePosition]:({},{})", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVx());
+//            mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+//        }, 0, 50, TimeUnit.MILLISECONDS);
 
         // 安排一个任务在500ms后停止调度器并取消循环任务
-        scheduler.schedule(() -> {
-            scheduledFuture.cancel(true); // 取消周期性任务
-            scheduler.shutdown();         // 关闭调度器
-            System.out.println("调度器已关闭，任务执行完毕。");
-        }, 500, TimeUnit.MILLISECONDS);
+//        scheduler.schedule(() -> {
+//            scheduledFuture.cancel(true); // 取消周期性任务
+//            scheduler.shutdown();         // 关闭调度器
+//            System.out.println("调度器已关闭，任务执行完毕。");
+//        }, 200, TimeUnit.MILLISECONDS);
 
     }
 
-    private void exitEdgeMode() {
+    private void exitEdgeMode(String direction) {
         if (!edgeMode) return;
-        edgeMode = false;
 
-        virtualDesktopStorage.exitEdgeMode();
+        changingScreen = true;
 
-        System.out.println("控制中心鼠标位置：" + (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) + "," + (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
-
-        // 检查调度器是否已经关闭，如果已关闭则创建一个新的
-        if (scheduler.isShutdown()) {
-            scheduler = Executors.newScheduledThreadPool(1);
+        if (direction.equals("LEFT")) {
+            virtualDesktopStorage.moveMouseLocation(-10, 0);
+        }else if (direction.equals("RIGHT")) {
+            virtualDesktopStorage.moveMouseLocation(+10, 0);
+        }else  if (direction.equals("TOP")) {
+            virtualDesktopStorage.moveMouseLocation(0, -10);
+        }else if (direction.equals("BOTTOM")) {
+            virtualDesktopStorage.moveMouseLocation(0, +10);
         }
 
-        ScheduledFuture<?> scheduledFuture = scheduler.scheduleAtFixedRate(() -> {
-            // 根据虚拟鼠标位置转换为控制中心鼠标位置
-            mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
-        }, 0, 50, TimeUnit.MILLISECONDS);
+//        System.out.println("控制中心鼠标位置：" + (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) + "," + (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
+        for (int i = 0; i < 5; i++){
+           try {
+               Thread.sleep(50);
+               logger.info("[LocalMousePosition]:({},{})", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+               mouseMove(virtualDesktopStorage.getMouseLocation()[0]-virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+           }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
 
-        // 安排一个任务在500ms后停止调度器并取消循环任务
-        scheduler.schedule(() -> {
-            scheduledFuture.cancel(true); // 取消周期性任务
-            scheduler.shutdown();         // 关闭调度器
-            System.out.println("调度器已关闭，任务执行完毕。");
-            // 创建一个新的调度器以替换已关闭的调度器
-            scheduler = Executors.newScheduledThreadPool(1);
-        }, 1000, TimeUnit.MILLISECONDS);
+        edgeMode = false;
+        virtualDesktopStorage.exitEdgeMode();
+        changingScreen = false;
+
+        // 检查调度器是否已经关闭，如果已关闭则创建一个新的
+//        if (scheduler.isShutdown()) {
+//            scheduler = Executors.newScheduledThreadPool(1);
+//        }
+
+//        ScheduledFuture<?> scheduledFuture = scheduler.scheduleAtFixedRate(() -> {
+//            // 根据虚拟鼠标位置转换为控制中心鼠标位置
+//            logger.info("[LocalMouseMovePosition]: ({},{})", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+//            mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+//        }, 0, 50, TimeUnit.MILLISECONDS);
+//
+//        // 安排一个任务在500ms后停止调度器并取消循环任务
+//        scheduler.schedule(() -> {
+//            scheduledFuture.cancel(true); // 取消周期性任务
+//            scheduler.shutdown();         // 关闭调度器
+//            System.out.println("调度器已关闭，任务执行完毕。");
+//            // 创建一个新的调度器以替换已关闭的调度器
+//            scheduler = Executors.newScheduledThreadPool(1);
+//        }, 200, TimeUnit.MILLISECONDS);
 
     }
 
@@ -203,7 +234,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     public void initVirtualMouseLocation() {
         if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
             Point pt = MouseInfo.getPointerInfo().getLocation();
-            System.out.println(pt.x + "," + pt.y);// [39]
+//            System.out.println(pt.x + "," + pt.y);
             // 获取本地设备屏幕坐标系中的鼠标相对位置
             ScreenInfo screenInfo = deviceStorage.getLocalDevice().getScreens().stream()
                     .filter(s -> s.localContains(pt.x, pt.y))
@@ -222,4 +253,9 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
         }
     }
 
+
+    @Override
+    public boolean isChangingScreen() {
+        return changingScreen;
+    }
 }

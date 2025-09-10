@@ -42,4 +42,9 @@ public class LinuxMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoa
     public boolean isEdgeMode() {
         return false;
     }
+
+    @Override
+    public boolean isChangingScreen() {
+        return false;
+    }
 }

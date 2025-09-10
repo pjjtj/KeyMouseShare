@@ -135,5 +135,9 @@ public class MacMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard
         // 在macOS中显示光标的实现
         // 可能需要使用其他API
     }
-    
+
+    @Override
+    public boolean isChangingScreen() {
+        return false;
+    }
 }

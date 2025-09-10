@@ -26,6 +26,8 @@ public interface MouseKeyBoard {
     boolean isEdgeMode();
 
     void stopEdgeDetection();
+
+    boolean isChangingScreen();
     
 
 

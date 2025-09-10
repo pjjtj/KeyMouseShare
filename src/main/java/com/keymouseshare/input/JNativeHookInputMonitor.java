@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * 基于JNativeHook的键盘鼠标输入监听器
@@ -133,7 +132,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         int keyCode = e.getKeyCode();
         pressedKeys.add(keyCode);
 
-        System.out.println("Sent nativeKeyPressed event: " + e.getKeyCode());
+//        System.out.println("Sent nativeKeyPressed event: " + e.getKeyCode());
 
         // 检查是否按下了Ctrl+Alt+Esc组合键
         if (isCtrlAltEscPressed()) {
@@ -158,7 +157,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         int keyCode = e.getKeyCode();
         pressedKeys.remove(keyCode);
 
-        System.out.println("Sent nativeKeyReleased event: " + keyCode);
+//        System.out.println("Sent nativeKeyReleased event: " + keyCode);
 
         // 转发键盘释放事件
         if (mouseKeyBoardEventListener != null) {

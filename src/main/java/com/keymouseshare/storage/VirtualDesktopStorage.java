@@ -48,7 +48,7 @@ public class VirtualDesktopStorage {
         }
         this.mouseLocation[0] += dx;
         this.mouseLocation[1] += dy;
-        this.mouseLocation =  new int[]{this.mouseLocation[0], this.mouseLocation[1]};
+        setMouseLocation(this.mouseLocation[0],this.mouseLocation[1]);
     }
 
     public synchronized void setMouseLocation(int x, int y) {

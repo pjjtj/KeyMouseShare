@@ -4,6 +4,7 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.ImageCursor;
 import javafx.scene.Scene;
+import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -22,11 +23,21 @@ public class TransparentFullScreenFxUtils {
 
     // 创建透明光标（推荐 >=16x16 避免黑方块）
     public static Cursor createTransparentCursor() {
-        WritableImage cursorImage = new WritableImage(1, 1);
-        cursorImage.getPixelWriter().setColor(0, 0, Color.rgb(0,0,0,0.01));
+        // 创建一个1x1像素的透明图像
+        int size = 1;
+        WritableImage transparentImage = new WritableImage(size, size);
+        PixelWriter pixelWriter = transparentImage.getPixelWriter();
 
-        // 用透明图像生成光标
-        return new ImageCursor(cursorImage, 0, 0);
+        // 将唯一的像素设置为完全透明
+        Color transparent = Color.rgb(0, 0, 0, 0.01); // 或者 Color.TRANSPARENT
+        for (int x = 0; x < size; x++) {
+            for (int y = 0; y < size; y++) {
+                pixelWriter.setColor(x, y, transparent);
+            }
+        }
+
+        // 使用透明图像创建光标，热点设置为(0,0)
+        return new ImageCursor(transparentImage, 0, 0);
     }
 
     // 绑定场景，确保光标不会被系统恢复
@@ -36,6 +47,7 @@ public class TransparentFullScreenFxUtils {
             transparentCursor = createTransparentCursor();
         }
         scene.setCursor(transparentCursor);
+//        scene.setCursor(Cursor.NONE);
 
         // 确保光标不会因事件恢复
         scene.setOnMouseMoved(e -> scene.setCursor(transparentCursor));

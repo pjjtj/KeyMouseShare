@@ -159,8 +159,8 @@ public class MouseEdgeDetector {
 //                        " 是否满足触发条件: " + shouldTrigger);
 
             if (shouldTrigger) {
-                logger.info("当前鼠标位置:[" + x + "," + y + "],鼠标方向:" + targetDirection + "-----触发边缘检测，将唤醒设备: " + targetScreen.getDeviceIp() +
-                        " 屏幕: " + targetScreen.getScreenName());
+//                logger.info("当前鼠标位置:[" + x + "," + y + "],鼠标方向:" + targetDirection + "-----触发边缘检测，将唤醒设备: " + targetScreen.getDeviceIp() +
+//                        " 屏幕: " + targetScreen.getScreenName());
                 // 更新最后位置和时间
                 lastX = x;
                 lastY = y;
@@ -430,7 +430,7 @@ public class MouseEdgeDetector {
      * @param currentTime 当前时间
      */
     private static void updateEdgeState(String screenId, EdgeDirection direction, long currentTime) {
-        logger.debug("更新边缘状态: screenId=" + screenId + ", direction=" + direction);
+//        logger.debug("更新边缘状态: screenId=" + screenId + ", direction=" + direction);
 
         // 检查是否是同一个屏幕和方向，如果是，则保持原来的entryTime
         EdgeState existingState = screenEdgeStates.get(screenId);
@@ -478,8 +478,8 @@ public class MouseEdgeDetector {
         long timeAtEdge = currentTime - edgeState.entryTime;
         boolean shouldTrigger = timeAtEdge >= ANTI_FALSE_TRIGGER_TIME;
 
-        logger.debug("在边缘时间: " + timeAtEdge + "ms, 防误触时间: " + ANTI_FALSE_TRIGGER_TIME +
-                "ms, 是否触发: " + shouldTrigger);
+//        logger.debug("在边缘时间: " + timeAtEdge + "ms, 防误触时间: " + ANTI_FALSE_TRIGGER_TIME +
+//                "ms, 是否触发: " + shouldTrigger);
 
         // 如果不满足触发条件，但已经持续在边缘状态很长时间，也触发
         if (!shouldTrigger && timeAtEdge > ANTI_FALSE_TRIGGER_TIME * 3) {

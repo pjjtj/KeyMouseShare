@@ -338,7 +338,7 @@ public class ScreenPreviewUI extends VBox {
                 int newX = (int) (event.getSceneX() - mouseXOffset);
                 int newY = (int) (event.getSceneY() - mouseYOffset);
 
-                logger.info("Mouse dragged to ({}, {}), calculating new position ({}, {})", event.getSceneX(), event.getSceneY(), newX, newY);
+                //logger.info("Mouse dragged to ({}, {}), calculating new position ({}, {})", event.getSceneX(), event.getSceneY(), newX, newY);
 
                 draggedScreen.setLayoutX(newX);
                 draggedScreen.setLayoutY(newY);
@@ -447,30 +447,30 @@ public class ScreenPreviewUI extends VBox {
 
             // 如果最小边缘距离小于阈值，则进行实时吸附
             if (minEdgeDistance < REAL_TIME_SNAP_THRESHOLD) {
-                logger.info("Real-time snapping: source screen '{}' to target screen '{}', min edge distance: {}, threshold: " + REAL_TIME_SNAP_THRESHOLD, sourceScreenName, targetScreenName, minEdgeDistance);
+                //logger.info("Real-time snapping: source screen '{}' to target screen '{}', min edge distance: {}, threshold: " + REAL_TIME_SNAP_THRESHOLD, sourceScreenName, targetScreenName, minEdgeDistance);
 
                 // 根据最小边缘距离调整位置
                 if (minEdgeDistance == distanceLeftToRight&&!(screenTop>targetBottom||screenBottom<targetTop)) {
-                    logger.info("Left to right");
+                    //logger.info("Left to right");
                     screen.setLayoutX(targetRight+(1/scale));
                 }
                 if (minEdgeDistance == distanceRightToLeft&&!(screenTop>targetBottom||screenBottom<targetTop)) {
-                    logger.info("Right to left");
+                    //logger.info("Right to left");
                     screen.setLayoutX(targetLeft-screen.getWidth()-(1/scale));
                 }
                 if (minEdgeDistance == distanceTopToBottom&&!(screenRight>targetRight||screenLeft<targetLeft)) {
-                    logger.info("Top to bottom{}", 1 / scale);
+                    //logger.info("Top to bottom{}", 1 / scale);
                     screen.setLayoutY(targetBottom);
                 }
                 if (minEdgeDistance == distanceBottomToTop&&!(screenRight>targetRight||screenLeft<targetLeft)) {
-                    logger.info( "Bottom to top");
+                    //logger.info( "Bottom to top");
                     screen.setLayoutY(targetTop-screen.getHeight()-(1/scale));
                 }
             } else {
-                logger.info("No real-time snapping: source screen '{}' to target screen '{}', min edge distance: {}, threshold: " + REAL_TIME_SNAP_THRESHOLD, sourceScreenName, targetScreenName, minEdgeDistance);
+                //logger.info("No real-time snapping: source screen '{}' to target screen '{}', min edge distance: {}, threshold: " + REAL_TIME_SNAP_THRESHOLD, sourceScreenName, targetScreenName, minEdgeDistance);
             }
         } else {
-            logger.info("No non-overlapping target found for screen '{}'", sourceScreenName);
+            //logger.info("No non-overlapping target found for screen '{}'", sourceScreenName);
         }
 
     }
