@@ -74,7 +74,7 @@ public class BaseMouseKeyBoard {
     public void keyRelease(int keyCode) {
         if (robot != null) {
             robot.keyRelease(keyCode);
-            sessionCache.put(keyCode, keyCode);
+            sessionCache.remove(keyCode);
             robot.delay(50);
         }
     }
