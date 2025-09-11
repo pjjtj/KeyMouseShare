@@ -42,7 +42,6 @@ public class BaseMouseKeyBoard {
                 pressCombination();
             }
             robot.mousePress(button);
-            robot.delay(50);
         }
     }
 
@@ -50,7 +49,6 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             // 回退到Robot
             robot.mouseRelease(button);
-            robot.delay(50);
         }
     }
 
