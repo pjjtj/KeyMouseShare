@@ -166,7 +166,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
             virtualDesktopStorage.moveMouseLocation(0, +10);
         }
 
-//        System.out.println("控制中心鼠标位置：" + (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) + "," + (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
+        logger.debug("控制中心鼠标位置：{},{}", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
         for (int i = 0; i < 5; i++){
            try {
                Thread.sleep(50);
@@ -199,7 +199,6 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     public void initVirtualMouseLocation() {
         if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
             Point pt = MouseInfo.getPointerInfo().getLocation();
-//            System.out.println(pt.x + "," + pt.y);
             // 获取本地设备屏幕坐标系中的鼠标相对位置
             ScreenInfo screenInfo = deviceStorage.getLocalDevice().getScreens().stream()
                     .filter(s -> s.localContains(pt.x, pt.y))

@@ -321,7 +321,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
             // 更新屏幕在虚拟桌面中的位置
             screenInfo.setVx((int) (screen.getBoundsInParent().getMinX() * scale));
             screenInfo.setVy((int) (screen.getBoundsInParent().getMinY() * scale));
-            System.out.println(screenInfo.getVx() + "-----" + screenInfo.getVy());
             virtualDesktopStorage.applyScreen(screenInfo);
         });
 

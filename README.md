@@ -168,6 +168,26 @@ JavaFX用户界面组件：
 2. 网络通信相关代码位于 [src/main/java/com/keymouseshare/network](src/main/java/com/keymouseshare/network) 目录下
 3. 输入捕获相关代码位于 [src/main/java/com/keymouseshare/input](src/main/java/com/keymouseshare/input) 目录下
 
+## 功能
+- [x] 局域网设备发现
+- [ ] 控制中心
+  - [x] Windows 控制主机
+  - [ ] MacOS 控制主机
+  - [ ] Linux 控制主机
+- [ ] 虚拟桌面
+  - [x] 布局控制
+  - [x] 扩展
+- [x] 鼠标键盘共享
+  - [x] Windows 从机
+  - [x] MacOS 从机
+  - [x] Linux 从机
+- [ ] 数据传输
+  - [ ] 剪切板共享
+    - [ ] 文本
+    - [ ] 文件
+    - [ ] 图片信息 
+  - [ ] 文件拖拽
+
 ## 许可证
 
 [待定]
