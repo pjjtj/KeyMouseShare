@@ -6,90 +6,118 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class BaseMouseKeyBoard {
 
     private static final Logger logger = LoggerFactory.getLogger(BaseMouseKeyBoard.class);
 
-    private Robot robot;
+    private Robot keyBoardRobot;
+    private Robot mouseRobot;
 
-    // 设置一个组合键清空机制，当持续3秒内没有按键被按下，则认为组合键已经结束，清空组合键
+    // 线程池用于处理键盘和鼠标事件
+    private ExecutorService keyboardExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "Keyboard-Handler");
+        t.setDaemon(true);
+        return t;
+    });
+
+    private ExecutorService mouseExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "Mouse-Handler");
+        t.setDaemon(true);
+        return t;
+    });
+
+    // 组合键缓存
     SlidingCache<Integer, Integer> sessionCache = new SlidingCache<>(3000);
 
     public BaseMouseKeyBoard() {
         try {
-            robot = new Robot();
+            mouseRobot = new Robot();
+            keyBoardRobot = new Robot();
         } catch (AWTException e) {
             logger.error("无法创建Robot实例 {}", e.getMessage());
         }
     }
 
-    public void mouseMove(int x, int y) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mouseMove(x, y);
-        }
-    }
-
-    public void mousePress(int button, int x, int y) {
-        if (robot != null) {
-            // 回退到Robot
-            if (!sessionCache.isEmpty()) {
-                pressCombination();
-            }
-            robot.mousePress(button);
-            robot.delay(50);
-        }
-    }
-
-    public void mouseRelease(int button, int x, int y) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mouseRelease(button);
-            robot.delay(50);
-        }
-    }
-
-
-    public void mouseWheel(int wheelAmount) {
-        if (robot != null) {
-            // 回退到Robot
-            robot.mouseWheel(wheelAmount);
-        }
-    }
-
+    // 键盘事件提交到键盘线程处理
     public void keyPress(int keyCode) {
-        if (robot != null) {
-            sessionCache.put(keyCode, keyCode);
-            if (sessionCache.getKeys().size() > 1) {
-                pressCombination();
-            } else {
-                // 执行普通点击操作
-                robot.keyPress(keyCode);
-                robot.delay(50);
+        keyboardExecutor.submit(() -> {
+            if (keyBoardRobot != null) {
+                sessionCache.put(keyCode, keyCode);
+                if (sessionCache.getKeys().size() > 1) {
+                    pressCombination();
+                } else {
+                    keyBoardRobot.keyPress(keyCode);
+                    keyBoardRobot.delay(50);
+                }
             }
-        }
+        });
     }
 
     public void keyRelease(int keyCode) {
-        if (robot != null) {
-            robot.keyRelease(keyCode);
-            sessionCache.remove(keyCode);
-            robot.delay(50);
+        keyboardExecutor.submit(() -> {
+            if (keyBoardRobot != null) {
+                keyBoardRobot.keyRelease(keyCode);
+                sessionCache.remove(keyCode);
+                keyBoardRobot.delay(50);
+            }
+        });
+    }
+
+    // 鼠标事件提交到鼠标线程处理
+    public void mouseMove(int x, int y) {
+        mouseExecutor.submit(() -> {
+            if (mouseRobot != null) {
+                mouseRobot.mouseMove(x, y);
+            }
+        });
+    }
+
+    public void mousePress(int button, int x, int y) {
+        mouseExecutor.submit(() -> {
+            if (mouseRobot != null) {
+                if (!sessionCache.isEmpty()) {
+                    // 注意：这里可能需要同步机制确保组合键状态一致性
+                    pressCombination();
+                }
+                mouseRobot.mousePress(button);
+                mouseRobot.delay(50);
+            }
+        });
+    }
+
+    public void mouseRelease(int button, int x, int y) {
+        mouseExecutor.submit(() -> {
+            if (mouseRobot != null) {
+                mouseRobot.mouseRelease(button);
+                mouseRobot.delay(50);
+            }
+        });
+    }
+
+    public void mouseWheel(int wheelAmount) {
+        mouseExecutor.submit(() -> {
+            if (mouseRobot != null) {
+                mouseRobot.mouseWheel(wheelAmount);
+            }
+        });
+    }
+
+    private void pressCombination() {
+        if (keyBoardRobot != null) {
+            for (int keyCode : sessionCache.getValues()) {
+                keyBoardRobot.keyPress(keyCode);
+                keyBoardRobot.delay(50);
+            }
         }
     }
 
-    /**
-     * 按下组合键
-     */
-    public void pressCombination() {
-        if (robot != null) {
-            // 按顺序按下所有键
-            for (int keyCode : sessionCache.getValues()) {
-                robot.keyPress(keyCode);
-                robot.delay(50);
-            }
-        }
+    // 关闭线程池
+    public void shutdown() {
+        keyboardExecutor.shutdown();
+        mouseExecutor.shutdown();
     }
 
     /**
