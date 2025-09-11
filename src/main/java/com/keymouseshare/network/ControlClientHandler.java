@@ -27,38 +27,36 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
     @Override
     public void channelRead0(ChannelHandlerContext ctx, ControlEvent event) {
         // 处理从服务器接收到的控制事件
-//        logger.info("接收到控制事件: " + event.getType());
-
         // 根据事件类型调用相应的MouseKeyBoard方法
         switch (event.getType()) {
 
             case "MousePressed":
-                logger.info("鼠标按下:info 鼠标按下按钮={}, 位置=({}, {})", event.getButton(), event.getX(), event.getY());
+                logger.debug("鼠标按下:info 鼠标按下按钮={}, 位置=({}, {})", event.getButton(), event.getX(), event.getY());
                 mouseKeyBoard.mousePress(NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()), event.getX(), event.getY());
                 break;
 
             case "MouseReleased":
-                logger.info("鼠标释放: 按钮={}, 位置=({}, {})", event.getButton(), event.getX(), event.getY());
+                logger.debug("鼠标释放: 按钮={}, 位置=({}, {})", event.getButton(), event.getX(), event.getY());
                 mouseKeyBoard.mouseRelease(NativeToAwtMouseEventMapper.toInputEventButton(event.getButton()),event.getX(),event.getY());
                 break;
 
             case "MouseMoved":
-                logger.info("鼠标移动到: {}, {}", event.getX(), event.getY());
+                logger.debug("鼠标移动到: {}, {}", event.getX(), event.getY());
                 mouseKeyBoard.mouseMove(event.getX(), event.getY());
                 break;
 
             case "MouseWheel":
-                logger.info("鼠标滚轮: 旋转={}, 位置=({}, {})", event.getButton(), event.getX(), event.getY());
+                logger.debug("鼠标滚轮: 旋转={}, 位置=({}, {})", event.getButton(), event.getX(), event.getY());
                 mouseKeyBoard.mouseWheel(event.getButton()); // button字段存储滚轮旋转值
                 break;
 
             case "KeyPressed":
-                logger.info("键盘按下: 键码={}", NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
+                logger.debug("键盘按下: 键码={}", NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 mouseKeyBoard.keyPress(NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 break;
 
             case "KeyReleased":
-                logger.info("键盘释放: 键码={}", NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
+                logger.debug("键盘释放: 键码={}", NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 mouseKeyBoard.keyRelease(NativeToAwtKeyEventMapper.toAwtKeyCode(event.getKeyCode()));
                 break;
 

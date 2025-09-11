@@ -42,7 +42,7 @@ public class BaseMouseKeyBoard {
                 pressCombination();
             }
             robot.mousePress(button);
-            robot.delay(5);
+            robot.delay(50);
         }
     }
 
@@ -50,7 +50,7 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             // 回退到Robot
             robot.mouseRelease(button);
-            robot.delay(5);
+            robot.delay(50);
         }
     }
 
@@ -70,7 +70,7 @@ public class BaseMouseKeyBoard {
             }else{
                 // 执行普通点击操作
                 robot.keyPress(keyCode);
-                robot.delay(5);
+                robot.delay(50);
             }
         }
     }
@@ -79,7 +79,7 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             robot.keyRelease(keyCode);
             pressedKeys.remove(keyCode);
-            robot.delay(5);
+            robot.delay(50);
         }
     }
 
@@ -91,7 +91,7 @@ public class BaseMouseKeyBoard {
             // 按顺序按下所有键
             for (int keyCode : pressedKeys) {
                 robot.keyPress(keyCode);
-                robot.delay(5);
+                robot.delay(50);
             }
         }
     }

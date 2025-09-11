@@ -72,7 +72,7 @@ public class DeviceDiscovery {
         // 启动设备清理线程
         startDeviceCleanupThread();
 
-        logger.info("设备发现服务已启动，本地IP: {}，广播地址: {}", localIpAddress, localBroadcastAddress);
+        logger.debug("设备发现服务已启动，本地IP: {}，广播地址: {}", localIpAddress, localBroadcastAddress);
         // 打印本机信息
         DeviceStorage.getInstance().printLocalDevices();
     }

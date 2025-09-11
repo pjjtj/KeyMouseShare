@@ -64,7 +64,7 @@ public class ControlServerHandler extends SimpleChannelInboundHandler<ControlEve
     public void channelRead0(ChannelHandlerContext ctx, ControlEvent event) {
         String clientIp = NetUtil.dealRemoteAddress(ctx.channel().remoteAddress().toString());
         // 处理从客户端接收到的控制事件
-        logger.info("接收到控制事件: {} 来自客户端: {}", event.getType(), clientIp);
+        logger.debug("接收到控制事件: {} 来自客户端: {}", event.getType(), clientIp);
         // 这里可以添加具体的事件处理逻辑
         
         // 示例：将事件回传给客户端

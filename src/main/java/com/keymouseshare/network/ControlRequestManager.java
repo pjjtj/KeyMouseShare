@@ -174,7 +174,7 @@ public class ControlRequestManager {
     public void sendControlRequest( ControlEvent event) {
         if (controlServer != null) {
             controlServer.sendControlEvent(event);
-            logger.info("已发送控制请求到客户端: {}, 事件类型: {}, 数据: ({},{})", event.getDeviceIp(), event.getType(), event.getX(), event.getY());
+            logger.debug("已发送控制请求到客户端: {}, 事件类型: {}, 数据: ({},{})", event.getDeviceIp(), event.getType(), event.getX(), event.getY());
         } else {
             logger.error("控制服务器未启动，无法发送控制请求到客户端: {}", event.getDeviceIp());
         }
