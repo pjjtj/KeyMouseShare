@@ -1,4 +1,4 @@
-package com.keymouseshare.input;
+package com.keymouseshare.listener;
 
 import com.github.kwhat.jnativehook.GlobalScreen;
 import com.github.kwhat.jnativehook.NativeHookException;

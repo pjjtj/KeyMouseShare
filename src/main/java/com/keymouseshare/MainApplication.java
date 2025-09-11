@@ -4,7 +4,7 @@ import com.keymouseshare.bean.ControlEvent;
 import com.keymouseshare.bean.ControlEventType;
 import com.keymouseshare.bean.DeviceInfo;
 import com.keymouseshare.bean.ScreenInfo;
-import com.keymouseshare.input.JNativeHookInputMonitor;
+import com.keymouseshare.listener.JNativeHookInputMonitor;
 import com.keymouseshare.keyboard.MouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoardFactory;
 import com.keymouseshare.listener.DeviceListener;
