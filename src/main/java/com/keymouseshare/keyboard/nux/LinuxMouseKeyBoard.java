@@ -45,6 +45,6 @@ public class LinuxMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoa
 
     @Override
     public boolean isChangingScreen() {
-        return false;
+        return true;
     }
 }

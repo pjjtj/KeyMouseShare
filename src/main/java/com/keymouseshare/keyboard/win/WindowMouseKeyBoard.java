@@ -256,6 +256,6 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
 
     @Override
     public boolean isChangingScreen() {
-        return changingScreen;
+        return !changingScreen;
     }
 }

@@ -351,7 +351,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
             //  vScreenInfo.getVx()+ pt.x-screenInfo.getDx(),vScreenInfo.getVy()+pt.y-screenInfo.getDy() 控制器虚拟桌面的绝对坐标位置
             if (mouseKeyBoard.isEdgeMode()) {
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
-                if(!mouseKeyBoard.isChangingScreen()){
+                if(mouseKeyBoard.isChangingScreen()){
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x, vScreenInfo.getVy() + y);
                 }
                 // 鼠标移动事件处理
@@ -369,7 +369,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
             } else {
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
 //                    System.out.println("当前不是边缘模式，鼠标位置：" + x + " " + y);
-                if(!mouseKeyBoard.isChangingScreen()){
+                if(mouseKeyBoard.isChangingScreen()){
                     virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x - vScreenInfo.getDx(), vScreenInfo.getVy() + y - vScreenInfo.getDy());
                 }
             }
@@ -380,6 +380,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
     public void onMousePress(int button, int x, int y) {
         // 鼠标按下事件处理
         if (controlRequestManager != null && mouseKeyBoard.isEdgeMode()) {
+            logger.debug("鼠标按下：{} {} {}", button, x, y);
             // 发送鼠标按下事件到远程设备
             // 如果有激活的屏幕，设置设备IP和屏幕名
             if (virtualDesktopStorage.getActiveScreen() != null) {
@@ -451,6 +452,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
     @Override
     public void onEnterEdgeMode() {
+//        Platform.runLater(TransparentFullScreenFxUtils::closeFullScreenAndRestoreCursor);
         FutureTask<Void> task = new FutureTask<>(() -> {
             TransparentFullScreenFxUtils.openTransparentOverlayHiddenCursor();
             return null;
@@ -465,6 +467,8 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
     @Override
     public void onExitEdgeMode() {
+
+//        Platform.runLater(TransparentFullScreenFxUtils::closeFullScreenAndRestoreCursor);
         FutureTask<Void> task = new FutureTask<>(() -> {
             TransparentFullScreenFxUtils.closeFullScreenAndRestoreCursor();
             return null;

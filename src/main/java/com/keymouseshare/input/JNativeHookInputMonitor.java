@@ -132,8 +132,6 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         int keyCode = e.getKeyCode();
         pressedKeys.add(keyCode);
 
-//        System.out.println("Sent nativeKeyPressed event: " + e.getKeyCode());
-
         // 检查是否按下了Ctrl+Alt+Esc组合键
         if (isCtrlAltEscPressed()) {
             handleCtrlAltEscCombination();
@@ -145,9 +143,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             mouseKeyBoardEventListener.onKeyPress(e.getKeyCode());
         }
 
-        // 暂停键盘事件日志打印
         // logger.info("键盘事件: 类型=按键按下, 键码=" + e.getKeyCode());
-        // System.out.println("键盘事件: 类型=按键按下, 键码=" + e.getKeyCode());
     }
     
     @Override
@@ -164,7 +160,6 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             mouseKeyBoardEventListener.onKeyRelease(e.getKeyCode());
         }
         
-        // 暂停键盘事件日志打印
         // logger.info("键盘事件: 类型=按键释放, 键码=" + e.getKeyCode());
         // System.out.println("键盘事件: 类型=按键释放, 键码=" + e.getKeyCode());
     }
@@ -172,16 +167,14 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     
     @Override
     public void nativeMousePressed(NativeMouseEvent e) {
+        logger.info("鼠标事件: 类型=按下, 按钮={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
         if (!isMonitoring) return;
-        
+
         // 转发鼠标按下事件
         if (mouseKeyBoardEventListener != null) {
             mouseKeyBoardEventListener.onMousePress(e.getButton(), e.getX(), e.getY());
         }
-        
-        // 暂停鼠标事件日志打印
-//         logger.info("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
-        // System.out.println("鼠标事件: 类型=按下, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+
     }
     
     @Override
@@ -192,10 +185,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         if (mouseKeyBoardEventListener != null) {
             mouseKeyBoardEventListener.onMouseRelease(e.getButton(), e.getX(), e.getY());
         }
-        
-        // 暂停鼠标事件日志打印
-//         logger.info("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
-        // System.out.println("鼠标事件: 类型=释放, 按钮=" + e.getButton() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+
+        logger.info("鼠标事件: 类型=释放, 按钮={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
     }
     
     @Override
@@ -206,10 +197,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         if (mouseKeyBoardEventListener != null) {
             mouseKeyBoardEventListener.onMouseMove(e.getX(), e.getY());
         }
-        
-        // 暂停鼠标事件日志打印
-        // logger.info("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
-        // System.out.println("鼠标事件: 类型=移动, 位置=(" + e.getX() + "," + e.getY() + ")");
+
+//        logger.info("鼠标事件: 类型=移动, 位置=({},{})", e.getX(), e.getY());
 
     }
     
@@ -222,9 +211,20 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             mouseKeyBoardEventListener.onMouseWheel(e.getWheelRotation(), e.getX(), e.getY());
         }
         
-        // 暂停鼠标滚轮事件日志打印
         // logger.info("鼠标滚轮事件: 旋转=" + e.getWheelRotation() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
-        // System.out.println("鼠标滚轮事件: 旋转=" + e.getWheelRotation() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+    }
+
+    @Override
+    public void nativeMouseDragged(NativeMouseEvent e) {
+        if (!isMonitoring) return;
+
+        // 转发鼠标滚轮事件
+        if (mouseKeyBoardEventListener != null) {
+            mouseKeyBoardEventListener.onKeyPress(e.getButton());
+            mouseKeyBoardEventListener.onMouseMove(e.getX(), e.getY());
+        }
+
+        logger.info("鼠标滚轮事件: 拖拽={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
     }
 
     /**

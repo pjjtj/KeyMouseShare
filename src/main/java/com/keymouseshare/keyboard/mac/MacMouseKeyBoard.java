@@ -138,6 +138,6 @@ public class MacMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard
 
     @Override
     public boolean isChangingScreen() {
-        return false;
+        return true;
     }
 }
