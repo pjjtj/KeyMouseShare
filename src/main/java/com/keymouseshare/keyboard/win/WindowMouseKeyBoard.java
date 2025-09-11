@@ -71,11 +71,13 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
                 if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
                     System.out.println("当前设备是控制器，需要退出鼠标隐藏");
                     exitEdgeMode(direction);
+
                     // 退出系统钩子
                     stopInputInterception();
                 } else { // 被唤醒设备是远程设备
                     // 启动成功后调用其他方法
                     enterEdgeMode(direction);
+
                     // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
                     startInputInterception(event -> {});
                 }

@@ -198,7 +198,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             mouseKeyBoardEventListener.onMouseMove(e.getX(), e.getY());
         }
 
-//        logger.info("鼠标事件: 类型=移动, 位置=({},{})", e.getX(), e.getY());
+        logger.info("鼠标事件: 类型=移动, 位置=({},{})", e.getX(), e.getY());
 
     }
     
@@ -210,8 +210,8 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         if (mouseKeyBoardEventListener != null) {
             mouseKeyBoardEventListener.onMouseWheel(e.getWheelRotation(), e.getX(), e.getY());
         }
-        
-        // logger.info("鼠标滚轮事件: 旋转=" + e.getWheelRotation() + ", 位置=(" + e.getX() + "," + e.getY() + ")");
+
+        logger.info("鼠标滚轮事件: 旋转={}, 位置=({},{})", e.getWheelRotation(), e.getX(), e.getY());
     }
 
     @Override
@@ -224,7 +224,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             mouseKeyBoardEventListener.onMouseMove(e.getX(), e.getY());
         }
 
-        logger.info("鼠标滚轮事件: 拖拽={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
+        logger.info("鼠标事件: 拖拽={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
     }
 
     /**
