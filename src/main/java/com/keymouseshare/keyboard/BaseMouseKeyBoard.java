@@ -15,6 +15,11 @@ public class BaseMouseKeyBoard {
     private Robot robot;
     private Set<Integer> pressedKeys = new LinkedHashSet<>();
 
+    // 设置一个组合键清空机制，当持续3秒内没有按键被按下，则认为组合键已经结束，清空组合键
+    private static final long COMBINATION_KEY_CLEAR_TIME = 3000;
+
+
+
     public BaseMouseKeyBoard() {
         try {
             robot = new Robot();
@@ -37,7 +42,7 @@ public class BaseMouseKeyBoard {
                 pressCombination();
             }
             robot.mousePress(button);
-            robot.delay(5);
+            robot.delay(50);
         }
     }
 
@@ -45,7 +50,7 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             // 回退到Robot
             robot.mouseRelease(button);
-            robot.delay(5);
+            robot.delay(50);
         }
     }
 
@@ -54,7 +59,6 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             // 回退到Robot
             robot.mouseWheel(wheelAmount);
-            robot.delay(5);
         }
     }
 
@@ -66,7 +70,7 @@ public class BaseMouseKeyBoard {
             }else{
                 // 执行普通点击操作
                 robot.keyPress(keyCode);
-                robot.delay(5);
+                robot.delay(50);
             }
         }
     }
@@ -75,7 +79,7 @@ public class BaseMouseKeyBoard {
         if (robot != null) {
             robot.keyRelease(keyCode);
             pressedKeys.remove(keyCode);
-            robot.delay(5);
+            robot.delay(50);
         }
     }
 
@@ -87,7 +91,7 @@ public class BaseMouseKeyBoard {
             // 按顺序按下所有键
             for (int keyCode : pressedKeys) {
                 robot.keyPress(keyCode);
-                robot.delay(5);
+                robot.delay(50);
             }
         }
     }

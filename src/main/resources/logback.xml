@@ -22,13 +22,13 @@
     </root>
 
     <!-- 特定包的日志级别 -->
-    <logger name="com.keymouseshare" level="INFO" additivity="false">
+    <logger name="com.keymouseshare.network" level="INFO" additivity="false">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </logger>
     
     <!-- MouseEdgeDetector类的日志级别 -->
-    <logger name="com.keymouseshare.util.MouseEdgeDetector" level="INFO" additivity="false">
+    <logger name="com.keymouseshare.util.MouseEdgeDetector" level="DEGUG" additivity="false">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </logger>
