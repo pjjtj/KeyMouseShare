@@ -2,6 +2,20 @@
 chcp 65001 > nul
 setlocal
 
+:: 检查是否以管理员权限运行
+net session >nul 2>&1
+if %errorLevel% == 0 (
+    goto RunApplication
+) else (
+    goto RequestAdmin
+)
+
+:RequestAdmin
+echo 正在请求管理员权限...
+powershell -Command "Start-Process -Verb RunAs -FilePath 'java' -ArgumentList '--module-path', 'target/lib', '--add-modules', 'javafx.controls,javafx.fxml', '-Dfile.encoding=UTF-8', '-cp', 'target/lib/*;target/KeyMouseShare-1.0-SNAPSHOT.jar', 'com.keymouseshare.MainApplication'"
+exit /b
+
+:RunApplication
 echo 正在运行KeyMouseShare应用程序...
 
 java ^

@@ -1,1 +1,1 @@
-jpackage --name KeyMouseShare --input target --main-jar KeyMouseShare-1.0-SNAPSHOT-shaded.jar --main-class com.keymouseshare.MainApplication --type exe --module-path ".\target\lib" --add-modules javafx.controls,javafx.fxml --dest release-output
+jpackage --name KeyMouseShare --input target --main-jar KeyMouseShare-1.0-SNAPSHOT-shaded.jar --main-class com.keymouseshare.MainApplication --type exe --module-path ".\target\lib" --add-modules javafx.controls,javafx.fxml --dest ins

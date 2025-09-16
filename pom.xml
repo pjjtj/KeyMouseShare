@@ -177,7 +177,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.1.0</version>
+                        <version>3.5.0</version>
                         <executions>
                             <execution>
                                 <id>jpackage-windows</id>
@@ -186,46 +186,58 @@
                                 </goals>
                                 <phase>package</phase>
                                 <configuration>
-                                    <executable>C:\Program Files\Java\jdk-21.0.6\bin\jpackage</executable>
+                                    <executable>jpackage</executable>
                                     <arguments>
                                         <argument>--input</argument>
                                         <argument>target</argument>
-                                        
+
                                         <argument>--name</argument>
                                         <argument>KeyMouseShare</argument>
-                                        
+
                                         <argument>--app-version</argument>
                                         <argument>1.0</argument>
-                                        
+
                                         <argument>--main-class</argument>
                                         <argument>com.keymouseshare.MainApplication</argument>
-                                        
+
                                         <argument>--main-jar</argument>
                                         <argument>KeyMouseShare-${project.version}-shaded.jar</argument>
-                                        
+
                                         <argument>--type</argument>
                                         <argument>exe</argument>
-                                        
+
+                                        <!-- module path -->
+<!--                                        <argument>&#45;&#45;module-path</argument>-->
+<!--                                        <argument>target\lib</argument>-->
+
+                                        <!-- add modules -->
+<!--                                        <argument>&#45;&#45;add-modules</argument>-->
+<!--                                        <argument>javafx.controls,javafx.fxml</argument>-->
+
+
                                         <argument>--dest</argument>
-                                        <argument>installer</argument>
-                                        
+                                        <argument>target/installer</argument>
+
                                         <argument>--icon</argument>
                                         <argument>src/main/resources/icon.ico</argument>
 
-                                        <argument>--java-options</argument>
-                                        <argument>"--module-path='app/lib"</argument>
-
-                                        <argument>--java-options</argument>
-                                        <argument>"--add-modules='javafx.controls,javafx.fxml'"</argument>
-
+                                        <!-- JVM options -->
                                         <argument>--java-options</argument>
                                         <argument>-Dfile.encoding=UTF-8</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--module-path=app/lib</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--add-modules=javafx.controls,javafx.fxml</argument>
 
-                                        <!-- 添加更多 Windows 特定选项 -->
-                                        <argument>--win-shortcut</argument> <!-- 创建桌面快捷方式 -->
-                                        <argument>--win-menu</argument> <!-- 创建开始菜单快捷方式 -->
-                                        <argument>--win-dir-chooser</argument> <!-- 安装时允许用户选择目录 -->
-                                        <argument>--vendor</argument> <!-- 供应商信息 -->
+                                        <!-- Windows options -->
+                                        <argument>--win-shortcut</argument>
+                                        <argument>--win-menu</argument>
+                                        <argument>--win-dir-chooser</argument>
+                                        <argument>--win-per-user-install</argument>
+                                        <argument>--win-console</argument>
+
+                                        <!-- Vendor -->
+                                        <argument>--vendor</argument>
                                         <argument>墨软科技</argument>
                                     </arguments>
                                 </configuration>
@@ -284,14 +296,15 @@
                                         <argument>--icon</argument>
                                         <argument>src/main/resources/icon.icns</argument>
 
+                                        <!-- JVM options -->
                                         <argument>--java-options</argument>
-                                        <argument>--module-path=app/lib</argument>
-
+                                        <argument>-Dfile.encoding=UTF-8</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--module-path=../app/lib</argument>
                                         <argument>--java-options</argument>
                                         <argument>--add-modules=javafx.controls,javafx.fxml</argument>
 
-                                        <argument>--java-options</argument>
-                                        <argument>-Dfile.encoding=UTF-8</argument>
+                                        <argument>--win-console</argument>
 
                                         <!-- 添加更多 Mac 特定选项 -->
                                         <argument>--mac-package-name</argument>
