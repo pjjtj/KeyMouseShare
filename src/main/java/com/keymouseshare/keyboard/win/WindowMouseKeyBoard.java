@@ -138,7 +138,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
             virtualDesktopStorage.moveMouseLocation(0, +10);
         }
 
-        for (int i = 0; i < 5; i++){
+        for (int i = 0; i < 3; i++){
             try {
                 Thread.sleep(50);
                 logger.debug("[RemoteMousePosition]:({},{})", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
@@ -167,7 +167,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
         }
 
         logger.debug("控制中心鼠标位置：{},{}", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
-        for (int i = 0; i < 5; i++){
+        for (int i = 0; i < 3; i++){
            try {
                Thread.sleep(50);
                logger.debug("[LocalMousePosition]:({},{})", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());

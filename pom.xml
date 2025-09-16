@@ -43,6 +43,7 @@
             <artifactId>jna</artifactId>
             <version>5.17.0</version>
         </dependency>
+
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna-platform</artifactId>
@@ -74,7 +75,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.6</version>
+            <version>1.5.13</version>
         </dependency>
     </dependencies>
     
@@ -119,7 +120,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.4</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -159,7 +160,152 @@
                     </execution>
                 </executions>
             </plugin>
-
         </plugins>
     </build>
+    
+    <profiles>
+        <!-- Windows打包配置 -->
+        <profile>
+            <id>win-x64</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>jpackage-windows</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <configuration>
+                                    <executable>C:\Program Files\Java\jdk-21.0.6\bin\jpackage</executable>
+                                    <arguments>
+                                        <argument>--input</argument>
+                                        <argument>target</argument>
+                                        
+                                        <argument>--name</argument>
+                                        <argument>KeyMouseShare</argument>
+                                        
+                                        <argument>--app-version</argument>
+                                        <argument>1.0</argument>
+                                        
+                                        <argument>--main-class</argument>
+                                        <argument>com.keymouseshare.MainApplication</argument>
+                                        
+                                        <argument>--main-jar</argument>
+                                        <argument>KeyMouseShare-${project.version}-shaded.jar</argument>
+                                        
+                                        <argument>--type</argument>
+                                        <argument>exe</argument>
+                                        
+                                        <argument>--dest</argument>
+                                        <argument>installer</argument>
+                                        
+                                        <argument>--icon</argument>
+                                        <argument>src/main/resources/icon.ico</argument>
+
+                                        <argument>--java-options</argument>
+                                        <argument>"--module-path='app/lib"</argument>
+
+                                        <argument>--java-options</argument>
+                                        <argument>"--add-modules='javafx.controls,javafx.fxml'"</argument>
+
+                                        <argument>--java-options</argument>
+                                        <argument>-Dfile.encoding=UTF-8</argument>
+
+                                        <!-- 添加更多 Windows 特定选项 -->
+                                        <argument>--win-shortcut</argument> <!-- 创建桌面快捷方式 -->
+                                        <argument>--win-menu</argument> <!-- 创建开始菜单快捷方式 -->
+                                        <argument>--win-dir-chooser</argument> <!-- 安装时允许用户选择目录 -->
+                                        <argument>--vendor</argument> <!-- 供应商信息 -->
+                                        <argument>墨软科技</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- macOS打包配置 -->
+        <profile>
+            <id>mac-x64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>jpackage-mac</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <configuration>
+                                    <executable>jpackage</executable>
+                                    <arguments>
+                                        <argument>--input</argument>
+                                        <argument>target</argument>
+                                        
+                                        <argument>--name</argument>
+                                        <argument>KeyMouseShare</argument>
+                                        
+                                        <argument>--app-version</argument>
+                                        <argument>1.0</argument>
+                                        
+                                        <argument>--main-class</argument>
+                                        <argument>com.keymouseshare.MainApplication</argument>
+                                        
+                                        <argument>--main-jar</argument>
+                                        <argument>KeyMouseShare-${project.version}-shaded.jar</argument>
+                                        
+                                        <argument>--type</argument>
+                                        <argument>dmg</argument>
+                                        
+                                        <argument>--dest</argument>
+                                        <argument>target/installer</argument>
+                                        
+                                        <argument>--icon</argument>
+                                        <argument>src/main/resources/icon.icns</argument>
+
+                                        <argument>--java-options</argument>
+                                        <argument>--module-path=app/lib</argument>
+
+                                        <argument>--java-options</argument>
+                                        <argument>--add-modules=javafx.controls,javafx.fxml</argument>
+
+                                        <argument>--java-options</argument>
+                                        <argument>-Dfile.encoding=UTF-8</argument>
+
+                                        <!-- 添加更多 Mac 特定选项 -->
+                                        <argument>--mac-package-name</argument>
+                                        <argument>KeyMouseShare</argument>
+                                        
+                                        <argument>--vendor</argument>
+                                        <argument>墨软科技</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

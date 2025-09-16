@@ -17,13 +17,13 @@ public class BaseMouseKeyBoard {
     private Robot mouseRobot;
 
     // 线程池用于处理键盘和鼠标事件
-    private ExecutorService keyboardExecutor = Executors.newSingleThreadExecutor(r -> {
+    private final ExecutorService keyboardExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "Keyboard-Handler");
         t.setDaemon(true);
         return t;
     });
 
-    private ExecutorService mouseExecutor = Executors.newSingleThreadExecutor(r -> {
+    private final ExecutorService mouseExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "Mouse-Handler");
         t.setDaemon(true);
         return t;
@@ -101,6 +101,7 @@ public class BaseMouseKeyBoard {
         mouseExecutor.submit(() -> {
             if (mouseRobot != null) {
                 mouseRobot.mouseWheel(wheelAmount);
+                mouseRobot.delay(50);
             }
         });
     }
