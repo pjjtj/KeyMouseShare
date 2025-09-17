@@ -208,7 +208,7 @@
                                         <argument>exe</argument>
 
                                         <argument>--module-path</argument>
-                                        <argument>target\lib</argument>
+                                        <argument>target/lib</argument>
 
                                         <argument>--add-modules</argument>
                                         <argument>java.logging,javafx.controls,javafx.fxml,javafx.graphics,javafx.base</argument>
@@ -255,7 +255,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.1.0</version>
+                        <version>3.5.0</version>
                         <executions>
                             <execution>
                                 <id>jpackage-mac</id>
@@ -285,7 +285,7 @@
                                         <argument>dmg</argument>
 
                                         <argument>--module-path</argument>
-                                        <argument>target\lib</argument>
+                                        <argument>target/lib</argument>
 
                                         <argument>--add-modules</argument>
                                         <argument>java.logging,javafx.controls,javafx.fxml,javafx.graphics,javafx.base</argument>
