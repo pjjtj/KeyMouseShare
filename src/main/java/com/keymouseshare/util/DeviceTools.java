@@ -1,15 +1,16 @@
 package com.keymouseshare.util;
 
 import com.keymouseshare.bean.ScreenInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class DeviceTools {
 
-    private static final Logger logger = Logger.getLogger(DeviceTools.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(DeviceTools.class.getName());
     /**
      * 获取本机屏幕信息
      *
@@ -55,7 +56,7 @@ public class DeviceTools {
                             }
                         }
                     } catch (Exception e) {
-                        logger.warning("Failed to get screen size using DisplayMode: " + e.getMessage());
+                        logger.error("Failed to get screen size using DisplayMode: {}", e.getMessage());
                     }
                     
                     ScreenInfo screenInfo = new ScreenInfo(NetUtil.getLocalIpAddress(), screenName, width, height, bounds.x, bounds.y);
@@ -64,7 +65,7 @@ public class DeviceTools {
                 return screens;
             }
         } catch (Exception e) {
-            logger.warning("Failed to get screen info using GraphicsEnvironment: " + e.getMessage());
+            logger.error("Failed to get screen info using GraphicsEnvironment: {}", e.getMessage());
         }
 
         // 如果上述方法都失败了，使用默认值

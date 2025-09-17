@@ -2,11 +2,12 @@ package com.keymouseshare.keyboard.nux;
 
 import com.keymouseshare.keyboard.BaseMouseKeyBoard;
 import com.keymouseshare.keyboard.MouseKeyBoard;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.logging.Logger;
 
 public class LinuxMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
-    private static final Logger logger = Logger.getLogger(LinuxMouseKeyBoard.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(LinuxMouseKeyBoard.class.getName());
 
     private static final LinuxMouseKeyBoard INSTANCE = new LinuxMouseKeyBoard();
 

@@ -115,29 +115,7 @@
                     <includePathExceptionsInClasspath>true</includePathExceptionsInClasspath>
                 </configuration>
             </plugin>
-            
-            <!-- Shade plugin to create a fat jar with all dependencies -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.6.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.keymouseshare.MainApplication</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            
+
             <!-- 添加依赖复制插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -156,6 +134,29 @@
                             <overWriteSnapshots>false</overWriteSnapshots>
                             <overWriteIfNewer>true</overWriteIfNewer>
                             <includeScope>compile</includeScope>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+            <!-- Shade plugin to create a fat jar with all dependencies -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.keymouseshare.MainApplication</mainClass>
+                                </transformer>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>
@@ -206,17 +207,14 @@
                                         <argument>--type</argument>
                                         <argument>exe</argument>
 
-                                        <!-- module path -->
-<!--                                        <argument>&#45;&#45;module-path</argument>-->
-<!--                                        <argument>target\lib</argument>-->
+                                        <argument>--module-path</argument>
+                                        <argument>target\lib</argument>
 
-                                        <!-- add modules -->
-<!--                                        <argument>&#45;&#45;add-modules</argument>-->
-<!--                                        <argument>javafx.controls,javafx.fxml</argument>-->
-
+                                        <argument>--add-modules</argument>
+                                        <argument>java.logging,javafx.controls,javafx.fxml,javafx.graphics,javafx.base</argument>
 
                                         <argument>--dest</argument>
-                                        <argument>target/installer</argument>
+                                        <argument>installer</argument>
 
                                         <argument>--icon</argument>
                                         <argument>src/main/resources/icon.ico</argument>
@@ -224,10 +222,6 @@
                                         <!-- JVM options -->
                                         <argument>--java-options</argument>
                                         <argument>-Dfile.encoding=UTF-8</argument>
-                                        <argument>--java-options</argument>
-                                        <argument>--module-path=app/lib</argument>
-                                        <argument>--java-options</argument>
-                                        <argument>--add-modules=javafx.controls,javafx.fxml</argument>
 
                                         <!-- Windows options -->
                                         <argument>--win-shortcut</argument>
@@ -289,22 +283,22 @@
                                         
                                         <argument>--type</argument>
                                         <argument>dmg</argument>
-                                        
+
+                                        <argument>--module-path</argument>
+                                        <argument>target\lib</argument>
+
+                                        <argument>--add-modules</argument>
+                                        <argument>java.logging,javafx.controls,javafx.fxml,javafx.graphics,javafx.base</argument>
+
                                         <argument>--dest</argument>
-                                        <argument>target/installer</argument>
-                                        
+                                        <argument>installer</argument>
+
                                         <argument>--icon</argument>
                                         <argument>src/main/resources/icon.icns</argument>
 
                                         <!-- JVM options -->
                                         <argument>--java-options</argument>
                                         <argument>-Dfile.encoding=UTF-8</argument>
-                                        <argument>--java-options</argument>
-                                        <argument>--module-path=../app/lib</argument>
-                                        <argument>--java-options</argument>
-                                        <argument>--add-modules=javafx.controls,javafx.fxml</argument>
-
-                                        <argument>--win-console</argument>
 
                                         <!-- 添加更多 Mac 特定选项 -->
                                         <argument>--mac-package-name</argument>
