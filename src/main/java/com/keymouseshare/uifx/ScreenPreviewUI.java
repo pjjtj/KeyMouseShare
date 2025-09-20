@@ -17,6 +17,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Box;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Scale;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
 /**
  * 屏幕预览UI组件
@@ -33,17 +35,14 @@ public class ScreenPreviewUI extends VBox {
 
     private static final Logger logger = LoggerFactory.getLogger(ScreenPreviewUI.class);
 
-    private double scale = 10.0;
+    private static final double scale = 10.0;
     private Pane screenPane;
     private Circle virtualPoint;
     private Label virtualPointLabel;
-    private Map<StackPane, String> screenMap = new HashMap<>();
+    private static Map<StackPane, String> screenMap = new HashMap<>();
     private StackPane draggedScreen = null;
     private int mouseXOffset = 0;
     private int mouseYOffset = 0;
-    private Button saveVirtualDesktopButton = new Button("应用设置");
-    private VirtualDesktopStorage virtualDesktopStorage;
-//    private ScheduledExecutorService virtualDesktopExecutor = Executors.newScheduledThreadPool(1);
 
     // 缩放相关属性
     private ScrollPane scrollPane;
@@ -56,21 +55,22 @@ public class ScreenPreviewUI extends VBox {
     // 吸附阈值
     private static final double REAL_TIME_SNAP_THRESHOLD = 20.0;
 
-    public ScreenPreviewUI(VirtualDesktopStorage virtualDesktopStorage) {
-        // 添加监听器
-        this.virtualDesktopStorage = virtualDesktopStorage;
+    public ScreenPreviewUI() {
         // 初始化界面
         initializeUI();
+    }
+
+    public static double getScale(){
+        return scale;
+    }
+
+    public static Map<StackPane, String> getScreenMap(){
+        return screenMap;
     }
 
     private void initializeUI() {
         this.setPadding(new Insets(10));
         this.setSpacing(10);
-        // 设置左边框为虚线
-        this.setStyle("-fx-border-color: gray; -fx-border-width: 0 0 0 1; -fx-border-style: dashed;");
-
-        Label titleLabel = new Label("屏幕预览");
-        titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
         screenPane = new Pane();
         screenPane.setPrefSize(800, 600); // 设置默认大小
@@ -82,37 +82,14 @@ public class ScreenPreviewUI extends VBox {
         // 添加鼠标滚轮缩放支持
         screenPane.addEventFilter(ScrollEvent.ANY, this::handleScroll);
 
-        VBox bottomBox = new VBox();
-        bottomBox.getChildren().add(saveVirtualDesktopButton);
-        saveVirtualDesktopButton.setVisible(false);
-        bottomBox.setPadding(new Insets(10));
-        bottomBox.setAlignment(Pos.BOTTOM_CENTER);
-
-        this.getChildren().addAll(titleLabel, screenPane, bottomBox);
+        this.getChildren().addAll(screenPane);
 
         // 加载虚拟桌面中的屏幕信息
         loadVirtualDesktopScreens();
 
-        saveVirtualDesktopButton.setOnAction(event -> {
-            virtualDesktopStorage.applyVirtualDesktopScreen(screenMap, scale);
-//            virtualDesktopExecutor.scheduleAtFixedRate(this::showVirtualDesktopInfo, 0, 5, TimeUnit.MILLISECONDS);
-        });
+
     }
 
-//    private void showVirtualDesktopInfo() {
-//        if(virtualDesktopStorage.getActiveScreen()!= null){
-//            virtualPoint.setLayoutX(virtualDesktopStorage.getMouseLocation()[0]/scale);
-//            virtualPoint.setLayoutY(virtualDesktopStorage.getMouseLocation()[1]/scale);
-//            virtualPointLabel.setText(String.format("(%.2f, %.2f)",virtualDesktopStorage.getMouseLocation()[0],virtualDesktopStorage.getMouseLocation()[1]));
-//            virtualPointLabel.setLayoutX(virtualDesktopStorage.getMouseLocation()[0]/scale);
-//            virtualPointLabel.setLayoutY(virtualDesktopStorage.getMouseLocation()[1]/scale);
-//            virtualPoint.setVisible(true);
-//            virtualPointLabel.setVisible(true);
-//        }
-//    }
-
-
-    
     /**
      * 处理鼠标滚轮事件实现缩放功能
      * @param event 滚轮事件
@@ -149,7 +126,7 @@ public class ScreenPreviewUI extends VBox {
         screenMap.clear();
         
         // 从虚拟桌面获取所有屏幕
-        Map<String, ScreenInfo> screens = virtualDesktopStorage.getScreens();
+        Map<String, ScreenInfo> screens = VirtualDesktopStorage.getInstance().getScreens();
         
         if (screens != null) {
             for (Map.Entry<String, ScreenInfo> entry : screens.entrySet()) {
@@ -174,7 +151,7 @@ public class ScreenPreviewUI extends VBox {
                 Math.abs(hash) % 256,
                 Math.abs(hash >> 8) % 256,
                 Math.abs(hash >> 16) % 256,
-                0.7
+                0.5
             );
             screenRect.setFill(color);
         } else {
@@ -187,41 +164,54 @@ public class ScreenPreviewUI extends VBox {
         }
 
         // 创建中心点标记
-        Circle centerPoint = new Circle(3, Color.RED);
+        Label centerLabel = new Label(screenInfo.getScreenName());
+        StackPane  centerLabelVPane = new StackPane(centerLabel);
+        int clp = Math.min(screenWidth/2, screenHeight/2);
+        centerLabelVPane.setMaxSize(clp,clp);
+        centerLabelVPane.setAlignment(Pos.CENTER); // 使标签在VBox中居中
+        centerLabelVPane.setStyle("-fx-background-radius: 50%;" +
+                "-fx-border-width: 5px;" +
+                "-fx-border-radius: 50%;" +
+                "-fx-border-color:  rgba(255,255,255,0.5);" +
+                "-fx-background-color: rgba(255,255,255,0.2);");
 
         // 创建中心点坐标标签
-        Label centerLabel = new Label();
-        centerLabel.setStyle("-fx-font-size: 8px; -fx-text-fill: black; -fx-font-weight: bold;");
-        centerLabel.setVisible(false); // 默认不显示坐标
+        Label locationLabel = new Label();
+        locationLabel.setStyle("-fx-font-size: 8px; -fx-text-fill: black; -fx-font-weight: bold;");
+        locationLabel.setVisible(false); // 默认不显示坐标
 
         // 创建屏幕标签
-        Label screenLabel = new Label(screenInfo.getDeviceIp()+"\n"+screenInfo.getScreenName()+ "\n" + screenWidth + "x" + screenHeight);
-        screenLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: white; -fx-font-weight: bold;");
+        Label screenLabel = new Label(" "+screenInfo.getDeviceIp()+" "+ String.format("%.0f", screenWidth*scale) + "x" +  String.format("%.0f", screenHeight*scale)+" ");
+        screenLabel.setPrefHeight(24);
+        screenLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: white; -fx-font-weight: bold;-fx-background-radius: 8;-fx-background-color: rgba(0,0,0,0.3);");
+        // 设置左下角边距
+        StackPane.setMargin(screenLabel, new Insets(0, 0, 4, 4));
 
         // 创建包含容器，使标签悬浮在屏幕上
         StackPane screenContainer = new StackPane();
-        screenContainer.setStyle("-fx-background-color: grey;");
         screenContainer.setMinSize(screenWidth, screenHeight);
         screenContainer.setMaxSize(screenWidth, screenHeight);
-        screenContainer.getChildren().addAll(screenRect, centerPoint,screenLabel,centerLabel);
-        screenContainer.setStyle("-fx-padding: 0;");
-        StackPane.setAlignment(screenRect, Pos.TOP_LEFT);
-        StackPane.setAlignment(centerPoint, Pos.CENTER); // 中心点居中
-        StackPane.setAlignment(screenLabel, Pos.CENTER);
-        StackPane.setAlignment(centerLabel, Pos.TOP_CENTER); // 坐标标签在顶部居中
+        // 添加子节点：背景矩形、中心标记VBox、屏幕信息标签、坐标标签
+        screenContainer.getChildren().addAll(screenRect, centerLabelVPane, screenLabel, locationLabel);
+        // 设置每个子节点的位置
+        StackPane.setAlignment(screenRect, Pos.TOP_LEFT); // 实际上，背景矩形应该填充整个容器，所以对齐方式不重要，但需要设置其大小与容器相同
+        StackPane.setAlignment(centerLabelVPane, Pos.CENTER); // 中心点居中
+        StackPane.setAlignment(screenLabel, Pos.BOTTOM_LEFT);
+        StackPane.setAlignment(locationLabel, Pos.TOP_CENTER);
+        screenContainer.setStyle("-fx-border-width: 0");
 
         // 添加鼠标悬停事件来显示/隐藏中心点坐标
         screenContainer.setOnMouseEntered(e -> {
-            centerLabel.setVisible(true);
+            locationLabel.setVisible(true);
 
             // 获取屏幕容器的中心点坐标
             Bounds bounds = screenContainer.getBoundsInParent();
 
             // 更新坐标标签文本
-            centerLabel.setText(String.format("(%.0f, %.0f, %.0f, %.0f)", bounds.getMinX(),  bounds.getMinY(), bounds.getWidth(), bounds.getHeight()));
+            locationLabel.setText(String.format("(%.0f, %.0f, %.0f, %.0f)", bounds.getMinX(),  bounds.getMinY(), screenContainer.getWidth()*scale, bounds.getHeight()*scale));
         });
 
-        screenContainer.setOnMouseExited(e -> centerLabel.setVisible(false));
+        screenContainer.setOnMouseExited(e -> locationLabel.setVisible(false));
 
         // 添加拖拽支持
         addDragSupport(screenContainer, screenInfo.getDeviceIp()+screenInfo.getScreenName());
@@ -244,8 +234,8 @@ public class ScreenPreviewUI extends VBox {
         virtualPoint.setVisible(false);
         // 创建中心点坐标标签
         virtualPointLabel = new Label();
-        centerLabel.setStyle("-fx-font-size: 8px; -fx-text-fill: black; -fx-font-weight: bold;");
-        centerLabel.setVisible(false); // 默认不显示坐标
+        locationLabel.setStyle("-fx-font-size: 8px; -fx-text-fill: black; -fx-font-weight: bold;");
+        locationLabel.setVisible(false); // 默认不显示坐标
         screenPane.getChildren().addAll(screenContainer,virtualPoint,virtualPointLabel);
 
         screenMap.put(screenContainer, screenInfo.getDeviceIp()+screenInfo.getScreenName());
@@ -390,8 +380,8 @@ public class ScreenPreviewUI extends VBox {
                 Bounds otherBounds = otherScreen.getBoundsInParent();
 
                 // 获取其他屏幕的实际宽度和高度
-                double otherActualWidth = otherBounds.getWidth();
-                double otherActualHeight = otherBounds.getHeight();
+                double otherActualWidth = otherScreen.getWidth();
+                double otherActualHeight = otherScreen.getHeight();
 
                 // 计算其他屏幕在容器中的位置
                 double otherContainerX = otherBounds.getMinX();
@@ -470,23 +460,7 @@ public class ScreenPreviewUI extends VBox {
         }
     }
 
-    public void serverDeviceStart() {
-        // 如果当前设备是服务器则，启动服务器按钮变为停止服务器。如果不是则禁用该按钮
-        if(NetUtil.getLocalIpAddress().equals(DeviceStorage.getInstance().getSeverDevice().getIpAddress())){
-            // 隐藏保存虚拟桌面按钮
-            saveVirtualDesktopButton.setVisible(true);
-            saveVirtualDesktopButton.setText("应用设置");
-            saveVirtualDesktopButton.setDisable(false);
-        }else{
-            saveVirtualDesktopButton.setText("请在控制端设置屏幕");
-            saveVirtualDesktopButton.setDisable(true);
-        }
-    }
 
-    public void serverDeviceStop() {
-        // 隐藏保存虚拟桌面按钮
-        saveVirtualDesktopButton.setVisible(false);
-    }
 
     /**
      * 刷新屏幕预览，从虚拟桌面重新加载屏幕信息

@@ -26,6 +26,7 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, ControlEvent event) {
+        logger.debug("接收到控制事件: {}", event);
         // 处理从服务器接收到的控制事件
         // 根据事件类型调用相应的MouseKeyBoard方法
         switch (event.getType()) {
@@ -64,11 +65,12 @@ public class ControlClientHandler extends SimpleChannelInboundHandler<ControlEve
                 logger.error("未知的控制事件类型: {}", event.getType());
                 break;
         }
+        logger.debug("控制事件处理完成: {}", event.getType());
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.error("控制客户端发生异常: {}", cause.getMessage());
+        logger.error("控制客户端发生异常: {}", cause.getMessage(), cause);
         ctx.close();
     }
 }

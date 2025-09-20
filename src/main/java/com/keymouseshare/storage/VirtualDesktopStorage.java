@@ -2,6 +2,7 @@ package com.keymouseshare.storage;
 
 import com.keymouseshare.bean.ScreenInfo;
 import com.keymouseshare.listener.VirtualDesktopStorageListener;
+import com.keymouseshare.uifx.ScreenPreviewUI;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.layout.StackPane;
 
@@ -150,7 +151,9 @@ public class VirtualDesktopStorage {
         }
     }
 
-    public void applyVirtualDesktopScreen(Map<StackPane, String> screenMap, double scale) {
+    public void applyVirtualDesktopScreen() {
+        Map<StackPane, String> screenMap = ScreenPreviewUI.getScreenMap();
+        double scale = ScreenPreviewUI.getScale();
         for (VirtualDesktopStorageListener listener : listeners) {
             listener.onApplyVirtualDesktopScreen(screenMap, scale);
         }

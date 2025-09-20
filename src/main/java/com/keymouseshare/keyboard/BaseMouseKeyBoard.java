@@ -45,13 +45,13 @@ public class BaseMouseKeyBoard {
     public void keyPress(int keyCode) {
         keyboardExecutor.submit(() -> {
             if (keyBoardRobot != null) {
-                sessionCache.put(keyCode, keyCode);
-                if (sessionCache.getKeys().size() > 1) {
-                    pressCombination();
-                } else {
+//                sessionCache.put(keyCode, keyCode);
+//                if (sessionCache.getKeys().size() > 1) {
+//                    pressCombination();
+//                } else {
                     keyBoardRobot.keyPress(keyCode);
                     keyBoardRobot.delay(50);
-                }
+//                }
             }
         });
     }
@@ -60,7 +60,7 @@ public class BaseMouseKeyBoard {
         keyboardExecutor.submit(() -> {
             if (keyBoardRobot != null) {
                 keyBoardRobot.keyRelease(keyCode);
-                sessionCache.remove(keyCode);
+//                sessionCache.remove(keyCode);
                 keyBoardRobot.delay(50);
             }
         });
@@ -78,10 +78,10 @@ public class BaseMouseKeyBoard {
     public void mousePress(int button, int x, int y) {
         mouseExecutor.submit(() -> {
             if (mouseRobot != null) {
-                if (!sessionCache.isEmpty()) {
-                    // 注意：这里可能需要同步机制确保组合键状态一致性
-                    pressCombination();
-                }
+//                if (!sessionCache.isEmpty()) {
+//                    // 注意：这里可能需要同步机制确保组合键状态一致性
+//                    pressCombination();
+//                }
                 mouseRobot.mousePress(button);
                 mouseRobot.delay(50);
             }

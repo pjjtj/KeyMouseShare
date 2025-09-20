@@ -26,8 +26,7 @@ import org.slf4j.LoggerFactory;
 public class DeviceListUI extends VBox {
     private static final Logger logger = LoggerFactory.getLogger(DeviceListUI.class);
 
-    private ListView<HBox> deviceListView;
-    private Button startServerButton = new Button("启动服务器");
+    private VBox deviceListContainer;
     private DeviceDiscovery deviceDiscovery;
     private ControlRequestManager controlRequestManager;
 
@@ -45,6 +44,8 @@ public class DeviceListUI extends VBox {
     public DeviceListUI() {
         // 初始化界面
         initializeUI();
+        // 初始化设备列表
+        initializeDeviceList();
     }
 
     public DeviceListUI(DeviceDiscovery deviceDiscovery) {
@@ -57,6 +58,7 @@ public class DeviceListUI extends VBox {
 
     /**
      * 设置设备发现服务
+     *
      * @param deviceDiscovery 设备发现服务
      */
     public void setDeviceDiscovery(DeviceDiscovery deviceDiscovery) {
@@ -67,6 +69,7 @@ public class DeviceListUI extends VBox {
 
     /**
      * 设置控制请求管理器
+     *
      * @param controlRequestManager 控制请求管理器
      */
     public void setControlRequestManager(ControlRequestManager controlRequestManager) {
@@ -75,6 +78,7 @@ public class DeviceListUI extends VBox {
 
     /**
      * 获取控制请求管理器
+     *
      * @return controlRequestManager 控制请求管理器
      */
     public ControlRequestManager getControlRequestManager() {
@@ -82,93 +86,31 @@ public class DeviceListUI extends VBox {
     }
 
     private void initializeUI() {
-        this.setPrefWidth(200);
-        this.setPadding(new Insets(10));
-        this.setSpacing(10);
+        this.setPrefWidth(220);
+        this.setStyle("-fx-background-color: #058199;-fx-padding: 10px;");
 
-        Label titleLabel = new Label("设备列表");
-        titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        // 使用VBox替代ListView
+        deviceListContainer = new VBox();
+        deviceListContainer.setSpacing(10); // 设置行距为10
+        deviceListContainer.setPadding(new Insets(10, 0, 0, 0));
 
-        deviceListView = new ListView<>();
-        deviceListView.setPrefHeight(500);
+        // 移除固定高度设置，使用自适应高度
+        VBox.setVgrow(deviceListContainer, Priority.ALWAYS);
 
-        // 添加点击事件监听器
-        deviceListView.setOnMouseClicked(event -> {
-            HBox selectedItem = deviceListView.getSelectionModel().getSelectedItem();
-            if (selectedItem != null) {
-                // 清除之前选中项的样式
-                deviceListView.getItems().forEach(item -> {
-                    item.setStyle(""); // 清除自定义样式
-                });
 
-                // 获取选中项的IP地址
-                if (!selectedItem.getChildren().isEmpty() && selectedItem.getChildren().get(1) instanceof Label) {
-                    Label ipLabel = (Label) selectedItem.getChildren().get(1);
-                    String text = ipLabel.getText();
-                    String ipAddress = text.contains(" (本地)") ? text.replace(" (本地)", "") : text; // 移除本地标识
-
-                    // 触发设备选中回调
-                    if (onDeviceSelected != null) {
-                        onDeviceSelected.run();
-                    }
-
-                    // 触发带IP的设备选中回调
-                    if (onDeviceSelectedWithIP != null) {
-                        onDeviceSelectedWithIP.accept(ipAddress);
-                    }
-
-                    // 如果是鼠标右键点击，则发起控制请求
-                    if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
-                        // 发起控制请求
-                        if (controlRequestManager != null ) {
-                            DeviceInfo localDevice = DeviceStorage.getInstance().getLocalDevice();;
-                            if (localDevice != null && !localDevice.getIpAddress().equals(ipAddress) && localDevice.getDeviceType().equals(DeviceType.SERVER.name())) {
-                                requestControl(ipAddress);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        // 创建启动服务器按钮（底部）
-        startServerButton.setOnAction(event -> {
-            if (controlRequestManager != null) {
-                boolean isCurrentlyServer = controlRequestManager.isServerMode();
-                controlRequestManager.setServerMode(!isCurrentlyServer);
-                if(!isCurrentlyServer){
-                    try {
-                        deviceDiscovery.sendServerStartBroadcast();
-                    }catch (Exception e){
-                        logger.error("发送服务器启动广播失败: {}", e.getMessage());
-                    }
-                }else{
-                    try {
-                        deviceDiscovery.sendServerCloseBroadcast();
-                    }catch (Exception e){
-                        logger.error("发送服务器关闭广播失败: {}", e.getMessage());
-                    }
-                }
-            }
-        });
-
-        VBox bottomBox = new VBox();
-        bottomBox.getChildren().add(startServerButton);
-        bottomBox.setPadding(new Insets(10));
-        bottomBox.setAlignment(Pos.BOTTOM_CENTER);
-
-        this.getChildren().addAll(titleLabel, deviceListView, bottomBox);
+        this.getChildren().addAll(deviceListContainer);
     }
 
     /**
      * 发起控制请求
+     *
      * @param targetDeviceIp 目标设备IP
      */
     private void requestControl(String targetDeviceIp) {
         try {
             // 异步发送控制请求
             deviceDiscovery.sendControlRequest(targetDeviceIp);
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("发送服务器控制请求广播失败: {}", e.getMessage());
         }
     }
@@ -180,8 +122,8 @@ public class DeviceListUI extends VBox {
         // 添加本地设备到列表顶部
         DeviceInfo localDevice = DeviceStorage.getInstance().getLocalDevice();
         if (localDevice != null) {
-            HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType(), localDevice.getConnectionStatus(), true);
-            deviceListView.getItems().add(0, localDeviceItem); // 添加到列表顶部
+            HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(),localDevice.getDeviceName(),localDevice.getScreens().size(), localDevice.getDeviceType().substring(0, 1), localDevice.getConnectionStatus(), true);
+            deviceListContainer.getChildren().add(0, localDeviceItem); // 添加到列表顶部
         }
     }
 
@@ -190,21 +132,21 @@ public class DeviceListUI extends VBox {
      */
     public void updateDeviceList() {
         try {
-            // 清空除本地设备外的所有设备
+            // 清空设备列表容器中的所有子项（除了本地设备）
             DeviceInfo localDevice = DeviceStorage.getInstance().getLocalDevice();
-            if (!deviceListView.getItems().isEmpty()) {
+            if (!deviceListContainer.getChildren().isEmpty()) {
                 // 保留第一个项目（本地设备）
-                HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(), localDevice.getDeviceType().substring(0,1), localDevice.getConnectionStatus(), true);
-                deviceListView.getItems().clear();
-                deviceListView.getItems().add(localDeviceItem);
+                HBox localDeviceItem = createDeviceItem(localDevice.getIpAddress(),localDevice.getDeviceName(),localDevice.getScreens().size(), localDevice.getDeviceType().substring(0, 1), localDevice.getConnectionStatus(), true);
+                deviceListContainer.getChildren().clear();
+                deviceListContainer.getChildren().add(localDeviceItem);
             } else {
-                deviceListView.getItems().clear();
+                deviceListContainer.getChildren().clear();
             }
 
             // 添加所有发现的设备（除了本地设备）
             String localIpAddress = localDevice != null ? localDevice.getIpAddress() : null;
 
-            for (DeviceInfo device : DeviceStorage.getInstance().getDiscoveredDevices().values()){
+            for (DeviceInfo device : DeviceStorage.getInstance().getDiscoveredDevices().values()) {
                 String ipAddress = device.getIpAddress();
                 // 跳过本地设备，因为我们已经在列表顶部添加了它
                 if (localIpAddress != null && localIpAddress.equals(ipAddress)) {
@@ -212,28 +154,32 @@ public class DeviceListUI extends VBox {
                 }
 
                 // 创建设备项并添加到列表
-                HBox deviceItem = createDeviceItem(ipAddress, device.getDeviceType().substring(0,1), device.getConnectionStatus(), false);
-                deviceListView.getItems().add(deviceItem);
+                HBox deviceItem = createDeviceItem(ipAddress, device.getDeviceName(),device.getScreens().size(),device.getDeviceType().substring(0, 1), device.getConnectionStatus(), false);
+                deviceListContainer.getChildren().add(deviceItem);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("Error adding device to list: {}", e.getMessage());
         }
 
     }
 
-    private HBox createDeviceItem(String ipAddress, String role, String connectStatus, boolean isLocal) {
+    private HBox createDeviceItem(String ipAddress,String os, Integer screenCount,String role, String connectStatus, boolean isLocal) {
         HBox item = new HBox();
-        item.setSpacing(10);
-        item.setPadding(new Insets(5));
+        item.setPadding(new Insets(0, 0, 0, 16));
         item.setAlignment(Pos.CENTER_LEFT);
+        item.setPrefHeight(80);
+        item.setStyle("-fx-background-color: rgba(255,255,255,0.1);" +
+                "-fx-background-radius: 0 8 8 0; " +
+                "-fx-border-radius: 0 8 8 0;");
+
 
         // 创建状态指示器
         Circle statusIndicator = new Circle(8);
         if (connectStatus.equals("CONNECTED")) {
             statusIndicator.setFill(Color.GREEN);
-        } else if(connectStatus.equals("DISCONNECTED")){
+        } else if (connectStatus.equals("DISCONNECTED")) {
             statusIndicator.setFill(Color.GRAY);
-        } else if(connectStatus.equals("PENDING_AUTHORIZATION")){
+        } else if (connectStatus.equals("PENDING_AUTHORIZATION")) {
             statusIndicator.setFill(Color.ORANGE);
         } else {
             // 默认状态
@@ -242,38 +188,77 @@ public class DeviceListUI extends VBox {
 
         // 添加角色标识
         Label roleLabel = new Label(role);
-        roleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 10px;");
-        roleLabel.setTranslateY(-1);
+        roleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 8px;");
+        roleLabel.setTranslateY(0);
         roleLabel.setTranslateX(-11);
-
-        // 创建状态指示器容器
-        HBox indicatorContainer = new HBox();
-        indicatorContainer.setAlignment(Pos.CENTER);
-        indicatorContainer.getChildren().addAll(statusIndicator, roleLabel);
 
         // 创建IP地址标签
         Label ipLabel = new Label(ipAddress + (isLocal ? " (本地)" : ""));
-        ipLabel.setStyle("-fx-font-size: 12px;");
+        ipLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
 
-        item.getChildren().addAll(indicatorContainer, ipLabel);
+        // 创建状态指示器容器
+        HBox indicatorContainer = new HBox();
+        indicatorContainer.setAlignment(Pos.CENTER_LEFT);
+        indicatorContainer.getChildren().addAll(statusIndicator, roleLabel , ipLabel);
+
+        // 创建IP地址标签
+        Label osScreenCountLabel = new Label(os+" | "+screenCount+"屏幕");
+        osScreenCountLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
+
+        HBox osScreenCountContainer = new HBox();
+        osScreenCountContainer.setAlignment(Pos.CENTER_LEFT);
+        osScreenCountContainer.getChildren().addAll(osScreenCountLabel);
+        osScreenCountContainer.setPadding(new Insets(0, 0, 0, 24)); // 与上方元素对齐
+
+        // 使用VBox包装两行内容
+        VBox contentContainer = new VBox();
+        contentContainer.getChildren().addAll(indicatorContainer, osScreenCountContainer);
+        contentContainer.setSpacing(10); // 设置两行之间的间距
+        contentContainer.setAlignment(Pos.CENTER_LEFT); // 水平居中靠左展示
+
+        item.getChildren().addAll(contentContainer);
 
         // 设置容器可扩展性
-        HBox.setHgrow(ipLabel, Priority.ALWAYS);
+        HBox.setHgrow(contentContainer, Priority.ALWAYS);
+
+        // 添加点击事件
+        item.setOnMouseClicked(event -> {
+            // 清除之前选中项的样式
+            VBox parent = (VBox) item.getParent();
+            parent.getChildren().forEach(child -> {
+                if (child instanceof HBox) {
+                    ((HBox) child).setStyle("-fx-background-color: rgba(255,255,255,0.1);" +
+                            "-fx-background-radius: 0 8 8 0; " +
+                            "-fx-border-radius: 0 8 8 0;");
+                }
+            });
+
+            // 设置当前选中项的样式
+            item.setStyle("-fx-background-color: rgba(255,255,255,0.3);" +
+                    "-fx-background-radius: 0 8 8 0; " +
+                    "-fx-border-radius: 0 8 8 0;");
+            // 触发设备选中回调
+            if (onDeviceSelected != null) {
+                onDeviceSelected.run();
+            }
+
+            // 触发带IP的设备选中回调
+            if (onDeviceSelectedWithIP != null) {
+                onDeviceSelectedWithIP.accept(ipAddress);
+            }
+
+            // 如果是鼠标右键点击，则发起控制请求
+            if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
+                // 发起控制请求
+                if (controlRequestManager != null) {
+                    DeviceInfo localDevice = DeviceStorage.getInstance().getLocalDevice();
+                    if (localDevice != null && !localDevice.getIpAddress().equals(ipAddress) && localDevice.getDeviceType().equals(DeviceType.SERVER.name())) {
+                        requestControl(ipAddress);
+                    }
+                }
+            }
+        });
 
         return item;
-    }
-
-    public void serverDeviceStart() {
-        // 如果当前设备是服务器则，启动服务器按钮变为停止服务器。如果不是则禁用该按钮
-        if(NetUtil.getLocalIpAddress().equals(DeviceStorage.getInstance().getSeverDevice().getIpAddress())){
-            startServerButton.setText("关闭");
-        }else{
-            startServerButton.setDisable(true);
-        }
-    }
-
-    public void serverDeviceStop() {
-        startServerButton.setDisable(false);
-        startServerButton.setText("启动配置中心");
     }
 }

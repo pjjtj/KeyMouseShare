@@ -16,19 +16,25 @@
     </appender>
 
     <!-- 根日志级别 -->
-    <root level="DEBUG">
+    <root level="ERROR">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </root>
 
     <!-- 特定包的日志级别 -->
-    <logger name="com.keymouseshare.listener" level="ERROR" additivity="false">
+    <logger name="com.keymouseshare.uifx.ScreenPreviewUI" level="ERROR" additivity="false">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
+    </logger>
+
+
+    <logger name="com.keymouseshare.listener.JNativeHookInputMonitor" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </logger>
 
     <!-- 特定包的日志级别 -->
-    <logger name="com.keymouseshare.network" level="ERROR" additivity="false">
+    <logger name="com.keymouseshare.network.ControlRequestManager" level="ERROR" additivity="false">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </logger>

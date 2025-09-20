@@ -13,15 +13,13 @@ import com.keymouseshare.network.ControlRequestManager;
 import com.keymouseshare.network.DeviceDiscovery;
 import com.keymouseshare.storage.DeviceStorage;
 import com.keymouseshare.storage.VirtualDesktopStorage;
-import com.keymouseshare.uifx.DeviceListUI;
-import com.keymouseshare.uifx.MousePositionDisplay;
-import com.keymouseshare.uifx.ScreenPreviewUI;
-import com.keymouseshare.uifx.TransparentFullScreenFxUtils;
+import com.keymouseshare.uifx.*;
 import com.keymouseshare.util.MacOSAccessibilityHelper;
 import com.keymouseshare.util.NetUtil;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -43,7 +41,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
     private DeviceListUI deviceListUI;
     private ScreenPreviewUI screenPreviewUI;
     private JNativeHookInputMonitor jNativeHookInputMonitor;
-    private MousePositionDisplay mousePositionDisplay;
+    private FooterBarUI mousePositionDisplay;
     private ControlRequestManager controlRequestManager;
     private MouseKeyBoard mouseKeyBoard;
     private DeviceStorage deviceStorage = DeviceStorage.getInstance();
@@ -70,6 +68,19 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
     @Override
     public void start(Stage primaryStage) {
+
+        // 初始化控制请求管理器
+        initControlRequestManager(primaryStage);
+
+        // 初始化JNativeHook输入监听
+        initJNativeHookInputMonitoring();
+
+        // 初始化Windows鼠标键盘钩子
+        initMouseKeyBoard();
+
+        // 设置无装饰窗口样式
+//        primaryStage.initStyle(StageStyle.TRANSPARENT);
+        
         BorderPane root = new BorderPane();
 
         // 检查并提示macOS辅助功能授权
@@ -78,16 +89,20 @@ public class MainApplication extends Application implements DeviceListener, Virt
         // 初始化网络设备发现
         initDeviceDiscovery();
 
+        // 创建自定义标题栏
+//        com.keymouseshare.uifx.TitleBarUI titleBarUI = new com.keymouseshare.uifx.TitleBarUI(primaryStage);
+//        root.setTop(titleBarUI);
+
         // 创建设备列表UI（左侧）
         deviceListUI = new DeviceListUI(deviceDiscovery);
         root.setLeft(deviceListUI);
 
         // 创建屏幕预览UI（中心）
-        screenPreviewUI = new ScreenPreviewUI(virtualDesktopStorage);
+        screenPreviewUI = new ScreenPreviewUI();
         root.setCenter(screenPreviewUI);
 
         // 创建鼠标位置显示器（底部）
-        mousePositionDisplay = new MousePositionDisplay();
+        mousePositionDisplay = new FooterBarUI(controlRequestManager,deviceDiscovery);
         root.setBottom(mousePositionDisplay);
 
         // 设置设备选中回调，实现设备列表与屏幕预览的联动
@@ -99,18 +114,27 @@ public class MainApplication extends Application implements DeviceListener, Virt
             screenPreviewUI.selectScreen(ipAddress);
         });
 
-        // 初始化控制请求管理器
-        initControlRequestManager(primaryStage);
 
-        // 初始化JNativeHook输入监听
-        initJNativeHookInputMonitoring();
-
-        // 初始化Windows鼠标键盘钩子
-        initMouseKeyBoard();
 
         // 创建场景并显示主窗口
-        Scene scene = new Scene(root, 900, 600);
-        primaryStage.setTitle("KeyMouseShare - 键盘鼠标共享工具");
+        Scene scene = new Scene(root, 1024, 768);
+        // 添加自定义CSS样式
+//        try {
+//            scene.getStylesheets().add(getClass().getResource("/styles/main.css").toExternalForm());
+//        } catch (Exception e) {
+//            System.err.println("无法加载CSS样式文件: " + e.getMessage());
+//        }
+//        // 为场景添加背景色和圆角效果
+//        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+//        root.setStyle("-fx-border-color: transparent; "+
+//                     "-fx-background-color: #f2f2f2; " +
+//                     "-fx-background-radius: 8; " +
+//                     "-fx-border-radius: 8;");
+
+        Image icon = new Image(getClass().getResourceAsStream("/KBMS.png"));
+
+        primaryStage.getIcons().add(icon);
+        primaryStage.setTitle("KeyMouseShare-鼠标键盘共享软件");
         primaryStage.setScene(scene);
         primaryStage.show();
 
@@ -233,8 +257,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
      */
     private void serverDeviceStart() {
         if (deviceDiscovery != null && deviceListUI != null && screenPreviewUI != null) {
-            deviceListUI.serverDeviceStart();
-            screenPreviewUI.serverDeviceStart();
+            mousePositionDisplay.serverDeviceStart();
             screenPreviewUI.refreshScreens();
         }
     }
@@ -244,8 +267,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
      */
     private void serverDeviceStop() {
         if (deviceDiscovery != null && deviceListUI != null && screenPreviewUI != null) {
-            deviceListUI.serverDeviceStop();
-            screenPreviewUI.serverDeviceStop();
+            mousePositionDisplay.serverDeviceStop();
         }
     }
 
@@ -340,12 +362,6 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
     @Override
     public void onMouseMove(int x, int y) {
-        Platform.runLater(() -> {
-            if (mousePositionDisplay != null) {
-                mousePositionDisplay.updateMousePosition(x, y);
-            }
-        });
-
         if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
             if (mouseKeyBoard.isEdgeMode()) {
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
@@ -370,6 +386,11 @@ public class MainApplication extends Application implements DeviceListener, Virt
                 }
             }
         }
+        Platform.runLater(() -> {
+            if (mousePositionDisplay != null) {
+                mousePositionDisplay.updateMousePosition(x, y);
+            }
+        });
     }
 
     @Override

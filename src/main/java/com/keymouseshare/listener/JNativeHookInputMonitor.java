@@ -18,7 +18,7 @@ import java.util.Set;
  */
 public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseListener, NativeMouseMotionListener, NativeMouseWheelListener {
     private static final Logger logger = LoggerFactory.getLogger(JNativeHookInputMonitor.class);
-    
+
     // 用于跟踪当前按下的键
     private final Set<Integer> pressedKeys = new HashSet<>();
 
@@ -26,7 +26,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     private static final int CTRL_KEY = NativeKeyEvent.VC_CONTROL;
     private static final int ALT_KEY = NativeKeyEvent.VC_ALT;
     private static final int ESC_KEY = NativeKeyEvent.VC_ESCAPE;
-    
+
     // 鼠标键盘事件监听器
     private MouseKeyBoardEventListener mouseKeyBoardEventListener;
 
@@ -46,7 +46,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     public JNativeHookInputMonitor() {
         logger.info("JNativeHookInputMonitor实例已创建");
     }
-    
+
     /**
      * 设置主应用程序引用，用于调用相关方法
      * @param mainApplication 主应用程序实例
@@ -54,7 +54,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     public void setMainApplication(MainApplication mainApplication) {
         this.mainApplication = mainApplication;
     }
-    
+
     /**
      * 设置鼠标事件监听器
      * @param listener 鼠标事件监听器
@@ -62,7 +62,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     public void setMouseEventListener(MouseKeyBoardEventListener listener) {
         this.mouseKeyBoardEventListener = listener;
     }
-    
+
     /**
      * 开始监听本地输入事件
      */
@@ -71,20 +71,20 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             logger.info("JNativeHook监听器已在运行中");
             return;
         }
-        
+
         try {
             // 禁用JNativeHook的默认日志记录器，避免日志过多
 //          java.util.logging.Logger.getLogger(GlobalScreen.class.getPackage().getName()).setLevel(Level.OFF);
 
             // 注册全局屏幕监听器
             GlobalScreen.registerNativeHook();
-            
+
             // 添加事件监听器
             GlobalScreen.addNativeKeyListener(this);
             GlobalScreen.addNativeMouseListener(this);
             GlobalScreen.addNativeMouseMotionListener(this);
             GlobalScreen.addNativeMouseWheelListener(this); // 添加滚轮事件监听器
-            
+
             isMonitoring = true;
             logger.info("开始使用JNativeHook监听本地键盘鼠标事件");
             System.out.println("JNativeHook输入监听已启动");
@@ -94,7 +94,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             isMonitoring = false;
         }
     }
-    
+
     /**
      * 停止监听本地输入事件
      */
@@ -103,20 +103,20 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             logger.info("JNativeHook监听器未在运行");
             return;
         }
-        
+
         try {
             // 清空按键状态
             pressedKeys.clear();
-            
+
             // 移除事件监听器
             GlobalScreen.removeNativeKeyListener(this);
             GlobalScreen.removeNativeMouseListener(this);
             GlobalScreen.removeNativeMouseMotionListener(this);
             GlobalScreen.removeNativeMouseWheelListener(this); // 移除滚轮事件监听器
-            
+
             // 注销全局屏幕监听器
             GlobalScreen.unregisterNativeHook();
-            
+
             isMonitoring = false;
             logger.info("停止使用JNativeHook监听本地键盘鼠标事件");
             System.out.println("JNativeHook输入监听已停止");
@@ -124,11 +124,11 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             logger.error("注销JNativeHook时发生异常", e);
         }
     }
-    
+
     @Override
     public void nativeKeyPressed(NativeKeyEvent e) {
         if (!isMonitoring) return;
-        
+
         int keyCode = e.getKeyCode();
         pressedKeys.add(keyCode);
 
@@ -145,11 +145,11 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             return;
         }
     }
-    
+
     @Override
     public void nativeKeyReleased(NativeKeyEvent e) {
         if (!isMonitoring) return;
-        
+
         int keyCode = e.getKeyCode();
         pressedKeys.remove(keyCode);
 
@@ -161,7 +161,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
         logger.debug("键盘事件: 类型=按键释放, 键码={}", e.getKeyCode());
     }
 
-    
+
     @Override
     public void nativeMousePressed(NativeMouseEvent e) {
         if (!isMonitoring) return;
@@ -171,44 +171,44 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             mouseKeyBoardEventListener.onMousePress(e.getButton(), e.getX(), e.getY());
         }
 
-        logger.debug("鼠标事件: 类型=按下, 按钮={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
+//        logger.debug("鼠标事件: 类型=按下, 按钮={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
     }
-    
+
     @Override
     public void nativeMouseReleased(NativeMouseEvent e) {
         if (!isMonitoring) return;
-        
+
         // 转发鼠标释放事件
         if (mouseKeyBoardEventListener != null) {
             mouseKeyBoardEventListener.onMouseRelease(e.getButton(), e.getX(), e.getY());
         }
 
-        logger.debug("鼠标事件: 类型=释放, 按钮={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
+//        logger.debug("鼠标事件: 类型=释放, 按钮={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
     }
-    
+
     @Override
     public void nativeMouseMoved(NativeMouseEvent e) {
         if (!isMonitoring) return;
-        
+
         // 转发鼠标移动事件
         if (mouseKeyBoardEventListener != null) {
             mouseKeyBoardEventListener.onMouseMove(e.getX(), e.getY());
         }
 
-        logger.debug("鼠标事件: 类型=移动, 位置=({},{})", e.getX(), e.getY());
+//        logger.debug("鼠标事件: 类型=移动, 位置=({},{})", e.getX(), e.getY());
 
     }
-    
+
     @Override
     public void nativeMouseWheelMoved(NativeMouseWheelEvent e) {
         if (!isMonitoring) return;
-        
+
         // 转发鼠标滚轮事件
         if (mouseKeyBoardEventListener != null) {
             mouseKeyBoardEventListener.onMouseWheel(e.getWheelRotation(), e.getX(), e.getY());
         }
 
-        logger.debug("鼠标滚轮事件: 旋转={}, 位置=({},{})", e.getWheelRotation(), e.getX(), e.getY());
+//        logger.debug("鼠标滚轮事件: 旋转={}, 位置=({},{})", e.getWheelRotation(), e.getX(), e.getY());
     }
 
     @Override
@@ -220,7 +220,7 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
             mouseKeyBoardEventListener.onMouseMove(e.getX(), e.getY());
         }
 
-        logger.debug("鼠标事件: 拖拽={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
+//        logger.debug("鼠标事件: 拖拽={}, 位置=({},{})", e.getButton(), e.getX(), e.getY());
     }
 
     /**
@@ -228,11 +228,11 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
      * @return 如果按下了组合键返回true，否则返回false
      */
     private boolean isCtrlAltEscPressed() {
-        return pressedKeys.contains(CTRL_KEY) && 
-               pressedKeys.contains(ALT_KEY) && 
-               pressedKeys.contains(ESC_KEY);
+        return pressedKeys.contains(CTRL_KEY) &&
+                pressedKeys.contains(ALT_KEY) &&
+                pressedKeys.contains(ESC_KEY);
     }
-    
+
     /**
      * 检查是否按下了Ctrl键
      * @return 如果按下了Ctrl键返回true，否则返回false
@@ -240,20 +240,20 @@ public class JNativeHookInputMonitor implements NativeKeyListener, NativeMouseLi
     private boolean isCtrlPressed() {
         return pressedKeys.contains(CTRL_KEY);
     }
-    
+
     /**
      * 处理Ctrl+Alt+Esc组合键事件
      */
     private void handleCtrlAltEscCombination() {
-        logger.debug("检测到Ctrl+Alt+Esc组合键按下，触发紧急停止");
-        
+//        logger.debug("检测到Ctrl+Alt+Esc组合键按下，触发紧急停止");
+
         // 如果主应用程序引用存在，调用紧急停止方法
         if (mainApplication != null) {
             // 这里可以调用主应用程序的紧急停止方法
             mainApplication.cancelKeyMouseShare();
         }
     }
-    
+
 
 
     /**
