@@ -56,10 +56,12 @@ public class MacMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard
                 if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
                     System.out.println("当前设备是控制器，需要退出鼠标隐藏");
                     exitEdgeMode();
+
                 } else {
                     if (!edgeMode) {
                         System.out.println("当前设备是控制器，需要隐藏鼠标");
                         enterEdgeMode();
+
                     }
                 }
             }

@@ -22,19 +22,19 @@
     </root>
 
     <!-- 特定包的日志级别 -->
-    <logger name="com.keymouseshare.MainApplication" level="DEBUG" additivity="false">
+    <logger name="com.keymouseshare.MainApplication" level="ERROR" additivity="false">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </logger>
 
 
-    <logger name="com.keymouseshare.storage.VirtualDesktopStorage" level="DEBUG" additivity="false">
+    <logger name="com.keymouseshare.storage.VirtualDesktopStorage" level="ERROR" additivity="false">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </logger>
 
     <!-- 特定包的日志级别 -->
-    <logger name="com.keymouseshare.keyboard.win.WindowMouseKeyBoard" level="DEBUG" additivity="false">
+    <logger name="com.keymouseshare.keyboard.win.WindowMouseKeyBoard" level="ERROR" additivity="false">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </logger>

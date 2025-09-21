@@ -1,4 +1,3 @@
-
 package com.keymouseshare.keyboard.win;
 
 import com.sun.jna.Pointer;
@@ -10,6 +9,7 @@ import com.sun.jna.platform.win32.WinUser.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -28,7 +28,7 @@ public class WinHookManager {
     private Thread hookThread;
 
     /**
-     * 启动钩子
+     * 启动钩子（同步执行）
      */
     public void startHooks(Consumer<WinHookEvent> eventHandler) {
         if (hooksActive.get()) {
@@ -37,6 +37,10 @@ public class WinHookManager {
         }
 
         hooksActive.set(true);
+
+        // 使用 CountDownLatch 确保钩子设置完成后再返回
+        CountDownLatch initializationLatch = new CountDownLatch(1);
+        AtomicBoolean initializationSuccess = new AtomicBoolean(false);
 
         hookThread = new Thread(() -> {
             try {
@@ -59,7 +63,7 @@ public class WinHookManager {
                         eventHandler.accept(event);
 
 //                        if (event.shouldBlock()) {
-                            return new LRESULT(1); // 阻止继续传递
+                        return new LRESULT(1); // 阻止继续传递
 //                        }
                     }
                     return User32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, new LPARAM(Pointer.nativeValue(kbdllhookstruct.getPointer())));
@@ -71,11 +75,15 @@ public class WinHookManager {
 
                 if (mouseHook == null && keyboardHook == null) {
                     logger.error("Failed to set both hooks");
-                    stopHooks();
+                    initializationSuccess.set(false);
                     return;
                 }
 
                 logger.info("Hooks started successfully");
+                initializationSuccess.set(true);
+
+                // 通知调用线程钩子已设置完成
+                initializationLatch.countDown();
 
                 // 消息循环（独立线程）
                 MSG msg = new MSG();
@@ -85,13 +93,32 @@ public class WinHookManager {
                 }
             } catch (Exception e) {
                 logger.error("Error in hook processing", e);
+                initializationSuccess.set(false);
+                initializationLatch.countDown(); // 确保即使出错也释放等待线程
             } finally {
+                // 确保即使出错也释放等待线程
+                initializationLatch.countDown();
                 stopHooks();
             }
         }, "WinHook-Thread");
 
         hookThread.setDaemon(true);
         hookThread.start();
+
+//        try {
+//            // 等待钩子初始化完成
+//            initializationLatch.await();
+//
+//            if (!initializationSuccess.get()) {
+//                // 如果初始化失败，抛出异常或记录错误
+//                logger.error("Failed to initialize hooks");
+//                throw new RuntimeException("Failed to initialize Windows hooks");
+//            }
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//            logger.error("Interrupted while waiting for hooks initialization", e);
+//            throw new RuntimeException("Interrupted while initializing hooks", e);
+//        }
     }
 
     /**

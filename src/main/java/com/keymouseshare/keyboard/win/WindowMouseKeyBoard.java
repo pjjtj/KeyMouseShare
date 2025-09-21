@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBoard {
@@ -32,7 +33,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
     private final VirtualDesktopStorage virtualDesktopStorage = VirtualDesktopStorage.getInstance();
     private ScheduledExecutorService edgeWatcherExecutor;
 
-    private static volatile boolean changingScreen = false;
+    private AtomicBoolean changingScreen = new AtomicBoolean(false);
 
     private WinHookManager hookManager;
 
@@ -66,21 +67,18 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
                 System.out.println("激活设备：" + screenInfo.getDeviceIp() + ",屏幕：" + screenInfo.getScreenName());
                 virtualDesktopStorage.setActiveScreen(screenInfo);
 
-                System.out.println("虚拟鼠标位置：" + virtualDesktopStorage.getMouseLocation()[0] + "," + virtualDesktopStorage.getMouseLocation()[1]);
+                logger.debug("虚拟鼠标位置：{},{}", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
                 // 被唤醒设备是控制中心
                 if (screenInfo.getDeviceIp().equals(deviceStorage.getSeverDevice().getIpAddress())) {
-                    System.out.println("当前设备是控制器，需要退出鼠标隐藏");
-                    exitEdgeMode(direction);
-
+                    logger.debug("当前设备是控制器，需要退出鼠标隐藏");
                     // 退出系统钩子
-//                    stopInputInterception();
+                    stopInputInterception();
+                    exitEdgeMode(direction);
                 } else { // 被唤醒设备是远程设备
+                    // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
+                    startInputInterception(event -> {});
                     // 启动成功后调用其他方法
                     enterEdgeMode(direction);
-                    // 当前设备是控制器，需要隐藏鼠标，开启系统钩子
-//                    startInputInterception(event -> {
-//
-//                    });
                 }
             }
         }
@@ -122,72 +120,69 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
 
     private void enterEdgeMode(String direction) {        // [40]
         edgeMode = true;
-
-        changingScreen = true;
-
-
-        virtualDesktopStorage.enterEdgeMode();
-
-        logger.debug("[enterEdgeMode direction={}:({},{})]", direction, virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
-
-        if (direction.equals("LEFT")) {
-            virtualDesktopStorage.moveMouseLocation(-10, 0);
-            logger.debug("[virtualDesktopMousePosition-LEFT]:({},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
-        } else if (direction.equals("RIGHT")) {
-            virtualDesktopStorage.moveMouseLocation(10, 0);
-            logger.debug("[virtualDesktopMousePosition-RIGHT]:({},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
-        } else if (direction.equals("TOP")) {
-            virtualDesktopStorage.moveMouseLocation(0, -10);
-            logger.debug("[virtualDesktopMousePosition-TOP]:({},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
-        } else if (direction.equals("BOTTOM")) {
-            virtualDesktopStorage.moveMouseLocation(0, +10);
-            logger.debug("[virtualDesktopMousePosition-BOTTOM]:({},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
-        }
-
-        for (int i = 0; i < 3; i++) {
-            try {
-                Thread.sleep(50);
-                logger.debug("[serverMousePosition x,vx,tx,y,vy,ty]:({},{},{},{},{},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocationTransform()[0],virtualDesktopStorage.getMouseLocation()[1] , virtualDesktopStorage.getActiveScreen().getVy(), virtualDesktopStorage.getMouseLocationTransform()[1]);
-                logger.debug("[serverMousePosition]:({},{})", (int) ((virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) / virtualDesktopStorage.getMouseLocationTransform()[0]), (int) ((virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()) / virtualDesktopStorage.getMouseLocationTransform()[1]));
-                mouseMove((int) ((virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) / virtualDesktopStorage.getMouseLocationTransform()[0]), (int) ((virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()) / virtualDesktopStorage.getMouseLocationTransform()[1]));
-            } catch (Exception e) {
-                e.printStackTrace();
+        changingScreen.set( true);
+        try{
+            virtualDesktopStorage.enterEdgeMode();
+            logger.debug("[enterEdgeMode direction={}:({},{})]", direction, virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
+            if (direction.equals("LEFT")) {
+                virtualDesktopStorage.moveMouseLocation(-10, 0);
+                logger.debug("[virtualDesktopMousePosition-LEFT]:({},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
+            } else if (direction.equals("RIGHT")) {
+                virtualDesktopStorage.moveMouseLocation(10, 0);
+                logger.debug("[virtualDesktopMousePosition-RIGHT]:({},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
+            } else if (direction.equals("TOP")) {
+                virtualDesktopStorage.moveMouseLocation(0, -10);
+                logger.debug("[virtualDesktopMousePosition-TOP]:({},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
+            } else if (direction.equals("BOTTOM")) {
+                virtualDesktopStorage.moveMouseLocation(0, +10);
+                logger.debug("[virtualDesktopMousePosition-BOTTOM]:({},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
             }
+            for (int i = 0; i < 3; i++) {
+                try {
+                    Thread.sleep(50);
+                    logger.debug("[serverMousePosition x,vx,tx,y,vy,ty]:({},{},{},{},{},{})", virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocationTransform()[0],virtualDesktopStorage.getMouseLocation()[1] , virtualDesktopStorage.getActiveScreen().getVy(), virtualDesktopStorage.getMouseLocationTransform()[1]);
+                    logger.debug("[serverMousePosition]:({},{})", (int) ((virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) / virtualDesktopStorage.getMouseLocationTransform()[0]), (int) ((virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()) / virtualDesktopStorage.getMouseLocationTransform()[1]));
+                    mouseMove((int) ((virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()) / virtualDesktopStorage.getMouseLocationTransform()[0]), (int) ((virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()) / virtualDesktopStorage.getMouseLocationTransform()[1]));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }finally {
+            changingScreen.set(false);
         }
-
-        changingScreen = false;
     }
 
     private void exitEdgeMode(String direction) {
         if (!edgeMode) return;
 
-        changingScreen = true;
-
-        if (direction.equals("LEFT")) {
-            virtualDesktopStorage.moveMouseLocation(-10, 0);
-        } else if (direction.equals("RIGHT")) {
-            virtualDesktopStorage.moveMouseLocation(+10, 0);
-        } else if (direction.equals("TOP")) {
-            virtualDesktopStorage.moveMouseLocation(0, -10);
-        } else if (direction.equals("BOTTOM")) {
-            virtualDesktopStorage.moveMouseLocation(0, +10);
-        }
-
-        logger.debug("控制中心鼠标位置：{},{}", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
-        for (int i = 0; i < 3; i++) {
-            try {
-                Thread.sleep(50);
-                logger.debug("[LocalMousePosition]:({},{})", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
-                mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
-            } catch (Exception e) {
-                e.printStackTrace();
+        changingScreen.set(true);
+        try{
+            if (direction.equals("LEFT")) {
+                virtualDesktopStorage.moveMouseLocation(-10, 0);
+            } else if (direction.equals("RIGHT")) {
+                virtualDesktopStorage.moveMouseLocation(+10, 0);
+            } else if (direction.equals("TOP")) {
+                virtualDesktopStorage.moveMouseLocation(0, -10);
+            } else if (direction.equals("BOTTOM")) {
+                virtualDesktopStorage.moveMouseLocation(0, +10);
             }
+
+            logger.debug("控制中心鼠标位置：{},{}", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+            for (int i = 0; i < 3; i++) {
+                try {
+                    Thread.sleep(50);
+                    logger.debug("[LocalMousePosition]:({},{})", virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+                    mouseMove(virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(), virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            edgeMode = false;
+            virtualDesktopStorage.exitEdgeMode();
+        }finally {
+            changingScreen.set(false);
         }
-
-        edgeMode = false;
-        virtualDesktopStorage.exitEdgeMode();
-        changingScreen = false;
-
     }
 
     @Override
@@ -227,6 +222,6 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
 
     @Override
     public boolean isChangingScreen() {
-        return changingScreen;
+        return changingScreen.get();
     }
 }
