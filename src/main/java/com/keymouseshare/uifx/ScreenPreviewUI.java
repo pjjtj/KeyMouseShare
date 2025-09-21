@@ -139,8 +139,8 @@ public class ScreenPreviewUI extends VBox {
 
     private void addScreenItem(ScreenInfo screenInfo, boolean isSelected) {
         // 创建屏幕预览框，根据实际屏幕尺寸设置大小
-        int screenWidth = (int) (screenInfo.getWidth() / scale); // 缩放比例，最小100像素
-        int screenHeight = (int) (screenInfo.getHeight() / scale); // 缩放比例，最小80像素
+        double screenWidth = (screenInfo.getWidth() / scale); // 缩放比例，最小100像素
+        double screenHeight = (screenInfo.getHeight() / scale); // 缩放比例，最小80像素
         Rectangle screenRect = new Rectangle(screenWidth, screenHeight);
 
         // 设置屏幕颜色（根据设备IP设置不同颜色）
@@ -166,7 +166,7 @@ public class ScreenPreviewUI extends VBox {
         // 创建中心点标记
         Label centerLabel = new Label(screenInfo.getScreenName());
         StackPane  centerLabelVPane = new StackPane(centerLabel);
-        int clp = Math.min(screenWidth/2, screenHeight/2);
+        double clp = Math.min(screenWidth/2, screenHeight/2);
         centerLabelVPane.setMaxSize(clp,clp);
         centerLabelVPane.setAlignment(Pos.CENTER); // 使标签在VBox中居中
         centerLabelVPane.setStyle("-fx-background-radius: 50%;" +
@@ -208,7 +208,7 @@ public class ScreenPreviewUI extends VBox {
             Bounds bounds = screenContainer.getBoundsInParent();
 
             // 更新坐标标签文本
-            locationLabel.setText(String.format("(%.0f, %.0f, %.0f, %.0f)", bounds.getMinX(),  bounds.getMinY(), screenContainer.getWidth()*scale, bounds.getHeight()*scale));
+            locationLabel.setText(String.format("(%.1f, %.1f, %.0f, %.0f)", bounds.getMinX(),  bounds.getMinY(), screenContainer.getWidth()*scale, bounds.getHeight()*scale));
         });
 
         screenContainer.setOnMouseExited(e -> locationLabel.setVisible(false));
@@ -442,19 +442,19 @@ public class ScreenPreviewUI extends VBox {
                 // 根据最小边缘距离调整位置
                 if (minEdgeDistance == distanceLeftToRight&&!(screenTop>targetBottom||screenBottom<targetTop)) {
                     logger.debug("Left to right");
-                    screen.setLayoutX(targetRight+(1/scale));
+                    screen.setLayoutX(targetRight);
                 }
                 if (minEdgeDistance == distanceRightToLeft&&!(screenTop>targetBottom||screenBottom<targetTop)) {
                     logger.debug("Right to left");
-                    screen.setLayoutX(targetLeft-screen.getWidth()-(1/scale));
+                    screen.setLayoutX(targetLeft-screen.getWidth());
                 }
                 if (minEdgeDistance == distanceTopToBottom&&!(screenRight>targetRight||screenLeft<targetLeft)) {
-                    logger.debug("Top to bottom{}", 1 / scale);
+                    logger.debug("Top to bottom");
                     screen.setLayoutY(targetBottom);
                 }
                 if (minEdgeDistance == distanceBottomToTop&&!(screenRight>targetRight||screenLeft<targetLeft)) {
                     logger.debug( "Bottom to top");
-                    screen.setLayoutY(targetTop-screen.getHeight()-(1/scale));
+                    screen.setLayoutY(targetTop-screen.getHeight());
                 }
             }
         }

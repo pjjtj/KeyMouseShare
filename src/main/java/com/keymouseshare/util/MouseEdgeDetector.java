@@ -226,15 +226,21 @@ public class MouseEdgeDetector {
         double top1 = screen1.getVy();
         double bottom1 = screen1.getVy() + screen1.getHeight();
 
+
+
         double left2 = screen2.getVx();
         double right2 = screen2.getVx() + screen2.getWidth();
         double top2 = screen2.getVy();
         double bottom2 = screen2.getVy() + screen2.getHeight();
 
+        logger.debug("检查两个屏幕是左右否相邻 screen1 vs screen2 : {}:{} vs {}:{}", left1, right1, left2, right2);
+        logger.debug("检查两个屏幕是上下否相邻 screen1 vs screen2 : {}:{} vs {}:{}", top1, bottom1, top2, bottom2);
+
         // 检查是否水平相邻（上下边缘对齐）
         boolean horizontalAdjacent =
                 (Math.abs(right1 - left2) <= 1 || Math.abs(right2 - left1) <= 1) &&  // 共享垂直边缘
                         (Math.max(top1, top2) < Math.min(bottom1, bottom2)); // Y轴有重叠
+
 
         // 检查是否垂直相邻（左右边缘对齐）
         boolean verticalAdjacent =

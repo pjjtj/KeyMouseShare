@@ -354,6 +354,8 @@ public class MainApplication extends Application implements DeviceListener, Virt
         // 开启鼠标位置检测控制
         mouseKeyBoard.startMouseKeyController();
 
+
+
     }
 
     public void cancelKeyMouseShare() {
@@ -365,25 +367,25 @@ public class MainApplication extends Application implements DeviceListener, Virt
         if (virtualDesktopStorage.isApplyVirtualDesktopScreen()) {
             if (mouseKeyBoard.isEdgeMode()) {
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
-                if(mouseKeyBoard.isChangingScreen()){
-                    virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x, vScreenInfo.getVy() + y);
-                }
-                // 鼠标移动事件处理
-                // 这里可以添加鼠标移动的特殊处理逻辑
-                // 例如：发送鼠标移动事件到远程设备
-                if (controlRequestManager != null) {
-                    // 发送鼠标移动事件到远程设备
-                    if (x != 0 || y != 0) {
-                        controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseMoved.name(),
-                                virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx(),
-                                virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy()));
+                if(!mouseKeyBoard.isChangingScreen()){
+                    virtualDesktopStorage.setMouseLocation((int) (vScreenInfo.getVx() + x*virtualDesktopStorage.getMouseLocationTransform()[0]), (int) (vScreenInfo.getVy() + y*virtualDesktopStorage.getMouseLocationTransform()[1]));
+                    // 鼠标移动事件处理
+                    // 这里可以添加鼠标移动的特殊处理逻辑
+                    // 例如：发送鼠标移动事件到远程设备
+                    if (controlRequestManager != null) {
+                        // 发送鼠标移动事件到远程设备
+                        if (x != 0 || y != 0) {
+                            // 进行比例映射
+                            controlRequestManager.sendControlRequest(new ControlEvent(virtualDesktopStorage.getActiveScreen().getDeviceIp(), ControlEventType.MouseMoved.name(),
+                                    (virtualDesktopStorage.getMouseLocation()[0] - virtualDesktopStorage.getActiveScreen().getVx()),
+                                    (virtualDesktopStorage.getMouseLocation()[1] - virtualDesktopStorage.getActiveScreen().getVy())));
+                        }
                     }
                 }
             } else {
+                logger.debug("鼠标移动：{} {} {}", x, y, mouseKeyBoard.isEdgeMode());
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
-                if(mouseKeyBoard.isChangingScreen()){
-                    virtualDesktopStorage.setMouseLocation(vScreenInfo.getVx() + x - vScreenInfo.getDx(), vScreenInfo.getVy() + y - vScreenInfo.getDy());
-                }
+                virtualDesktopStorage.setMouseLocation((int) (vScreenInfo.getVx() + x*virtualDesktopStorage.getMouseLocationTransform()[0]), (int) (vScreenInfo.getVy() + y*virtualDesktopStorage.getMouseLocationTransform()[1]));
             }
         }
         Platform.runLater(() -> {
@@ -469,7 +471,8 @@ public class MainApplication extends Application implements DeviceListener, Virt
 
     @Override
     public void onEnterEdgeMode() {
-//        Platform.runLater(TransparentFullScreenFxUtils::closeFullScreenAndRestoreCursor);
+//        Platform.runLater(TransparentFullScreenFxUtils::openTransparentOverlayHiddenCursor);
+
         FutureTask<Void> task = new FutureTask<>(() -> {
             TransparentFullScreenFxUtils.openTransparentOverlayHiddenCursor();
             return null;
@@ -486,6 +489,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
     public void onExitEdgeMode() {
 
 //        Platform.runLater(TransparentFullScreenFxUtils::closeFullScreenAndRestoreCursor);
+
         FutureTask<Void> task = new FutureTask<>(() -> {
             TransparentFullScreenFxUtils.closeFullScreenAndRestoreCursor();
             return null;

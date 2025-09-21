@@ -5,14 +5,22 @@ import com.keymouseshare.listener.VirtualDesktopStorageListener;
 import com.keymouseshare.uifx.ScreenPreviewUI;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Screen;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+
+import java.awt.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 
+
 public class VirtualDesktopStorage {
+
+    private static final Logger logger = LoggerFactory.getLogger(VirtualDesktopStorage.class);
 
     private static final VirtualDesktopStorage INSTANCE = new VirtualDesktopStorage();
 
@@ -26,40 +34,53 @@ public class VirtualDesktopStorage {
      * 激活屏幕
      */
     private ScreenInfo activeScreen;
+
+    private double[] mouseLocationTransform = new double[2];
+
     /**
-     * 鼠标位置[x,y]
+     * 虚拟桌面鼠标位置[x,y]
      */
     private int[] mouseLocation = new int[2];
 
+
     public synchronized void setActiveScreen(ScreenInfo activeScreen) {
         this.activeScreen = activeScreen;
+        Rectangle rectangle = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+        mouseLocationTransform[0] = (double) activeScreen.getWidth() / rectangle.width;
+        mouseLocationTransform[1] = (double) activeScreen.getHeight() / rectangle.height;
+        logger.info("mouseLocationTransform: {} {}", mouseLocationTransform[0], mouseLocationTransform[1]);
     }
 
     public ScreenInfo getActiveScreen() {
         return activeScreen;
     }
 
+    public double[] getMouseLocationTransform() {
+        return mouseLocationTransform;
+    }
+
     public synchronized void moveMouseLocation(int dx, int dy) {
         // 锁定鼠标在当前虚拟屏幕内，防止鼠标快速移动跳出屏幕
-        if(this.mouseLocation[0]+dx<activeScreen.getVx()
-                ||this.mouseLocation[0]+dx>activeScreen.getVx()+activeScreen.getWidth()
-                ||this.mouseLocation[1]+dy<activeScreen.getVy()
-                ||this.mouseLocation[1]+dy>activeScreen.getVy()+activeScreen.getHeight()){
+        if (this.mouseLocation[0] + dx < activeScreen.getVx()
+                || this.mouseLocation[0] + dx > activeScreen.getVx() + activeScreen.getWidth()
+                || this.mouseLocation[1] + dy < activeScreen.getVy()
+                || this.mouseLocation[1] + dy > activeScreen.getVy() + activeScreen.getHeight()) {
             return;
         }
         this.mouseLocation[0] += dx;
         this.mouseLocation[1] += dy;
-        setMouseLocation(this.mouseLocation[0],this.mouseLocation[1]);
+        setMouseLocation(this.mouseLocation[0], this.mouseLocation[1]);
     }
 
     public synchronized void setMouseLocation(int x, int y) {
-        if(x<activeScreen.getVx()
-                ||x>activeScreen.getVx()+activeScreen.getWidth()
-                ||y<activeScreen.getVy()
-                ||y>activeScreen.getVy()+activeScreen.getHeight()){
+        if (x < activeScreen.getVx()
+                || x > activeScreen.getVx() + activeScreen.getWidth()
+                || y < activeScreen.getVy()
+                || y > activeScreen.getVy() + activeScreen.getHeight()) {
             return;
         }
-        this.mouseLocation =  new int[]{x, y};
+        logger.debug("setMouseLocation: {} {}", x, y);
+        this.mouseLocation = new int[]{x, y};
     }
 
     public int[] getMouseLocation() {
@@ -78,13 +99,13 @@ public class VirtualDesktopStorage {
     private Rectangle2D virtualBounds;
     private Set<VirtualDesktopStorageListener> listeners = new HashSet<>();
 
-    public void applyScreen(ScreenInfo screen){
-        screens.put(screen.getDeviceIp()+screen.getScreenName(), screen);
+    public void applyScreen(ScreenInfo screen) {
+        screens.put(screen.getDeviceIp() + screen.getScreenName(), screen);
     }
 
     // 动态添加物理屏幕
     public void addScreen(ScreenInfo screen) {
-        screens.put(screen.getDeviceIp()+screen.getScreenName(), screen);
+        screens.put(screen.getDeviceIp() + screen.getScreenName(), screen);
 //        recalculateBounds();
         this.virtualDesktopChanged();
     }
@@ -120,28 +141,31 @@ public class VirtualDesktopStorage {
 
     /**
      * 获取所有屏幕信息
+     *
      * @return 屏幕信息映射
      */
     public Map<String, ScreenInfo> getScreens() {
         return screens;
     }
-    
+
     /**
      * 添加监听器
+     *
      * @param listener 监听器
      */
     public void addListener(VirtualDesktopStorageListener listener) {
         listeners.add(listener);
     }
-    
+
     /**
      * 移除监听器
+     *
      * @param listener 监听器
      */
     public void removeListener(VirtualDesktopStorageListener listener) {
         listeners.remove(listener);
     }
-    
+
     /**
      * 通知所有监听器
      */
