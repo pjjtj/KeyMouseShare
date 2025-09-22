@@ -46,7 +46,7 @@ mvn javafx:run
 mvn clean package
 
 # 运行Jar包
-./run_jar.sh
+java -jar --module-path="target/lib" --add-modules=javafx.controls,javafx.fxml target\KeyMouseShare-1.0-SNAPSHOT-shaded.jar
 ```
 
 ### 方法3：直接编译运行

@@ -217,12 +217,12 @@ public class MainApplication extends Application implements DeviceListener, Virt
                     .thenAccept(permissionGranted -> {
                         // 这里可以处理权限授予或拒绝后的逻辑
                         if (permissionGranted) {
-                            System.out.println("用户授权控制请求: " + requesterIpAddress);
+                            logger.debug("用户授权控制请求: {}", requesterIpAddress);
                             // 建立与服务器的Netty连接
                             try {
                                 controlRequestManager.establishConnection(requesterIpAddress);
                             } catch (Exception e) {
-                                System.err.println("建立Netty连接失败: " + e.getMessage());
+                                logger.error("建立Netty连接失败: {}", e.getMessage());
                                 e.printStackTrace();
                             }
                         } else {
