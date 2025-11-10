@@ -368,6 +368,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
             if (mouseKeyBoard.isEdgeMode()) {
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
                 if(!mouseKeyBoard.isChangingScreen()){
+                    logger.debug("[changed screen ]:({},{})", x, y);
                     virtualDesktopStorage.setMouseLocation((int) (vScreenInfo.getVx() + x*virtualDesktopStorage.getMouseLocationTransform()[0]), (int) (vScreenInfo.getVy() + y*virtualDesktopStorage.getMouseLocationTransform()[1]));
                     // 鼠标移动事件处理
                     // 这里可以添加鼠标移动的特殊处理逻辑
@@ -383,7 +384,7 @@ public class MainApplication extends Application implements DeviceListener, Virt
                     }
                 }
             } else {
-                logger.debug("鼠标移动：{} {} {}", x, y, mouseKeyBoard.isEdgeMode());
+                logger.debug(",鼠标移动：{} {} {}", x, y, mouseKeyBoard.isEdgeMode());
                 ScreenInfo vScreenInfo = virtualDesktopStorage.getActiveScreen();
                 virtualDesktopStorage.setMouseLocation((int) (vScreenInfo.getVx() + x*virtualDesktopStorage.getMouseLocationTransform()[0]), (int) (vScreenInfo.getVy() + y*virtualDesktopStorage.getMouseLocationTransform()[1]));
             }

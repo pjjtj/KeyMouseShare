@@ -120,7 +120,7 @@ public class WindowMouseKeyBoard extends BaseMouseKeyBoard implements MouseKeyBo
 
     private void enterEdgeMode(String direction) {        // [40]
         edgeMode = true;
-        changingScreen.set( true);
+        changingScreen.set(true);
         try{
             virtualDesktopStorage.enterEdgeMode();
             logger.debug("[enterEdgeMode direction={}:({},{})]", direction, virtualDesktopStorage.getMouseLocation()[0], virtualDesktopStorage.getMouseLocation()[1]);
